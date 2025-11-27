@@ -50,7 +50,7 @@
             Calendar, CheckCircle2, Circle, Clock, AlertTriangle, 
             Users, Package, Truck, BarChart3, Plus, 
             ArrowLeft, Trash2, MapPin, MessageSquare, Send, CornerDownLeft,
-            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon
+            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon, Ban
         } from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { 
@@ -61,13 +61,11 @@
         import { getAnalytics } from "firebase/analytics";
 
         // -----------------------------------------------------------
-        // 🛠️ CONFIGURAÇÃO DE AMBIENTE (LÓGICA HÍBRIDA)
+        // 🛠️ CONFIGURAÇÃO DE AMBIENTE
         // -----------------------------------------------------------
         
-        // Verifica se estamos no ambiente de preview (Canvas)
         const isPreviewEnv = typeof __firebase_config !== 'undefined';
 
-        // Usa configuração do ambiente OU as credenciais fornecidas pelo usuário
         const firebaseConfig = isPreviewEnv ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
             authDomain: "bolsas-termicas.firebaseapp.com",
@@ -80,34 +78,20 @@
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'marketing-event-hub-prod'; 
         
-        // 🛑 TELA DE BLOQUEIO SE NÃO TIVER CONFIGURADO (Fallback de segurança)
         if (!isPreviewEnv && firebaseConfig.apiKey === "SUA_API_KEY_AQUI") {
             const root = document.getElementById('root');
-            root.innerHTML = `
-                <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; background-color:#f8fafc; font-family:sans-serif; padding:20px;">
-                    <div style="max-width:600px; background:white; padding:40px; border-radius:24px; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1); text-align:center;">
-                        <h1 style="color:#1e293b; font-size:1.5rem; font-weight:800; margin-bottom:10px;">Configuração Incompleta</h1>
-                        <p>Por favor, insira sua API Key no código.</p>
-                    </div>
-                </div>
-            `;
-            throw new Error("Aplicação parada: Aguardando configuração de API Key.");
+            root.innerHTML = `<div style="padding:20px; text-align:center;"><h1>Configuração Incompleta</h1><p>Verifique o código fonte.</p></div>`;
+            throw new Error("API Key não configurada.");
         }
 
-        // Inicialização Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Inicializa Analytics apenas se suportado no ambiente (opcional para evitar erros em alguns iframes)
         let analytics;
-        try {
-            analytics = getAnalytics(app);
-        } catch (e) {
-            console.log("Analytics não inicializado (ambiente restrito ou não suportado):", e);
-        }
+        try { analytics = getAnalytics(app); } catch (e) { console.log("Analytics skipped"); }
 
-        // --- Constantes e Dados Iniciais ---
+        // --- Constantes ---
         const PRESET_COLORS = [
             { color: 'bg-rose-500', bubble: 'bg-rose-100 text-rose-900 border-rose-200' },
             { color: 'bg-violet-600', bubble: 'bg-violet-100 text-violet-900 border-violet-200' },
@@ -137,32 +121,147 @@
             { title: 'Postagens Cobertura (Vídeos/Fotos)', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
         ];
 
-        // --- Componente Avatar ---
+        // --- Helpers ---
+        // Formata data ou intervalo
+        const formatDateRange = (start, end) => {
+            if (!start) return '';
+            const d1 = new Date(start);
+            const d2 = end ? new Date(end) : d1;
+            
+            // Adiciona timezone offset para exibir a data correta (fix para input date)
+            const fixDate = (d) => new Date(d.valueOf() + d.getTimezoneOffset() * 60000);
+            
+            const date1 = fixDate(d1);
+            const date2 = fixDate(d2);
+
+            if (date1.toDateString() === date2.toDateString()) {
+                return date1.toLocaleDateString('pt-BR');
+            }
+            return `${date1.toLocaleDateString('pt-BR')} - ${date2.toLocaleDateString('pt-BR')}`;
+        };
+
+        // --- Componentes ---
         const Avatar = ({ photo, name, color, size = 'md', className = '' }) => {
-            const sizeClasses = {
-                xs: 'w-6 h-6 text-[9px]',
-                sm: 'w-8 h-8 text-[10px]',
-                md: 'w-10 h-10 text-xs',
-                lg: 'w-14 h-14 text-sm',
-                xl: 'w-24 h-24 text-base'
+            const sizeClasses = { xs: 'w-6 h-6 text-[9px]', sm: 'w-8 h-8 text-[10px]', md: 'w-10 h-10 text-xs', lg: 'w-14 h-14 text-sm', xl: 'w-24 h-24 text-base' };
+            if (photo) return <img src={photo} alt={name} className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white shadow-sm hover:scale-105 transition-transform duration-200 ${className}`} />;
+            const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?';
+            return <div className={`${sizeClasses[size]} rounded-full ${color || 'bg-slate-300'} flex items-center justify-center text-white font-bold border-2 border-white shadow-sm ${className}`}>{initials}</div>;
+        };
+
+        const AssigneeSelector = ({ currentAssignee, onSelect, minimal = false, team }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const assignedMember = team.find(m => m.name === currentAssignee) || { name: currentAssignee, color: 'bg-slate-300' };
+            return (
+                <div className="relative">
+                    <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-2 ${minimal ? 'p-1 hover:bg-slate-100 rounded-full' : 'pl-1 pr-3 py-1 bg-white border border-slate-200 rounded-full hover:border-violet-400'} transition-colors group shadow-sm`}>
+                        <Avatar name={currentAssignee} photo={assignedMember?.photo} color={assignedMember?.color} size={minimal ? "xs" : "sm"} />
+                        {!minimal && <span className="text-xs font-medium truncate max-w-[80px] text-slate-700">{currentAssignee ? currentAssignee.split(' ')[0] : 'Resp.'}</span>}
+                    </button>
+                    {isOpen && (
+                        <>
+                            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+                            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden max-h-60 overflow-y-auto">
+                                <div className="p-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">Selecionar</div>
+                                {team.map(member => (
+                                    <button key={member.id} onClick={() => { onSelect(member.name); setIsOpen(false); }} className="w-full flex items-center gap-3 p-2 hover:bg-violet-50 transition-colors text-left">
+                                        <Avatar name={member.name} photo={member.photo} color={member.color} size="sm" />
+                                        <div className="flex flex-col"><span className="text-sm font-medium text-slate-700">{member.name}</span><span className="text-[10px] text-slate-400">{member.role}</span></div>
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        };
+
+        const TaskItem = ({ task, eventId, team, onUpdate, onAddComment }) => {
+            const [expanded, setExpanded] = useState(false);
+            const [commentText, setCommentText] = useState('');
+            const [commentAuthor, setCommentAuthor] = useState('');
+
+            const handleCommentSubmit = () => {
+                if (!commentText.trim()) return;
+                onAddComment(task.id, commentText, commentAuthor || 'Staff');
+                setCommentText('');
             };
 
-            if (photo) {
-                return (
-                    <img 
-                        src={photo} 
-                        alt={name} 
-                        className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white shadow-sm hover:scale-105 transition-transform duration-200 ${className}`}
-                    />
-                );
-            }
-
-            const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?';
-            const bgColor = color || 'bg-slate-300';
-
             return (
-                <div className={`${sizeClasses[size]} rounded-full ${bgColor} flex items-center justify-center text-white font-bold border-2 border-white shadow-sm ${className}`}>
-                    {initials}
+                <div className={`p-4 rounded-xl border transition-all ${task.status === 'done' ? 'bg-emerald-50/50 border-emerald-100' : task.status === 'na' ? 'bg-slate-100 opacity-70' : 'bg-white border-slate-100 hover:border-indigo-100'}`}>
+                    <div className="flex gap-4 items-start">
+                        <button 
+                            onClick={() => onUpdate(task.id, { status: task.status === 'done' ? 'pending' : 'done' })} 
+                            className={`mt-1 flex-shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}
+                        >
+                            <CheckCircle2 size={16} />
+                        </button>
+                        
+                        <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start mb-2">
+                                <span className={`font-semibold text-sm md:text-base ${task.status === 'done' ? 'text-emerald-800 line-through' : 'text-slate-800'}`}>{task.title}</span>
+                                <div className="flex gap-2 shrink-0">
+                                    <button onClick={() => setExpanded(!expanded)} className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border transition-colors ${expanded || (task.comments && task.comments.length > 0) ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-white border-slate-200 text-slate-400'}`}>
+                                        <MessageSquare size={14} /> {task.comments?.length || 0}
+                                    </button>
+                                    <button onClick={() => onUpdate(task.id, { status: task.status === 'na' ? 'pending' : 'na' })} className={`text-xs font-bold px-2 py-1 rounded border ${task.status === 'na' ? 'bg-slate-600 text-white border-slate-600' : 'bg-white border-slate-200 text-slate-400'}`}>N/A</button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-3">
+                                <AssigneeSelector currentAssignee={task.assignee} onSelect={(name) => onUpdate(task.id, { assignee: name })} team={team} />
+                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 bg-white text-xs ${task.deadline && new Date(task.deadline) < new Date() && task.status !== 'done' ? 'border-red-200 text-red-600 bg-red-50' : ''}`}>
+                                    <Calendar size={12} className="opacity-50" />
+                                    <input type="date" value={task.deadline} onChange={(e) => onUpdate(task.id, { deadline: e.target.value })} className="outline-none bg-transparent w-24 cursor-pointer" />
+                                </div>
+                            </div>
+
+                            {/* Área de Comentários Expandida */}
+                            {expanded && (
+                                <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-100 animate-fadeIn">
+                                    {task.comments?.length > 0 ? (
+                                        <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300">
+                                            {task.comments.map(c => {
+                                                const author = team.find(m => m.name === c.authorName) || { name: c.authorName, color: 'bg-slate-300', bubble: 'bg-white border-slate-200' };
+                                                return (
+                                                    <div key={c.id} className="flex gap-2 items-end">
+                                                        <Avatar name={c.authorName} photo={author.photo} color={author.color} size="xs" />
+                                                        <div className={`px-3 py-2 rounded-2xl rounded-bl-none border text-xs shadow-sm ${author.bubble || 'bg-white border-slate-200'}`}>
+                                                            <div className="font-bold text-[10px] opacity-70 mb-0.5">{c.authorName.split(' ')[0]}</div>
+                                                            {c.text}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : <div className="text-xs text-slate-400 text-center py-2 italic">Nenhum comentário.</div>}
+                                    
+                                    <div className="flex gap-2 items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                                        <div className="shrink-0"><AssigneeSelector currentAssignee={commentAuthor} onSelect={setCommentAuthor} minimal team={team} /></div>
+                                        <input 
+                                            value={commentText} 
+                                            onChange={e => setCommentText(e.target.value)} 
+                                            onKeyDown={e => e.key === 'Enter' && handleCommentSubmit()}
+                                            placeholder="Escreva um comentário..." 
+                                            className="flex-1 text-xs outline-none bg-transparent" 
+                                        />
+                                        <button onClick={handleCommentSubmit} disabled={!commentText.trim()} className="bg-indigo-600 text-white p-1.5 rounded-lg disabled:opacity-50"><Send size={14} /></button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Notas Técnicas */}
+                            {(task.notes || task.category === 'logistica' || task.title.includes('Transporte')) && (
+                                <div className="mt-3">
+                                    <textarea 
+                                        value={task.notes || ''} 
+                                        onChange={(e) => onUpdate(task.id, { notes: e.target.value })} 
+                                        placeholder="Adicionar detalhes técnicos (Placa, Motorista, Credencial)..." 
+                                        className="w-full text-xs bg-slate-50/50 border border-slate-200 rounded-lg p-2 h-16 resize-none focus:bg-white focus:border-indigo-300 outline-none transition-colors" 
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -177,427 +276,386 @@
             const [currentView, setCurrentView] = useState('dashboard');
             const [selectedEventId, setSelectedEventId] = useState(null);
             
-            // Modais
+            // Modais e Estados
             const [showNewEventModal, setShowNewEventModal] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
-            
-            // Edição
             const [editingMember, setEditingMember] = useState(null);
-            const [expandedComments, setExpandedComments] = useState({});
+            const [isOneDayEvent, setIsOneDayEvent] = useState(false);
 
-            // Autenticação Robusta
+            // Auth
             useEffect(() => {
                 const initAuth = async () => {
-                    // Se estiver no ambiente de preview com token, usa o token
                     if (isPreviewEnv && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        try {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } catch (e) {
-                            console.warn("Erro ao logar com token customizado, tentando anônimo", e);
-                            await signInAnonymously(auth);
-                        }
-                    } else {
-                        // Caso contrário (GitHub Pages), login anônimo
-                        await signInAnonymously(auth);
-                    }
+                        try { await signInWithCustomToken(auth, __initial_auth_token); } 
+                        catch (e) { await signInAnonymously(auth); }
+                    } else { await signInAnonymously(auth); }
                 };
-                
-                initAuth().catch(err => console.error("Erro na autenticação:", err));
-                const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
-                return () => unsubscribe();
+                initAuth();
+                return onAuthStateChanged(auth, setUser);
             }, []);
 
-            // Buscar Eventos
+            // Fetch
             useEffect(() => {
                 if (!user) return;
-                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    const eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    eventsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                    setEvents(eventsData);
-                    setLoading(false);
-                }, (error) => {
-                    console.error("Erro ao carregar eventos:", error);
+                const unsubEvents = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events')), (snap) => {
+                    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    data.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    setEvents(data);
                     setLoading(false);
                 });
-                return () => unsubscribe();
-            }, [user]);
-
-            // Buscar Equipe
-            useEffect(() => {
-                if (!user) return;
-                const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), orderBy('name'));
-                const unsubscribe = onSnapshot(q, (snapshot) => {
-                    if (!snapshot.empty) {
-                        setTeam(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-                    } else {
-                        // Criar equipe padrão se vazio
-                        const defaultTeam = [
-                            { name: 'Suzana Santos', role: 'Gestão', color: 'bg-rose-500', bubble: 'bg-rose-100 text-rose-900 border-rose-200' },
-                            { name: 'Felipe Paiva', role: 'Design', color: 'bg-violet-600', bubble: 'bg-violet-100 text-violet-900 border-violet-200' },
-                            { name: 'Matheus Silva', role: 'Logística', color: 'bg-amber-500', bubble: 'bg-amber-100 text-amber-900 border-amber-200' },
-                            { name: 'Larissa Tomé', role: 'Eventos', color: 'bg-cyan-500', bubble: 'bg-cyan-100 text-cyan-900 border-cyan-200' },
-                        ];
-                        defaultTeam.forEach(member => {
-                            addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), member);
-                        });
-                    }
-                }, (error) => console.error("Erro ao carregar equipe:", error));
-                return () => unsubscribe();
-            }, [user]);
-
-            // Buscar Configurações
-            useEffect(() => {
-                if (!user) return;
-                const unsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), (doc) => {
-                    if (doc.exists()) {
-                        setSettings(doc.data());
-                    }
+                const unsubTeam = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), orderBy('name')), (snap) => {
+                    if (!snap.empty) setTeam(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    else { /* Seed default team if needed */ }
                 });
-                return () => unsubscribe();
+                const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), (d) => {
+                    if (d.exists()) setSettings(d.data());
+                });
+                return () => { unsubEvents(); unsubTeam(); unsubSettings(); };
             }, [user]);
 
-            // Lógica e Estatísticas
+            // Stats
             const stats = useMemo(() => {
                 const allTasks = events.flatMap(e => e.tasks);
                 const totalPending = allTasks.filter(t => t.status === 'pending').length;
                 const totalDone = allTasks.filter(t => t.status === 'done').length;
-                
-                const workload = team.map(member => ({
-                    ...member,
-                    count: allTasks.filter(t => t.assignee === member.name && t.status === 'pending').length,
-                }));
-
-                const alerts = events.map(event => {
-                    const pendingCount = event.tasks.filter(t => t.status === 'pending').length;
-                    return { eventId: event.id, eventTitle: event.title, pendingCount, hasWarning: pendingCount > 0 };
-                }).filter(a => a.hasWarning);
-
-                const recentComments = events
-                    .flatMap(e => e.tasks.flatMap(t => (t.comments || []).map(c => ({ ...c, taskTitle: t.title, eventTitle: e.title }))))
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .slice(0, 5);
-
+                const workload = team.map(m => ({ ...m, count: allTasks.filter(t => t.assignee === m.name && t.status === 'pending').length }));
+                const alerts = events.map(e => ({ eventId: e.id, eventTitle: e.title, pendingCount: e.tasks.filter(t => t.status === 'pending').length })).filter(a => a.pendingCount > 0);
+                const recentComments = events.flatMap(e => e.tasks.flatMap(t => (t.comments || []).map(c => ({ ...c, taskTitle: t.title, eventTitle: e.title })))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
                 return { totalPending, totalDone, workload, alerts, recentComments };
             }, [events, team]);
 
-            const getMemberData = (name) => team.find(m => m.name === name) || { name, role: 'Staff', color: 'bg-slate-400', bubble: 'bg-slate-100 text-slate-800' };
-
-            // Funções Auxiliares
-            const handleFileUpload = (file) => {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-            };
-
-            const updateLogo = async (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    const base64 = await handleFileUpload(e.target.files[0]);
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logo: base64 }, { merge: true });
-                }
-            };
-
+            const handleFileUpload = (file) => new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(file); });
+            const updateLogo = async (e) => { if (e.target.files[0]) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logo: await handleFileUpload(e.target.files[0]) }, { merge: true }); };
+            
             const addTeamMember = async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target);
-                const name = formData.get('name');
-                const role = formData.get('role');
-                const file = formData.get('photo');
-                
-                let photo = '';
-                if (file.size > 0) {
-                    photo = await handleFileUpload(file);
-                }
-
-                const randomColor = PRESET_COLORS[team.length % PRESET_COLORS.length];
-
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), {
-                    name, role, photo, ...randomColor
-                });
+                const fd = new FormData(e.target);
+                const member = { name: fd.get('name'), role: fd.get('role'), photo: fd.get('photo').size > 0 ? await handleFileUpload(fd.get('photo')) : '', ...PRESET_COLORS[team.length % PRESET_COLORS.length] };
+                addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), member);
                 e.target.reset();
             };
-
             const updateTeamMember = async (e) => {
                 e.preventDefault();
-                if (!editingMember) return;
-                const formData = new FormData(e.target);
-                const updates = { 
-                    name: formData.get('name'), 
-                    role: formData.get('role') 
-                };
-                if (formData.get('photo').size > 0) {
-                    updates.photo = await handleFileUpload(formData.get('photo'));
-                }
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', editingMember.id), updates);
-                setEditingMember(null);
-                e.target.reset();
+                const fd = new FormData(e.target);
+                const updates = { name: fd.get('name'), role: fd.get('role') };
+                if (fd.get('photo').size > 0) updates.photo = await handleFileUpload(fd.get('photo'));
+                updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', editingMember.id), updates);
+                setEditingMember(null); e.target.reset();
             };
-
-            const deleteTeamMember = async (id) => {
-                if(confirm('Remover membro?')) {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', id));
-                }
-            };
-
-            // Ações do Evento
+            
+            // Create Event Logic
             const handleCreateEvent = async (e) => {
                 e.preventDefault();
-                if (!user) return;
-                const formData = new FormData(e.target);
-                const newEvent = {
-                    title: formData.get('title'),
-                    date: formData.get('date'),
-                    location: formData.get('location'),
-                    mainResponsible: formData.get('responsible'),
-                    status: 'planning',
-                    leadsCount: 0,
-                    feedback: '',
-                    createdAt: serverTimestamp(),
-                    tasks: DEFAULT_TASKS.map(t => ({ ...t, id: crypto.randomUUID() }))
+                const fd = new FormData(e.target);
+                const startDate = fd.get('startDate');
+                // Se for evento de 1 dia, data fim é igual a data inicio
+                const endDate = isOneDayEvent ? startDate : fd.get('endDate');
+
+                const newEvent = { 
+                    title: fd.get('title'), 
+                    date: startDate, // Mantendo 'date' como inicio para compatibilidade
+                    endDate: endDate,
+                    location: fd.get('location'), 
+                    mainResponsible: fd.get('responsible'), 
+                    status: 'planning', 
+                    leadsCount: 0, 
+                    feedback: '', 
+                    createdAt: serverTimestamp(), 
+                    tasks: DEFAULT_TASKS.map(t => ({ ...t, id: crypto.randomUUID() })) 
                 };
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'), newEvent);
+                
+                addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'), newEvent);
                 setShowNewEventModal(false);
+                setIsOneDayEvent(false);
+            };
+            
+            const updateTask = (evId, tId, ups) => {
+                const ev = events.find(e => e.id === evId);
+                updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: ev.tasks.map(t => t.id === tId ? { ...t, ...ups } : t) });
+            };
+            const addComment = (evId, tId, txt, auth) => {
+                const ev = events.find(e => e.id === evId);
+                const newC = { id: crypto.randomUUID(), text: txt, authorName: auth, createdAt: new Date().toISOString() };
+                updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: ev.tasks.map(t => t.id === tId ? { ...t, comments: [...(t.comments||[]), newC] } : t) });
+            };
+            const addTask = (evId, title, cat) => {
+                const ev = events.find(e => e.id === evId);
+                const newT = { id: crypto.randomUUID(), title, category: cat, assignee: '', status: 'pending', deadline: '' };
+                updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: [...ev.tasks, newT] });
             };
 
-            const handleUpdateTask = async (eventId, taskId, updates) => {
-                const event = events.find(e => e.id === eventId);
-                const updatedTasks = event.tasks.map(t => t.id === taskId ? { ...t, ...updates } : t);
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', eventId), { tasks: updatedTasks });
-            };
-
-            const handleAddTaskComment = async (eventId, taskId, text, author) => {
-                const event = events.find(e => e.id === eventId);
-                const newComment = { id: crypto.randomUUID(), text, authorName: author, createdAt: new Date().toISOString() };
-                const updatedTasks = event.tasks.map(t => t.id === taskId ? { ...t, comments: [...(t.comments || []), newComment] } : t);
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', eventId), { tasks: updatedTasks });
-            };
-
-            // --- Views ---
-            const AssigneeSelector = ({ currentAssignee, onSelect, minimal = false }) => {
-                const [isOpen, setIsOpen] = useState(false);
-                const assignedMember = getMemberData(currentAssignee);
-                return (
-                    <div className="relative">
-                        <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-2 ${minimal ? 'p-1 hover:bg-slate-100 rounded-full' : 'pl-1 pr-3 py-1 bg-white border border-slate-200 rounded-full hover:border-violet-400'} transition-colors group shadow-sm`}>
-                            <Avatar name={currentAssignee} photo={assignedMember?.photo} color={assignedMember?.color} size={minimal ? "xs" : "sm"} />
-                            {!minimal && <span className="text-xs font-medium truncate max-w-[80px] text-slate-700">{currentAssignee ? currentAssignee.split(' ')[0] : 'Resp.'}</span>}
-                        </button>
-                        {isOpen && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-                                <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden max-h-60 overflow-y-auto">
-                                    <div className="p-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">Selecionar</div>
-                                    {team.map(member => (
-                                        <button key={member.id} onClick={() => { onSelect(member.name); setIsOpen(false); }} className="w-full flex items-center gap-3 p-2 hover:bg-violet-50 transition-colors text-left">
-                                            <Avatar name={member.name} photo={member.photo} color={member.color} size="sm" />
-                                            <div className="flex flex-col"><span className="text-sm font-medium text-slate-700">{member.name}</span><span className="text-[10px] text-slate-400">{member.role}</span></div>
-                                        </button>
-                                    ))}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                );
-            };
-
-            if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
-
-            return (
-                <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 max-w-7xl mx-auto">
-                    {/* Header e Navegação */}
-                    {currentView === 'dashboard' ? (
-                        <div className="space-y-8 animate-fadeIn pb-20">
-                            {/* Hero Dashboard */}
-                            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                                <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
-                                    <div className="flex items-center gap-6">
-                                        {settings.logo && <img src={settings.logo} className="h-16 object-contain" />}
-                                        {settings.logo && <div className="h-10 w-px bg-slate-200 hidden md:block"></div>}
-                                        <div><h1 className="text-2xl font-black text-slate-800 tracking-tight">Event Hub</h1><p className="text-slate-500 font-medium text-sm">Painel de Marketing</p></div>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button onClick={() => setShowSettingsModal(true)} className="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200"><Settings size={20} /></button>
-                                        <button onClick={() => setShowNewEventModal(true)} className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:scale-105 transition-all"><Plus size={20} /> Novo Evento</button>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
-                                        <div className="relative w-24 h-24 flex-shrink-0">
-                                            <svg className="w-full h-full" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" /><circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray={`${(stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 251} 251`} strokeDashoffset="0" className="origin-center -rotate-90" /></svg>
-                                            <div className="absolute inset-0 flex items-center justify-center flex-col"><span className="text-xl font-black text-slate-700">{Math.round((stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 100)}%</span></div>
-                                        </div>
-                                        <div><h3 className="font-bold text-slate-800">Status Global</h3><div className="flex gap-3 text-xs font-bold mt-2"><span className="text-emerald-600 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalDone} Feitas</span><span className="text-amber-500 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalPending} Pend.</span></div></div>
-                                    </div>
-
-                                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 col-span-1 md:col-span-2">
-                                        <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Users size={16} /> Carga de Trabalho</h3>
-                                        <div className="flex gap-4 items-end h-24 overflow-x-auto pb-2">
-                                            {stats.workload.map(member => (
-                                                <div key={member.id} className="flex flex-col items-center gap-2 min-w-[50px]">
-                                                    <div className="w-8 bg-slate-200 rounded-t-lg relative flex-1 min-h-[10px]"><div className="absolute bottom-0 left-0 right-0 bg-indigo-600 rounded-t-lg transition-all" style={{ height: `${Math.max(Math.min((member.count / 10) * 100, 100), 5)}%` }}></div></div>
-                                                    <Avatar name={member.name} photo={member.photo} color={member.color} size="xs" />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
+            // View Components
+            const DashboardView = () => (
+                <div className="space-y-8 animate-fadeIn pb-20">
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
+                            <div className="flex items-center gap-6">
+                                {settings.logo && <img src={settings.logo} className="h-16 object-contain" />}
+                                {settings.logo && <div className="h-10 w-px bg-slate-200 hidden md:block"></div>}
+                                <div><h1 className="text-2xl font-black text-slate-800 tracking-tight">Event Hub</h1><p className="text-slate-500 font-medium text-sm">Painel de Marketing</p></div>
                             </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <div className="lg:col-span-2 space-y-4">
-                                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><div className="text-indigo-600"><Clock /></div> Próximos Eventos</h2>
-                                    {events.map(event => {
-                                        const pending = event.tasks.filter(t => t.status === 'pending').length;
-                                        return (
-                                            <div key={event.id} onClick={() => { setSelectedEventId(event.id); setCurrentView('detail'); }} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 relative">
-                                                {pending > 0 && <div className="absolute top-4 right-4 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100 flex items-center gap-1"><AlertTriangle size={12}/> faltam {pending}</div>}
-                                                <div className="flex gap-4">
-                                                    <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[70px]"><span className="block text-xs font-bold text-slate-500 uppercase">{new Date(event.date).toLocaleDateString('pt-BR', { month: 'short' })}</span><span className="block text-2xl font-black text-slate-800">{new Date(event.date).getDate()}</span></div>
-                                                    <div><h3 className="text-lg font-bold text-slate-800">{event.title}</h3><p className="text-sm text-slate-500 flex items-center gap-1"><MapPin size={14}/> {event.location}</p></div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowSettingsModal(true)} className="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold flex gap-2 hover:bg-slate-200"><Settings size={20} /></button>
+                                <button onClick={() => { setShowNewEventModal(true); setIsOneDayEvent(false); }} className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold flex gap-2 shadow-lg hover:scale-105 transition-all"><Plus size={20} /> Novo Evento</button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
+                                <div className="relative w-24 h-24 flex-shrink-0">
+                                    <svg className="w-full h-full" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" /><circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray={`${(stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 251} 251`} strokeDashoffset="0" className="origin-center -rotate-90" /></svg>
+                                    <div className="absolute inset-0 flex items-center justify-center flex-col"><span className="text-xl font-black text-slate-700">{Math.round((stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 100)}%</span></div>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 max-h-[500px] overflow-auto flex flex-col">
-                                        <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><MessageSquare size={18} className="text-indigo-500" /> Atualizações</h3>
-                                        <div className="space-y-4">
-                                            {stats.recentComments.map((c, i) => {
-                                                const author = getMemberData(c.authorName);
-                                                return (
-                                                    <div key={i} className="flex gap-3 pb-3 border-b border-slate-50 last:border-0">
-                                                        <Avatar name={c.authorName} photo={author?.photo} color={author?.color} size="xs" className="mt-1"/>
-                                                        <div>
-                                                            <div className="flex gap-2 items-baseline"><span className="text-xs font-bold text-slate-700">{c.authorName.split(' ')[0]}</span><span className="text-[10px] text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</span></div>
-                                                            <div className="text-[10px] text-indigo-500 font-medium mb-1 flex items-center gap-1"><CornerDownLeft size={10}/> {c.eventTitle}</div>
-                                                            <p className="text-xs bg-slate-50 p-2 rounded-lg text-slate-600">{c.text}</p>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
+                                <div><h3 className="font-bold text-slate-800">Status Global</h3><div className="flex gap-3 text-xs font-bold mt-2"><span className="text-emerald-600 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalDone} Feitas</span><span className="text-amber-500 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalPending} Pend.</span></div></div>
+                            </div>
+                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 col-span-1 md:col-span-2">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Users size={16} /> Carga de Trabalho</h3>
+                                <div className="flex gap-4 items-end h-24 overflow-x-auto pb-2">
+                                    {stats.workload.map(m => (
+                                        <div key={m.id} className="flex flex-col items-center gap-2 min-w-[50px]">
+                                            <div className="w-8 bg-slate-200 rounded-t-lg relative flex-1 min-h-[10px]"><div className="absolute bottom-0 left-0 right-0 bg-indigo-600 rounded-t-lg transition-all" style={{ height: `${Math.max(Math.min((m.count / 10) * 100, 100), 5)}%` }}></div></div>
+                                            <Avatar name={m.name} photo={m.photo} color={m.color} size="xs" />
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
-                    ) : (
-                        <div className="animate-fadeIn pb-20">
-                            {/* Detalhe do Evento */}
-                            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl mb-8 flex flex-col md:flex-row justify-between gap-6">
-                                <div className="flex items-center gap-4">
-                                    <button onClick={() => setCurrentView('dashboard')} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-600"><ArrowLeft size={24}/></button>
-                                    <div>
-                                        <h1 className="text-3xl font-black text-slate-800">{events.find(e => e.id === selectedEventId)?.title}</h1>
-                                        <div className="flex gap-4 text-sm text-slate-500 mt-2"><span className="flex gap-2"><Clock size={16}/> {new Date(events.find(e => e.id === selectedEventId)?.date).toLocaleDateString()}</span></div>
-                                    </div>
-                                </div>
-                                <div className="flex gap-4">
-                                    <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl">
-                                        <Avatar name={events.find(e => e.id === selectedEventId)?.mainResponsible} photo={getMemberData(events.find(e => e.id === selectedEventId)?.mainResponsible)?.photo} color={getMemberData(events.find(e => e.id === selectedEventId)?.mainResponsible)?.color} size="md"/>
-                                        <div><p className="text-xs font-bold text-slate-400 uppercase">Líder</p><p className="font-bold text-slate-700 text-sm">{events.find(e => e.id === selectedEventId)?.mainResponsible}</p></div>
-                                    </div>
-                                    <button onClick={() => { if(confirm('Excluir?')) { deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', selectedEventId)); setCurrentView('dashboard'); }}} className="text-red-400 hover:bg-red-50 p-3 rounded-lg"><Trash2/></button>
-                                </div>
-                            </div>
-                            
-                            {/* Lista de Tarefas Simplificada para Exemplo */}
-                            <div className="bg-white rounded-2xl shadow-xl p-6">
-                                <h3 className="font-bold text-lg mb-4">Tarefas</h3>
-                                {events.find(e => e.id === selectedEventId)?.tasks.map(task => (
-                                    <div key={task.id} className="p-4 border-b border-slate-100 last:border-0 flex gap-4 hover:bg-slate-50 transition-colors">
-                                        <button onClick={() => handleUpdateTask(selectedEventId, task.id, { status: task.status === 'done' ? 'pending' : 'done' })} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center ${task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}><CheckCircle2 size={16}/></button>
-                                        <div className="flex-1">
-                                            <div className="flex justify-between">
-                                                <span className={`font-semibold ${task.status === 'done' ? 'text-emerald-800 line-through' : 'text-slate-800'}`}>{task.title}</span>
-                                                <AssigneeSelector currentAssignee={task.assignee} onSelect={(name) => handleUpdateTask(selectedEventId, task.id, { assignee: name })} minimal />
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2 space-y-4">
+                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><div className="text-indigo-600"><Clock /></div> Próximos Eventos</h2>
+                            {events.map(ev => {
+                                const pend = ev.tasks.filter(t => t.status === 'pending').length;
+                                return (
+                                    <div key={ev.id} onClick={() => { setSelectedEventId(ev.id); setCurrentView('detail'); }} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 relative group">
+                                        {pend > 0 && <div className="absolute top-4 right-4 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100 flex items-center gap-1 animate-pulse"><AlertTriangle size={12}/> faltam {pend}</div>}
+                                        <div className="flex gap-4">
+                                            <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[70px]">
+                                                <span className="block text-xs font-bold text-slate-500 uppercase">{new Date(ev.date).toLocaleDateString('pt-BR', { month: 'short' })}</span>
+                                                <span className="block text-2xl font-black text-slate-800">{new Date(ev.date).getDate()}</span>
                                             </div>
-                                            
-                                            <div className="mt-2 flex gap-2">
-                                                <button onClick={() => setExpandedComments(p => ({...p, [task.id]: !p[task.id]}))} className="text-xs font-bold text-slate-400 flex items-center gap-1 hover:text-indigo-600"><MessageSquare size={14}/> {task.comments?.length||0}</button>
-                                                <input type="date" value={task.deadline} onChange={(e) => handleUpdateTask(selectedEventId, task.id, { deadline: e.target.value })} className="text-xs border rounded px-1 bg-transparent" />
+                                            <div>
+                                                <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{ev.title}</h3>
+                                                <p className="text-sm text-slate-500 flex items-center gap-1">
+                                                    <MapPin size={14}/> {ev.location}
+                                                </p>
+                                                <p className="text-xs text-indigo-600 mt-1 font-semibold">
+                                                    {formatDateRange(ev.date, ev.endDate)}
+                                                </p>
                                             </div>
-
-                                            {expandedComments[task.id] && (
-                                                <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                                    <div className="space-y-2 mb-2 max-h-40 overflow-auto">
-                                                        {task.comments?.map(c => (
-                                                            <div key={c.id} className="text-xs bg-white p-2 rounded shadow-sm">
-                                                                <span className="font-bold">{c.authorName.split(' ')[0]}:</span> {c.text}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <input id={`comment-${task.id}`} placeholder="Comentar..." className="flex-1 text-xs p-1 border rounded" />
-                                                        <button onClick={() => { const input = document.getElementById(`comment-${task.id}`); if(input.value) { handleAddTaskComment(selectedEventId, task.id, input.value, events.find(e=>e.id===selectedEventId).mainResponsible); input.value=''; } }} className="bg-indigo-600 text-white p-1 rounded"><Send size={12}/></button>
-                                                    </div>
-                                                </div>
-                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 max-h-[500px] overflow-auto flex flex-col">
+                            <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><MessageSquare size={18} className="text-indigo-500" /> Atualizações</h3>
+                            <div className="space-y-4">
+                                {stats.recentComments.map((c, i) => (
+                                    <div key={i} className="flex gap-3 pb-3 border-b border-slate-50 last:border-0">
+                                        <Avatar name={c.authorName} photo={team.find(m=>m.name===c.authorName)?.photo} color={team.find(m=>m.name===c.authorName)?.color} size="xs" className="mt-1"/>
+                                        <div>
+                                            <div className="flex gap-2 items-baseline"><span className="text-xs font-bold text-slate-700">{c.authorName.split(' ')[0]}</span><span className="text-[10px] text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</span></div>
+                                            <div className="text-[10px] text-indigo-500 font-medium mb-1 flex items-center gap-1"><CornerDownLeft size={10}/> {c.eventTitle}</div>
+                                            <p className="text-xs bg-slate-50 p-2 rounded-lg text-slate-600">{c.text}</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    )}
+                    </div>
+                </div>
+            );
 
-                    {/* Modal Configurações */}
-                    {showSettingsModal && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
-                                <div className="bg-slate-800 p-6 text-white flex justify-between items-center">
-                                    <h2 className="text-xl font-bold flex gap-2"><Settings className="text-violet-400"/> Configurações</h2>
-                                    <button onClick={() => { setShowSettingsModal(false); setEditingMember(null); }}><X/></button>
+            const EventDetailView = () => {
+                const event = events.find(e => e.id === selectedEventId);
+                const [activeTab, setActiveTab] = useState('produto');
+                const [newTaskName, setNewTaskName] = useState('');
+                
+                if (!event) return null;
+                
+                const categories = [
+                    { id: 'produto', label: 'Planejamento & Produto', icon: Package, color: 'text-rose-500', bg: 'bg-rose-50' },
+                    { id: 'logistica', label: 'Logística & Estande', icon: Truck, color: 'text-amber-500', bg: 'bg-amber-50' },
+                    { id: 'staff', label: 'Staff & Viagem', icon: Users, color: 'text-cyan-500', bg: 'bg-cyan-50' },
+                    { id: 'pos-evento', label: 'Pós-Evento & Leads', icon: BarChart3, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+                ];
+                
+                const filteredTasks = event.tasks.filter(t => t.category === activeTab);
+
+                return (
+                    <div className="animate-fadeIn pb-20">
+                        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl mb-8 flex flex-col md:flex-row justify-between gap-6 border border-slate-100">
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setCurrentView('dashboard')} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-600"><ArrowLeft size={24}/></button>
+                                <div>
+                                    <h1 className="text-3xl font-black text-slate-800">{event.title}</h1>
+                                    <div className="flex gap-4 text-sm text-slate-500 mt-2">
+                                        <span className="flex gap-2 font-medium text-slate-600">
+                                            <Clock size={16}/> {formatDateRange(event.date, event.endDate)}
+                                        </span>
+                                        <span className="flex gap-2"><MapPin size={16}/> {event.location}</span>
+                                    </div>
                                 </div>
-                                <div className="p-8 overflow-y-auto space-y-8 flex-1">
-                                    <section>
-                                        <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><ImageIcon size={20} className="text-violet-600"/> Logo</h3>
-                                        <div className="flex items-center gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                                            <div className="w-32 h-16 bg-white border rounded flex items-center justify-center overflow-hidden">{settings.logo ? <img src={settings.logo} className="w-full h-full object-contain"/> : <span className="text-xs text-slate-400">Sem Logo</span>}</div>
-                                            <div><label className="block text-sm font-medium mb-2">Carregar logo</label><input type="file" accept="image/*" onChange={updateLogo} className="text-xs text-slate-500"/></div>
+                            </div>
+                            <div className="flex gap-4 items-center">
+                                <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    <Avatar name={event.mainResponsible} photo={team.find(m=>m.name===event.mainResponsible)?.photo} color={team.find(m=>m.name===event.mainResponsible)?.color} size="md"/>
+                                    <div><p className="text-xs font-bold text-slate-400 uppercase">Líder</p><p className="font-bold text-slate-700 text-sm">{event.mainResponsible}</p></div>
+                                </div>
+                                <button onClick={() => { if(confirm('Excluir evento?')) { deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', selectedEventId)); setCurrentView('dashboard'); }}} className="text-red-400 hover:bg-red-50 p-3 rounded-lg"><Trash2/></button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2">
+                                {/* Navegação de Abas */}
+                                <div className="flex overflow-x-auto gap-2 mb-4 pb-2">
+                                    {categories.map(cat => (
+                                        <button 
+                                            key={cat.id} 
+                                            onClick={() => setActiveTab(cat.id)} 
+                                            className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === cat.id ? 'bg-white shadow-md text-slate-800 border border-slate-100' : 'text-slate-500 hover:bg-white/50'}`}
+                                        >
+                                            <cat.icon size={16} className={cat.color} /> {cat.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4">
+                                    {filteredTasks.length === 0 && <div className="text-center py-10 text-slate-400">Nenhuma tarefa nesta etapa.</div>}
+                                    
+                                    {filteredTasks.map(task => (
+                                        <TaskItem 
+                                            key={task.id} 
+                                            task={task} 
+                                            eventId={event.id}
+                                            team={team}
+                                            onUpdate={(tId, ups) => updateTask(event.id, tId, ups)}
+                                            onAddComment={(tId, txt, auth) => addComment(event.id, tId, txt, auth)}
+                                        />
+                                    ))}
+
+                                    <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
+                                        <input 
+                                            value={newTaskName} 
+                                            onChange={e => setNewTaskName(e.target.value)} 
+                                            onKeyDown={e => e.key === 'Enter' && newTaskName && (addTask(event.id, newTaskName, activeTab), setNewTaskName(''))}
+                                            placeholder={`Nova tarefa de ${categories.find(c=>c.id===activeTab).label.split(' ')[0]}...`} 
+                                            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100" 
+                                        />
+                                        <button onClick={() => { if(newTaskName){ addTask(event.id, newTaskName, activeTab); setNewTaskName(''); } }} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors"><Plus /></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
+                                    <h3 className="font-bold text-slate-800 mb-4 flex gap-2 items-center"><BarChart3 size={18} className="text-emerald-500"/> Pós-Evento</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Leads Capturados</label>
+                                            <input type="number" value={event.leadsCount||0} onChange={e => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', event.id), { leadsCount: parseInt(e.target.value) })} className="w-full p-3 border border-slate-200 rounded-xl text-2xl font-black text-center text-slate-700 outline-none focus:border-indigo-300" />
                                         </div>
-                                    </section>
-                                    <section>
-                                        <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><Users size={20} className="text-violet-600"/> Equipe</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                            {team.map(member => (
-                                                <div key={member.id} className={`flex items-center gap-3 p-3 bg-white border rounded-xl shadow-sm ${editingMember?.id === member.id ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200'}`}>
-                                                    <Avatar name={member.name} photo={member.photo} color={member.color}/>
-                                                    <div className="flex-1 min-w-0"><p className="font-bold text-sm truncate">{member.name}</p><p className="text-xs text-slate-500 truncate">{member.role}</p></div>
-                                                    <div className="flex gap-1">
-                                                        <button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-violet-600 p-2"><Pencil size={16}/></button>
-                                                        <button onClick={() => deleteTeamMember(member.id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={16}/></button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        <div>
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Feedback & Anotações</label>
+                                            <textarea value={event.feedback||''} onChange={e => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', event.id), { feedback: e.target.value })} className="w-full p-3 border border-slate-200 rounded-xl h-32 text-sm resize-none outline-none focus:border-indigo-300" placeholder="Resumo do evento..." />
                                         </div>
-                                        <div className={`bg-slate-50 p-6 rounded-2xl border ${editingMember ? 'border-violet-200 bg-violet-50' : 'border-slate-200'}`}>
-                                            <div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold flex gap-2">{editingMember ? <><Pencil size={16}/> Editando: {editingMember.name}</> : <><UserPlus size={16}/> Novo Membro</>}</h4>{editingMember && <button onClick={() => setEditingMember(null)} className="text-xs underline">Cancelar</button>}</div>
-                                            <form onSubmit={editingMember ? updateTeamMember : addTeamMember} className="space-y-4">
-                                                <div className="grid grid-cols-2 gap-4"><input required name="name" defaultValue={editingMember?.name} placeholder="Nome" className="p-2 border rounded-lg text-sm"/><input required name="role" defaultValue={editingMember?.role} placeholder="Cargo" className="p-2 border rounded-lg text-sm"/></div>
-                                                <div><label className="text-xs font-medium text-slate-600">Foto</label><input name="photo" type="file" accept="image/*" className="block w-full text-xs text-slate-500 mt-1"/></div>
-                                                <button type="submit" className={`w-full text-white py-2 rounded-lg font-bold text-sm ${editingMember ? 'bg-violet-600' : 'bg-slate-800'}`}>{editingMember ? 'Salvar' : 'Adicionar'}</button>
-                                            </form>
-                                        </div>
-                                    </section>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                );
+            };
 
-                    {/* Modal Novo Evento */}
+            const SettingsModal = () => (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="bg-slate-800 p-6 text-white flex justify-between items-center">
+                            <h2 className="text-xl font-bold flex gap-2"><Settings className="text-violet-400"/> Configurações</h2>
+                            <button onClick={() => { setShowSettingsModal(false); setEditingMember(null); }}><X/></button>
+                        </div>
+                        <div className="p-8 overflow-y-auto space-y-8 flex-1">
+                            <section>
+                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><ImageIcon size={20} className="text-violet-600"/> Logo</h3>
+                                <div className="flex items-center gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                    <div className="w-32 h-16 bg-white border rounded flex items-center justify-center overflow-hidden">{settings.logo ? <img src={settings.logo} className="w-full h-full object-contain"/> : <span className="text-xs text-slate-400">Sem Logo</span>}</div>
+                                    <div><label className="block text-sm font-medium mb-2">Carregar logo</label><input type="file" accept="image/*" onChange={updateLogo} className="text-xs text-slate-500"/></div>
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><Users size={20} className="text-violet-600"/> Equipe</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    {team.map(member => (
+                                        <div key={member.id} className={`flex items-center gap-3 p-3 bg-white border rounded-xl shadow-sm ${editingMember?.id === member.id ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200'}`}>
+                                            <Avatar name={member.name} photo={member.photo} color={member.color}/>
+                                            <div className="flex-1 min-w-0"><p className="font-bold text-sm truncate">{member.name}</p><p className="text-xs text-slate-500 truncate">{member.role}</p></div>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-violet-600 p-2"><Pencil size={16}/></button>
+                                                <button onClick={() => { if(confirm('Remover?')) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', member.id)); }} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={16}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className={`bg-slate-50 p-6 rounded-2xl border ${editingMember ? 'border-violet-200 bg-violet-50' : 'border-slate-200'}`}>
+                                    <div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold flex gap-2">{editingMember ? <><Pencil size={16}/> Editando: {editingMember.name}</> : <><UserPlus size={16}/> Novo Membro</>}</h4>{editingMember && <button onClick={() => setEditingMember(null)} className="text-xs underline">Cancelar</button>}</div>
+                                    <form onSubmit={editingMember ? updateTeamMember : addTeamMember} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4"><input required name="name" defaultValue={editingMember?.name} placeholder="Nome" className="p-2 border rounded-lg text-sm"/><input required name="role" defaultValue={editingMember?.role} placeholder="Cargo" className="p-2 border rounded-lg text-sm"/></div>
+                                        <div><label className="text-xs font-medium text-slate-600">Foto</label><input name="photo" type="file" accept="image/*" className="block w-full text-xs text-slate-500 mt-1"/></div>
+                                        <button type="submit" className={`w-full text-white py-2 rounded-lg font-bold text-sm ${editingMember ? 'bg-violet-600' : 'bg-slate-800'}`}>{editingMember ? 'Salvar' : 'Adicionar'}</button>
+                                    </form>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
+
+            return (
+                <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 max-w-7xl mx-auto">
+                    {currentView === 'dashboard' ? <DashboardView /> : <EventDetailView />}
+                    {showSettingsModal && <SettingsModal />}
                     {showNewEventModal && (
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
                                 <div className="bg-blue-900 p-6 text-white"><h2 className="text-2xl font-black">Novo Evento</h2></div>
                                 <form onSubmit={handleCreateEvent} className="p-8 space-y-4">
                                     <input required name="title" placeholder="Nome" className="w-full p-3 border rounded-xl"/>
-                                    <div className="grid grid-cols-2 gap-4"><input required name="date" type="date" className="p-3 border rounded-xl"/><select name="responsible" className="p-3 border rounded-xl">{team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select></div>
-                                    <input required name="location" placeholder="Local" className="w-full p-3 border rounded-xl"/>
-                                    <div className="flex gap-4 mt-4"><button type="button" onClick={() => setShowNewEventModal(false)} className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl">Cancelar</button><button type="submit" className="flex-1 py-3 bg-blue-900 text-white rounded-xl font-bold">Criar</button></div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">Início</label>
+                                            <input required name="startDate" type="date" className="p-3 border rounded-xl w-full" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 mb-1">Fim</label>
+                                            <input required={!isOneDayEvent} disabled={isOneDayEvent} name="endDate" type="date" className="p-3 border rounded-xl w-full disabled:bg-slate-100 disabled:text-slate-400" />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            type="checkbox" 
+                                            id="oneDay" 
+                                            checked={isOneDayEvent} 
+                                            onChange={(e) => setIsOneDayEvent(e.target.checked)} 
+                                            className="w-4 h-4 text-blue-900 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor="oneDay" className="text-sm text-slate-600 cursor-pointer">Evento de um único dia</label>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <select name="responsible" className="p-3 border rounded-xl w-full">
+                                            {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                                        </select>
+                                        <input required name="location" placeholder="Local" className="w-full p-3 border rounded-xl"/>
+                                    </div>
+
+                                    <div className="flex gap-4 mt-4">
+                                        <button type="button" onClick={() => setShowNewEventModal(false)} className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl">Cancelar</button>
+                                        <button type="submit" className="flex-1 py-3 bg-blue-900 text-white rounded-xl font-bold">Criar</button>
+                                    </div>
                                 </form>
                             </div>
                         </div>
