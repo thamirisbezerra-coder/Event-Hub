@@ -14,7 +14,12 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-slideIn { animation: slideIn 0.3s ease-out; }
+        .animate-bounce-short { animation: bounceShort 0.5s ease-in-out 2; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        @keyframes bounceShort { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        
         /* Scrollbar customizada */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -22,7 +27,7 @@
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 
-    <!-- Import Map para gerenciar bibliotecas -->
+    <!-- Import Map -->
     <script type="importmap">
     {
       "imports": {
@@ -36,21 +41,19 @@
       }
     }
     </script>
-    
-    <!-- Babel para traduzir o React no navegador -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo } from 'react';
+        import React, { useState, useEffect, useMemo, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { 
             Calendar, CheckCircle2, Circle, Clock, AlertTriangle, 
             Users, Package, Truck, BarChart3, Plus, 
             ArrowLeft, Trash2, MapPin, MessageSquare, Send, CornerDownLeft,
-            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon, Ban
+            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon, Ban, Bell, Check
         } from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { 
@@ -61,11 +64,9 @@
         import { getAnalytics } from "firebase/analytics";
 
         // -----------------------------------------------------------
-        // 🛠️ CONFIGURAÇÃO DE AMBIENTE
+        // CONFIGURAÇÃO
         // -----------------------------------------------------------
-        
         const isPreviewEnv = typeof __firebase_config !== 'undefined';
-
         const firebaseConfig = isPreviewEnv ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
             authDomain: "bolsas-termicas.firebaseapp.com",
@@ -75,23 +76,18 @@
             appId: "1:372188665466:web:104cdf5b4db6dabe920dc3",
             measurementId: "G-M9J3J6GGH5"
         };
-        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'marketing-event-hub-prod'; 
         
         if (!isPreviewEnv && firebaseConfig.apiKey === "SUA_API_KEY_AQUI") {
-            const root = document.getElementById('root');
-            root.innerHTML = `<div style="padding:20px; text-align:center;"><h1>Configuração Incompleta</h1><p>Verifique o código fonte.</p></div>`;
-            throw new Error("API Key não configurada.");
+            document.body.innerHTML = "<h1 style='padding:20px'>Configure a API Key no código.</h1>";
+            throw new Error("API Key");
         }
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        let analytics;
-        try { analytics = getAnalytics(app); } catch (e) { console.log("Analytics skipped"); }
+        try { getAnalytics(app); } catch (e) {}
 
-        // --- Constantes ---
         const PRESET_COLORS = [
             { color: 'bg-rose-500', bubble: 'bg-rose-100 text-rose-900 border-rose-200' },
             { color: 'bg-violet-600', bubble: 'bg-violet-100 text-violet-900 border-violet-200' },
@@ -122,31 +118,42 @@
         ];
 
         // --- Helpers ---
-        // Formata data ou intervalo
         const formatDateRange = (start, end) => {
             if (!start) return '';
-            const d1 = new Date(start);
-            const d2 = end ? new Date(end) : d1;
-            
-            // Adiciona timezone offset para exibir a data correta (fix para input date)
-            const fixDate = (d) => new Date(d.valueOf() + d.getTimezoneOffset() * 60000);
-            
-            const date1 = fixDate(d1);
-            const date2 = fixDate(d2);
-
-            if (date1.toDateString() === date2.toDateString()) {
-                return date1.toLocaleDateString('pt-BR');
-            }
-            return `${date1.toLocaleDateString('pt-BR')} - ${date2.toLocaleDateString('pt-BR')}`;
+            const d1 = new Date(start); d1.setMinutes(d1.getMinutes() + d1.getTimezoneOffset());
+            const d2 = end ? new Date(end) : d1; d2.setMinutes(d2.getMinutes() + d2.getTimezoneOffset());
+            if (d1.toDateString() === d2.toDateString()) return d1.toLocaleDateString('pt-BR');
+            return `${d1.toLocaleDateString('pt-BR')} - ${d2.toLocaleDateString('pt-BR')}`;
         };
 
-        // --- Componentes ---
+        const getDaysLeft = (dateStr) => {
+            if (!dateStr) return null;
+            const target = new Date(dateStr); target.setMinutes(target.getMinutes() + target.getTimezoneOffset());
+            const today = new Date();
+            target.setHours(0,0,0,0); today.setHours(0,0,0,0);
+            const diffTime = target - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays < 0) return "Finalizado";
+            if (diffDays === 0) return "É Hoje!";
+            if (diffDays === 1) return "Amanhã";
+            return `Faltam ${diffDays} dias`;
+        };
+
+        // --- Componentes UI ---
         const Avatar = ({ photo, name, color, size = 'md', className = '' }) => {
             const sizeClasses = { xs: 'w-6 h-6 text-[9px]', sm: 'w-8 h-8 text-[10px]', md: 'w-10 h-10 text-xs', lg: 'w-14 h-14 text-sm', xl: 'w-24 h-24 text-base' };
             if (photo) return <img src={photo} alt={name} className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white shadow-sm hover:scale-105 transition-transform duration-200 ${className}`} />;
             const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?';
             return <div className={`${sizeClasses[size]} rounded-full ${color || 'bg-slate-300'} flex items-center justify-center text-white font-bold border-2 border-white shadow-sm ${className}`}>{initials}</div>;
         };
+
+        const Toast = ({ message, type, onClose }) => (
+            <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl animate-slideIn ${type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-500 text-white'}`}>
+                {type === 'success' ? <CheckCircle2 size={20} /> : <AlertOctagon size={20} />}
+                <span className="font-medium text-sm">{message}</span>
+                <button onClick={onClose} className="ml-2 opacity-80 hover:opacity-100"><X size={16} /></button>
+            </div>
+        );
 
         const AssigneeSelector = ({ currentAssignee, onSelect, minimal = false, team }) => {
             const [isOpen, setIsOpen] = useState(false);
@@ -175,10 +182,22 @@
             );
         };
 
-        const TaskItem = ({ task, eventId, team, onUpdate, onAddComment }) => {
+        const TaskItem = ({ task, eventId, team, onUpdate, onDeleteComment, onUpdateComment, onAddComment }) => {
             const [expanded, setExpanded] = useState(false);
+            const [editingTask, setEditingTask] = useState(false);
+            const [taskTitle, setTaskTitle] = useState(task.title);
             const [commentText, setCommentText] = useState('');
             const [commentAuthor, setCommentAuthor] = useState('');
+            const [editingCommentId, setEditingCommentId] = useState(null);
+            const [editCommentText, setEditCommentText] = useState('');
+
+            // Salvar edição do título da tarefa
+            const saveTaskTitle = () => {
+                if (taskTitle.trim() && taskTitle !== task.title) {
+                    onUpdate(task.id, { title: taskTitle });
+                }
+                setEditingTask(false);
+            };
 
             const handleCommentSubmit = () => {
                 if (!commentText.trim()) return;
@@ -186,19 +205,49 @@
                 setCommentText('');
             };
 
+            const startEditComment = (comment) => {
+                setEditingCommentId(comment.id);
+                setEditCommentText(comment.text);
+            };
+
+            const saveEditComment = (commentId) => {
+                onUpdateComment(task.id, commentId, editCommentText);
+                setEditingCommentId(null);
+            };
+
             return (
                 <div className={`p-4 rounded-xl border transition-all ${task.status === 'done' ? 'bg-emerald-50/50 border-emerald-100' : task.status === 'na' ? 'bg-slate-100 opacity-70' : 'bg-white border-slate-100 hover:border-indigo-100'}`}>
                     <div className="flex gap-4 items-start">
                         <button 
                             onClick={() => onUpdate(task.id, { status: task.status === 'done' ? 'pending' : 'done' })} 
-                            className={`mt-1 flex-shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}
+                            className={`mt-1 flex-shrink-0 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-300'}`}
                         >
                             <CheckCircle2 size={16} />
                         </button>
                         
                         <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start mb-2">
-                                <span className={`font-semibold text-sm md:text-base ${task.status === 'done' ? 'text-emerald-800 line-through' : 'text-slate-800'}`}>{task.title}</span>
+                            <div className="flex justify-between items-start mb-2 group/title">
+                                {editingTask ? (
+                                    <div className="flex items-center gap-2 flex-1 mr-2">
+                                        <input 
+                                            value={taskTitle} 
+                                            onChange={(e) => setTaskTitle(e.target.value)} 
+                                            onBlur={saveTaskTitle}
+                                            onKeyDown={(e) => e.key === 'Enter' && saveTaskTitle()}
+                                            autoFocus
+                                            className="font-semibold text-sm bg-white border border-indigo-200 rounded px-1 w-full outline-none"
+                                        />
+                                        <button onClick={saveTaskTitle} className="text-emerald-600"><Check size={14} /></button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 flex-1 mr-2">
+                                        <span onClick={() => setEditingTask(true)} className={`font-semibold text-sm md:text-base cursor-pointer hover:text-indigo-700 ${task.status === 'done' ? 'text-emerald-800 line-through' : 'text-slate-800'}`}>
+                                            {task.title}
+                                        </span>
+                                        <button onClick={() => setEditingTask(true)} className="opacity-0 group-hover/title:opacity-100 text-slate-400 hover:text-indigo-500 transition-opacity"><Pencil size={12} /></button>
+                                    </div>
+                                )}
+                                
                                 <div className="flex gap-2 shrink-0">
                                     <button onClick={() => setExpanded(!expanded)} className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border transition-colors ${expanded || (task.comments && task.comments.length > 0) ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-white border-slate-200 text-slate-400'}`}>
                                         <MessageSquare size={14} /> {task.comments?.length || 0}
@@ -215,19 +264,34 @@
                                 </div>
                             </div>
 
-                            {/* Área de Comentários Expandida */}
+                            {/* Área de Comentários */}
                             {expanded && (
                                 <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-100 animate-fadeIn">
                                     {task.comments?.length > 0 ? (
                                         <div className="space-y-3 mb-4 max-h-60 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300">
                                             {task.comments.map(c => {
                                                 const author = team.find(m => m.name === c.authorName) || { name: c.authorName, color: 'bg-slate-300', bubble: 'bg-white border-slate-200' };
+                                                const isEditing = editingCommentId === c.id;
                                                 return (
-                                                    <div key={c.id} className="flex gap-2 items-end">
+                                                    <div key={c.id} className="flex gap-2 items-end group/comment">
                                                         <Avatar name={c.authorName} photo={author.photo} color={author.color} size="xs" />
-                                                        <div className={`px-3 py-2 rounded-2xl rounded-bl-none border text-xs shadow-sm ${author.bubble || 'bg-white border-slate-200'}`}>
-                                                            <div className="font-bold text-[10px] opacity-70 mb-0.5">{c.authorName.split(' ')[0]}</div>
-                                                            {c.text}
+                                                        <div className={`relative px-3 py-2 rounded-2xl rounded-bl-none border text-xs shadow-sm flex-1 ${author.bubble || 'bg-white border-slate-200'}`}>
+                                                            <div className="flex justify-between items-start mb-0.5">
+                                                                <span className="font-bold text-[10px] opacity-70">{c.authorName.split(' ')[0]}</span>
+                                                                {!isEditing && (
+                                                                    <div className="flex gap-1 opacity-0 group-hover/comment:opacity-100 transition-opacity bg-white/50 rounded px-1">
+                                                                        <button onClick={() => startEditComment(c)} className="text-indigo-600 hover:text-indigo-800"><Pencil size={10} /></button>
+                                                                        <button onClick={() => onDeleteComment(task.id, c.id)} className="text-red-500 hover:text-red-700"><Trash2 size={10} /></button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {isEditing ? (
+                                                                <div className="flex gap-2 items-center">
+                                                                    <input value={editCommentText} onChange={(e) => setEditCommentText(e.target.value)} className="w-full border rounded p-1 text-xs" autoFocus />
+                                                                    <button onClick={() => saveEditComment(c.id)} className="text-emerald-600"><Check size={14} /></button>
+                                                                    <button onClick={() => setEditingCommentId(null)} className="text-red-500"><X size={14} /></button>
+                                                                </div>
+                                                            ) : c.text}
                                                         </div>
                                                     </div>
                                                 );
@@ -244,12 +308,11 @@
                                             placeholder="Escreva um comentário..." 
                                             className="flex-1 text-xs outline-none bg-transparent" 
                                         />
-                                        <button onClick={handleCommentSubmit} disabled={!commentText.trim()} className="bg-indigo-600 text-white p-1.5 rounded-lg disabled:opacity-50"><Send size={14} /></button>
+                                        <button onClick={handleCommentSubmit} disabled={!commentText.trim()} className="bg-indigo-600 text-white p-1.5 rounded-lg disabled:opacity-50 hover:bg-indigo-700"><Send size={14} /></button>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Notas Técnicas */}
                             {(task.notes || task.category === 'logistica' || task.title.includes('Transporte')) && (
                                 <div className="mt-3">
                                     <textarea 
@@ -276,9 +339,17 @@
             const [currentView, setCurrentView] = useState('dashboard');
             const [selectedEventId, setSelectedEventId] = useState(null);
             
-            // Modais e Estados
+            // Toasts & Notificações
+            const [toasts, setToasts] = useState([]);
+            const [showNotifications, setShowNotifications] = useState(false);
+            const [unreadNotifications, setUnreadNotifications] = useState(false);
+            
+            // Modais
             const [showNewEventModal, setShowNewEventModal] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [showWorkloadModal, setShowWorkloadModal] = useState(false);
+            const [selectedWorkloadMember, setSelectedWorkloadMember] = useState(null);
+            
             const [editingMember, setEditingMember] = useState(null);
             const [isOneDayEvent, setIsOneDayEvent] = useState(false);
 
@@ -294,18 +365,26 @@
                 return onAuthStateChanged(auth, setUser);
             }, []);
 
-            // Fetch
+            // Data Fetching
             useEffect(() => {
                 if (!user) return;
                 const unsubEvents = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events')), (snap) => {
                     const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     data.sort((a, b) => new Date(a.date) - new Date(b.date));
                     setEvents(data);
+                    
+                    // Simple "new activity" detector for notification dot
+                    const hasRecent = data.some(e => {
+                        const eventRecent = new Date(e.createdAt?.toDate()) > new Date(Date.now() - 86400000);
+                        const commentRecent = e.tasks.some(t => t.comments?.some(c => new Date(c.createdAt) > new Date(Date.now() - 86400000)));
+                        return eventRecent || commentRecent;
+                    });
+                    if (hasRecent) setUnreadNotifications(true);
+                    
                     setLoading(false);
                 });
                 const unsubTeam = onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), orderBy('name')), (snap) => {
                     if (!snap.empty) setTeam(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                    else { /* Seed default team if needed */ }
                 });
                 const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), (d) => {
                     if (d.exists()) setSettings(d.data());
@@ -313,26 +392,46 @@
                 return () => { unsubEvents(); unsubTeam(); unsubSettings(); };
             }, [user]);
 
-            // Stats
+            // Sistema de Toasts
+            const addToast = (msg, type = 'success') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, msg, type }]);
+                setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+            };
+
             const stats = useMemo(() => {
-                const allTasks = events.flatMap(e => e.tasks);
-                const totalPending = allTasks.filter(t => t.status === 'pending').length;
-                const totalDone = allTasks.filter(t => t.status === 'done').length;
-                const workload = team.map(m => ({ ...m, count: allTasks.filter(t => t.assignee === m.name && t.status === 'pending').length }));
+                const allTasks = events.flatMap(e => ({...e, tasks: e.tasks})); // Flatten structure helper
+                const flatTasks = events.flatMap(e => e.tasks);
+                const totalPending = flatTasks.filter(t => t.status === 'pending').length;
+                const totalDone = flatTasks.filter(t => t.status === 'done').length;
+                
+                // Workload precisa bater nome exato
+                const workload = team.map(m => ({
+                    ...m,
+                    tasks: flatTasks.filter(t => t.assignee === m.name && t.status === 'pending'),
+                    count: flatTasks.filter(t => t.assignee === m.name && t.status === 'pending').length
+                }));
+
                 const alerts = events.map(e => ({ eventId: e.id, eventTitle: e.title, pendingCount: e.tasks.filter(t => t.status === 'pending').length })).filter(a => a.pendingCount > 0);
-                const recentComments = events.flatMap(e => e.tasks.flatMap(t => (t.comments || []).map(c => ({ ...c, taskTitle: t.title, eventTitle: e.title })))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+                
+                const recentComments = events.flatMap(e => e.tasks.flatMap(t => (t.comments || []).map(c => ({ 
+                    ...c, taskTitle: t.title, eventTitle: e.title 
+                })))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10); // Last 10
+
                 return { totalPending, totalDone, workload, alerts, recentComments };
             }, [events, team]);
 
             const handleFileUpload = (file) => new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(file); });
             const updateLogo = async (e) => { if (e.target.files[0]) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logo: await handleFileUpload(e.target.files[0]) }, { merge: true }); };
             
+            // CRUD Ações
             const addTeamMember = async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
                 const member = { name: fd.get('name'), role: fd.get('role'), photo: fd.get('photo').size > 0 ? await handleFileUpload(fd.get('photo')) : '', ...PRESET_COLORS[team.length % PRESET_COLORS.length] };
                 addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), member);
                 e.target.reset();
+                addToast("Membro adicionado!");
             };
             const updateTeamMember = async (e) => {
                 e.preventDefault();
@@ -341,32 +440,24 @@
                 if (fd.get('photo').size > 0) updates.photo = await handleFileUpload(fd.get('photo'));
                 updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', editingMember.id), updates);
                 setEditingMember(null); e.target.reset();
+                addToast("Membro atualizado!");
             };
             
-            // Create Event Logic
             const handleCreateEvent = async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
                 const startDate = fd.get('startDate');
-                // Se for evento de 1 dia, data fim é igual a data inicio
                 const endDate = isOneDayEvent ? startDate : fd.get('endDate');
-
                 const newEvent = { 
-                    title: fd.get('title'), 
-                    date: startDate, // Mantendo 'date' como inicio para compatibilidade
-                    endDate: endDate,
-                    location: fd.get('location'), 
-                    mainResponsible: fd.get('responsible'), 
-                    status: 'planning', 
-                    leadsCount: 0, 
-                    feedback: '', 
-                    createdAt: serverTimestamp(), 
+                    title: fd.get('title'), date: startDate, endDate: endDate,
+                    location: fd.get('location'), mainResponsible: fd.get('responsible'), 
+                    status: 'planning', leadsCount: 0, feedback: '', createdAt: serverTimestamp(), 
                     tasks: DEFAULT_TASKS.map(t => ({ ...t, id: crypto.randomUUID() })) 
                 };
-                
-                addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'), newEvent);
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'), newEvent);
                 setShowNewEventModal(false);
                 setIsOneDayEvent(false);
+                addToast("Evento criado com sucesso!");
             };
             
             const updateTask = (evId, tId, ups) => {
@@ -377,11 +468,28 @@
                 const ev = events.find(e => e.id === evId);
                 const newC = { id: crypto.randomUUID(), text: txt, authorName: auth, createdAt: new Date().toISOString() };
                 updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: ev.tasks.map(t => t.id === tId ? { ...t, comments: [...(t.comments||[]), newC] } : t) });
+                addToast("Comentário adicionado!");
+            };
+            const deleteComment = (evId, tId, cId) => {
+                if(!confirm("Excluir comentário?")) return;
+                const ev = events.find(e => e.id === evId);
+                updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: ev.tasks.map(t => t.id === tId ? { ...t, comments: t.comments.filter(c => c.id !== cId) } : t) });
+                addToast("Comentário excluído.", "error");
+            };
+            const updateComment = (evId, tId, cId, newText) => {
+                const ev = events.find(e => e.id === evId);
+                updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { 
+                    tasks: ev.tasks.map(t => t.id === tId ? { 
+                        ...t, comments: t.comments.map(c => c.id === cId ? {...c, text: newText} : c) 
+                    } : t) 
+                });
+                addToast("Comentário editado!");
             };
             const addTask = (evId, title, cat) => {
                 const ev = events.find(e => e.id === evId);
                 const newT = { id: crypto.randomUUID(), title, category: cat, assignee: '', status: 'pending', deadline: '' };
                 updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: [...ev.tasks, newT] });
+                addToast("Tarefa adicionada!");
             };
 
             // View Components
@@ -394,7 +502,35 @@
                                 {settings.logo && <div className="h-10 w-px bg-slate-200 hidden md:block"></div>}
                                 <div><h1 className="text-2xl font-black text-slate-800 tracking-tight">Event Hub</h1><p className="text-slate-500 font-medium text-sm">Painel de Marketing</p></div>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 items-center">
+                                {/* Notificações */}
+                                <div className="relative">
+                                    <button onClick={() => { setShowNotifications(!showNotifications); setUnreadNotifications(false); }} className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 relative">
+                                        <Bell size={20} className={unreadNotifications ? 'animate-bounce-short text-indigo-600' : ''} />
+                                        {unreadNotifications && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
+                                    </button>
+                                    {showNotifications && (
+                                        <>
+                                            <div className="fixed inset-0 z-30" onClick={() => setShowNotifications(false)}></div>
+                                            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 z-40 max-h-96 overflow-y-auto animate-fadeIn">
+                                                <div className="p-4 border-b border-slate-50 font-bold text-sm text-slate-700">Novidades Recentes</div>
+                                                {stats.recentComments.length === 0 && <div className="p-4 text-xs text-slate-400 text-center">Nenhuma atividade.</div>}
+                                                {stats.recentComments.map((c, i) => (
+                                                    <div key={i} className="p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                                        <div className="flex gap-2 items-center mb-1">
+                                                            <Avatar name={c.authorName} size="xs" />
+                                                            <span className="font-bold text-xs">{c.authorName}</span>
+                                                            <span className="text-[10px] text-slate-400 ml-auto">{new Date(c.createdAt).toLocaleDateString()}</span>
+                                                        </div>
+                                                        <div className="text-[10px] text-indigo-500 font-medium mb-1 truncate">{c.eventTitle} • {c.taskTitle}</div>
+                                                        <p className="text-xs text-slate-600">{c.text}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
                                 <button onClick={() => setShowSettingsModal(true)} className="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold flex gap-2 hover:bg-slate-200"><Settings size={20} /></button>
                                 <button onClick={() => { setShowNewEventModal(true); setIsOneDayEvent(false); }} className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold flex gap-2 shadow-lg hover:scale-105 transition-all"><Plus size={20} /> Novo Evento</button>
                             </div>
@@ -408,12 +544,13 @@
                                 <div><h3 className="font-bold text-slate-800">Status Global</h3><div className="flex gap-3 text-xs font-bold mt-2"><span className="text-emerald-600 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalDone} Feitas</span><span className="text-amber-500 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalPending} Pend.</span></div></div>
                             </div>
                             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 col-span-1 md:col-span-2">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Users size={16} /> Carga de Trabalho</h3>
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Users size={16} /> Carga de Trabalho (Clique para ver detalhes)</h3>
                                 <div className="flex gap-4 items-end h-24 overflow-x-auto pb-2">
                                     {stats.workload.map(m => (
-                                        <div key={m.id} className="flex flex-col items-center gap-2 min-w-[50px]">
-                                            <div className="w-8 bg-slate-200 rounded-t-lg relative flex-1 min-h-[10px]"><div className="absolute bottom-0 left-0 right-0 bg-indigo-600 rounded-t-lg transition-all" style={{ height: `${Math.max(Math.min((m.count / 10) * 100, 100), 5)}%` }}></div></div>
+                                        <div key={m.id} onClick={() => { setSelectedWorkloadMember(m); setShowWorkloadModal(true); }} className="flex flex-col items-center gap-2 min-w-[50px] cursor-pointer group hover:scale-105 transition-transform">
+                                            <div className="w-8 bg-slate-200 rounded-t-lg relative flex-1 min-h-[10px] group-hover:bg-indigo-100"><div className="absolute bottom-0 left-0 right-0 bg-indigo-600 rounded-t-lg transition-all" style={{ height: `${Math.max(Math.min((m.count / 10) * 100, 100), 5)}%` }}></div></div>
                                             <Avatar name={m.name} photo={m.photo} color={m.color} size="xs" />
+                                            <span className="text-[10px] font-bold text-indigo-600">{m.count}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -425,6 +562,7 @@
                             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><div className="text-indigo-600"><Clock /></div> Próximos Eventos</h2>
                             {events.map(ev => {
                                 const pend = ev.tasks.filter(t => t.status === 'pending').length;
+                                const daysLeftText = getDaysLeft(ev.date);
                                 return (
                                     <div key={ev.id} onClick={() => { setSelectedEventId(ev.id); setCurrentView('detail'); }} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 relative group">
                                         {pend > 0 && <div className="absolute top-4 right-4 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100 flex items-center gap-1 animate-pulse"><AlertTriangle size={12}/> faltam {pend}</div>}
@@ -438,9 +576,12 @@
                                                 <p className="text-sm text-slate-500 flex items-center gap-1">
                                                     <MapPin size={14}/> {ev.location}
                                                 </p>
-                                                <p className="text-xs text-indigo-600 mt-1 font-semibold">
-                                                    {formatDateRange(ev.date, ev.endDate)}
-                                                </p>
+                                                <div className="flex gap-3 mt-1 text-xs font-semibold">
+                                                    <span className="text-indigo-600">{formatDateRange(ev.date, ev.endDate)}</span>
+                                                    <span className={`px-2 py-0.5 rounded-full ${daysLeftText === 'Finalizado' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                        {daysLeftText}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -494,6 +635,7 @@
                                             <Clock size={16}/> {formatDateRange(event.date, event.endDate)}
                                         </span>
                                         <span className="flex gap-2"><MapPin size={16}/> {event.location}</span>
+                                        <span className="bg-indigo-50 text-indigo-700 px-2 rounded-full text-xs font-bold flex items-center">{getDaysLeft(event.date)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -532,6 +674,8 @@
                                             team={team}
                                             onUpdate={(tId, ups) => updateTask(event.id, tId, ups)}
                                             onAddComment={(tId, txt, auth) => addComment(event.id, tId, txt, auth)}
+                                            onDeleteComment={(tId, cId) => deleteComment(event.id, tId, cId)}
+                                            onUpdateComment={(tId, cId, txt) => updateComment(event.id, tId, cId, txt)}
                                         />
                                     ))}
 
@@ -570,7 +714,7 @@
 
             const SettingsModal = () => (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fadeIn">
                         <div className="bg-slate-800 p-6 text-white flex justify-between items-center">
                             <h2 className="text-xl font-bold flex gap-2"><Settings className="text-violet-400"/> Configurações</h2>
                             <button onClick={() => { setShowSettingsModal(false); setEditingMember(null); }}><X/></button>
@@ -611,15 +755,60 @@
                 </div>
             );
 
+            // Modal de Workload (Detalhes do membro)
+            const WorkloadModal = () => (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-fadeIn overflow-hidden">
+                        <div className="bg-indigo-600 p-4 text-white flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <Avatar name={selectedWorkloadMember.name} photo={selectedWorkloadMember.photo} color={selectedWorkloadMember.color} />
+                                <div>
+                                    <h3 className="font-bold text-lg leading-tight">{selectedWorkloadMember.name}</h3>
+                                    <p className="text-xs opacity-80">{selectedWorkloadMember.role}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowWorkloadModal(false)} className="hover:bg-white/20 p-1 rounded-full"><X size={18} /></button>
+                        </div>
+                        <div className="p-4 max-h-[60vh] overflow-y-auto">
+                            {selectedWorkloadMember.tasks && selectedWorkloadMember.tasks.length > 0 ? (
+                                <ul className="space-y-3">
+                                    {selectedWorkloadMember.tasks.map((task, i) => {
+                                        // Encontrar o nome do evento para esta tarefa (não temos diretamente no task object, precisamos buscar no events array)
+                                        // Mas aqui no `stats` a gente já filtrou as tarefas. Precisamos do contexto do evento.
+                                        // Vamos ajustar o `stats.workload` pra incluir o titulo do evento
+                                        const event = events.find(e => e.tasks.some(t => t.id === task.id));
+                                        return (
+                                            <li key={i} className="border-b border-slate-100 pb-2 last:border-0">
+                                                <div className="text-xs font-bold text-slate-400 mb-1">{event?.title}</div>
+                                                <div className="text-sm font-medium text-slate-700">{task.title}</div>
+                                                {task.deadline && <div className="text-xs text-red-500 mt-1 flex items-center gap-1"><Clock size={10}/> {new Date(task.deadline).toLocaleDateString()}</div>}
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            ) : (
+                                <p className="text-center text-slate-400 text-sm py-4">Nenhuma tarefa pendente.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+
             if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
 
             return (
                 <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 max-w-7xl mx-auto">
+                    {/* Toasts Container */}
+                    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+                        {toasts.map(t => <Toast key={t.id} message={t.msg} type={t.type} onClose={() => setToasts(p => p.filter(x => x.id !== t.id))} />)}
+                    </div>
+
                     {currentView === 'dashboard' ? <DashboardView /> : <EventDetailView />}
                     {showSettingsModal && <SettingsModal />}
+                    {showWorkloadModal && selectedWorkloadMember && <WorkloadModal />}
                     {showNewEventModal && (
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
                                 <div className="bg-blue-900 p-6 text-white"><h2 className="text-2xl font-black">Novo Evento</h2></div>
                                 <form onSubmit={handleCreateEvent} className="p-8 space-y-4">
                                     <input required name="title" placeholder="Nome" className="w-full p-3 border rounded-xl"/>
@@ -654,7 +843,7 @@
 
                                     <div className="flex gap-4 mt-4">
                                         <button type="button" onClick={() => setShowNewEventModal(false)} className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl">Cancelar</button>
-                                        <button type="submit" className="flex-1 py-3 bg-blue-900 text-white rounded-xl font-bold">Criar</button>
+                                        <button type="submit" className="flex-1 py-3 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-colors">Criar</button>
                                     </div>
                                 </form>
                             </div>
