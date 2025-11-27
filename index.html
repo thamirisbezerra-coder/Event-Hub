@@ -53,7 +53,7 @@
             Calendar, CheckCircle2, Circle, Clock, AlertTriangle, 
             Users, Package, Truck, BarChart3, Plus, 
             ArrowLeft, Trash2, MapPin, MessageSquare, Send, CornerDownLeft,
-            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon, Ban, Bell, Check, Crown, Archive
+            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon, Ban, Bell, Check, Crown, Archive, ListTodo, HelpCircle
         } from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { 
@@ -100,35 +100,42 @@
 
         const DEFAULT_TASKS = [
             // Produto & Planejamento
-            { title: 'Definição de Produtos Inovação', category: 'produto', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Design: Etiquetas e Apresentações', category: 'produto', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Entrega Final Design (1 mês antes)', category: 'produto', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Solicitação de Brindes/Amostras', category: 'produto', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Receituário', category: 'produto', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Dinâmicas', category: 'produto', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Aula Técnica ou Teórica', category: 'produto', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Vídeo Institucional', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Definição de Produtos Inovação', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Design: Etiquetas e Apresentações', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Entrega Final Design (1 mês antes)', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Solicitação de Brindes/Amostras', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Receituário', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Dinâmicas', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Aula Técnica ou Teórica', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Vídeo Institucional', category: 'produto', assignees: [], status: 'pending', deadline: '' },
 
             // Logística
-            { title: 'Material de Merchandising', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Acompanhamento Design do Estande', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Acompanhamento Obra do Estande', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Emissão de Notas Fiscais', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Transporte (Agendamento/Placa/Motorista)', category: 'logistica', assignee: '', status: 'pending', deadline: '', notes: 'Placa: \nMotorista: \nCredencial: ' },
+            { title: 'Material de Merchandising', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Acompanhamento Design do Estande', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Acompanhamento Obra do Estande', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Emissão de Notas Fiscais', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Transporte (Agendamento/Placa/Motorista)', category: 'logistica', assignees: [], status: 'pending', deadline: '', notes: 'Placa: \nMotorista: \nCredencial: ' },
             
             // Staff
-            { title: 'Contratação Fotografia/Agência', category: 'staff', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Lista de Equipamentos', category: 'staff', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Hospedagem Técnicos/Staff', category: 'staff', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Aluguel de Carros', category: 'staff', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Time de Amostras será envolvido?', category: 'staff', assignee: '', status: 'pending', deadline: '' },
-            { title: 'P&D será envolvido?', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Contratação Fotografia/Agência', category: 'staff', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Lista de Equipamentos', category: 'staff', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Hospedagem Técnicos/Staff', category: 'staff', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Aluguel de Carros', category: 'staff', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Time de Amostras será envolvido?', category: 'staff', assignees: [], status: 'pending', deadline: '' },
+            { title: 'P&D será envolvido?', category: 'staff', assignees: [], status: 'pending', deadline: '' },
 
             // Pós-Evento
-            { title: 'Lead Tracking / Coleta de Dados', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Feedback Pós-Feira', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
-            { title: 'Postagens Cobertura (Vídeos/Fotos)', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Lead Tracking / Coleta de Dados', category: 'pos-evento', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Feedback Pós-Feira', category: 'pos-evento', assignees: [], status: 'pending', deadline: '' },
+            { title: 'Postagens Cobertura (Vídeos/Fotos)', category: 'pos-evento', assignees: [], status: 'pending', deadline: '' },
         ];
+
+        const CATEGORY_LABELS = {
+            'produto': 'Planejamento & Produto',
+            'logistica': 'Logística & Estande',
+            'staff': 'Staff & Viagem',
+            'pos-evento': 'Pós-Evento & Leads'
+        };
 
         // --- Helpers ---
         const formatDateRange = (start, end) => {
@@ -168,26 +175,55 @@
             </div>
         );
 
-        const AssigneeSelector = ({ currentAssignee, onSelect, minimal = false, team }) => {
+        const AssigneeSelector = ({ currentAssignees = [], onUpdate, team, minimal = false }) => {
             const [isOpen, setIsOpen] = useState(false);
-            const assignedMember = team.find(m => m.name === currentAssignee) || { name: currentAssignee, color: 'bg-slate-300' };
+            const safeAssignees = Array.isArray(currentAssignees) ? currentAssignees : (currentAssignees ? [currentAssignees] : []);
+
+            const toggleMember = (memberName) => {
+                if (safeAssignees.includes(memberName)) {
+                    onUpdate(safeAssignees.filter(n => n !== memberName));
+                } else {
+                    onUpdate([...safeAssignees, memberName]);
+                }
+            };
+
             return (
                 <div className="relative">
-                    <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-2 ${minimal ? 'p-1 hover:bg-slate-100 rounded-full' : 'pl-1 pr-3 py-1 bg-white border border-slate-200 rounded-full hover:border-violet-400'} transition-colors group shadow-sm`}>
-                        <Avatar name={currentAssignee} photo={assignedMember?.photo} color={assignedMember?.color} size={minimal ? "xs" : "sm"} />
-                        {!minimal && <span className="text-xs font-medium truncate max-w-[80px] text-slate-700">{currentAssignee ? currentAssignee.split(' ')[0] : 'Resp.'}</span>}
+                    <button onClick={() => setIsOpen(!isOpen)} className={`flex items-center gap-1 ${minimal ? 'p-1 hover:bg-slate-100 rounded-full' : 'pl-1 pr-3 py-1 bg-white border border-slate-200 rounded-full hover:border-violet-400'} transition-colors group shadow-sm`}>
+                        {safeAssignees.length === 0 ? (
+                            <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200"><Users size={12} /></div>
+                        ) : (
+                            <div className="flex -space-x-2">
+                                {safeAssignees.slice(0, 3).map((name, idx) => {
+                                    const member = team.find(m => m.name === name);
+                                    return <Avatar key={idx} name={name} photo={member?.photo} color={member?.color} size={minimal ? "xs" : "sm"} className="border-2 border-white" />;
+                                })}
+                            </div>
+                        )}
+                        {!minimal && safeAssignees.length === 0 && <span className="text-xs text-slate-400 ml-1">Sem Resp.</span>}
+                        {!minimal && safeAssignees.length === 1 && <span className="text-xs font-medium text-slate-700 ml-1 truncate max-w-[60px]">{safeAssignees[0].split(' ')[0]}</span>}
+                        {!minimal && safeAssignees.length > 1 && <span className="text-xs font-medium text-slate-500 ml-1">+{safeAssignees.length - 1}</span>}
                     </button>
                     {isOpen && (
                         <>
                             <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-                            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden max-h-60 overflow-y-auto">
-                                <div className="p-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">Selecionar</div>
-                                {team.map(member => (
-                                    <button key={member.id} onClick={() => { onSelect(member.name); setIsOpen(false); }} className="w-full flex items-center gap-3 p-2 hover:bg-violet-50 transition-colors text-left">
-                                        <Avatar name={member.name} photo={member.photo} color={member.color} size="sm" />
-                                        <div className="flex flex-col"><span className="text-sm font-medium text-slate-700">{member.name}</span><span className="text-[10px] text-slate-400">{member.role}</span></div>
-                                    </button>
-                                ))}
+                            <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden max-h-60 overflow-y-auto animate-fadeIn">
+                                <div className="p-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">Selecionar Responsáveis</div>
+                                {team.map(member => {
+                                    const isSelected = safeAssignees.includes(member.name);
+                                    return (
+                                        <button key={member.id} onClick={() => toggleMember(member.name)} className={`w-full flex items-center gap-3 p-2 transition-colors text-left ${isSelected ? 'bg-violet-50' : 'hover:bg-slate-50'}`}>
+                                            <div className="relative">
+                                                <Avatar name={member.name} photo={member.photo} color={member.color} size="sm" />
+                                                {isSelected && <div className="absolute -bottom-1 -right-1 bg-violet-600 text-white rounded-full p-0.5 border border-white"><Check size={8} /></div>}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={`text-sm font-medium ${isSelected ? 'text-violet-700' : 'text-slate-700'}`}>{member.name}</span>
+                                                <span className="text-[10px] text-slate-400">{member.role}</span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </>
                     )}
@@ -204,7 +240,6 @@
             const [editingCommentId, setEditingCommentId] = useState(null);
             const [editCommentText, setEditCommentText] = useState('');
 
-            // Detecta se é uma tarefa "pergunta" para ajustar o placeholder
             const isQuestionTask = task.title.includes('?');
             const notesPlaceholder = isQuestionTask ? "Com quem foi alinhado?" : "Adicionar detalhes técnicos (Placa, Motorista, Credencial)...";
 
@@ -273,7 +308,12 @@
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3">
-                                <AssigneeSelector currentAssignee={task.assignee} onSelect={(name) => onUpdate(task.id, { assignee: name })} team={team} />
+                                <AssigneeSelector 
+                                    currentAssignees={task.assignees || (task.assignee ? [task.assignee] : [])} 
+                                    onUpdate={(newAssignees) => onUpdate(task.id, { assignees: newAssignees, assignee: newAssignees[0] || '' })} 
+                                    team={team} 
+                                />
+                                
                                 <div className={`flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 bg-white text-xs ${task.deadline && new Date(task.deadline) < new Date() && task.status !== 'done' ? 'border-red-200 text-red-600 bg-red-50' : ''}`}>
                                     <Calendar size={12} className="opacity-50" />
                                     <input type="date" value={task.deadline} onChange={(e) => onUpdate(task.id, { deadline: e.target.value })} className="outline-none bg-transparent w-24 cursor-pointer" />
@@ -316,7 +356,7 @@
                                     ) : <div className="text-xs text-slate-400 text-center py-2 italic">Nenhum comentário.</div>}
                                     
                                     <div className="flex gap-2 items-center bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-                                        <div className="shrink-0"><AssigneeSelector currentAssignee={commentAuthor} onSelect={setCommentAuthor} minimal team={team} /></div>
+                                        <div className="shrink-0"><AssigneeSelector currentAssignees={[commentAuthor]} onUpdate={(arr) => setCommentAuthor(arr[0])} minimal team={team} /></div>
                                         <input 
                                             value={commentText} 
                                             onChange={e => setCommentText(e.target.value)} 
@@ -329,7 +369,6 @@
                                 </div>
                             )}
 
-                            {/* Notas Técnicas / Alinhamento */}
                             {(task.notes || task.category === 'logistica' || task.title.includes('Transporte') || isQuestionTask) && (
                                 <div className="mt-3">
                                     <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">{isQuestionTask ? "Alinhamento" : "Observações"}</div>
@@ -357,12 +396,10 @@
             const [currentView, setCurrentView] = useState('dashboard');
             const [selectedEventId, setSelectedEventId] = useState(null);
             
-            // Toasts & Notificações
             const [toasts, setToasts] = useState([]);
             const [showNotifications, setShowNotifications] = useState(false);
             const [unreadNotifications, setUnreadNotifications] = useState(false);
             
-            // Modais
             const [showNewEventModal, setShowNewEventModal] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
             const [showWorkloadModal, setShowWorkloadModal] = useState(false);
@@ -370,6 +407,12 @@
             
             const [editingMember, setEditingMember] = useState(null);
             const [isOneDayEvent, setIsOneDayEvent] = useState(false);
+
+            // Estados para a Seleção de Tarefas no Modal
+            const [selectedDefaultTasks, setSelectedDefaultTasks] = useState(new Set(DEFAULT_TASKS.map(t => t.title)));
+            const [newCustomTaskInput, setNewCustomTaskInput] = useState('');
+            const [newCustomTaskCategory, setNewCustomTaskCategory] = useState('produto');
+            const [customTasksList, setCustomTasksList] = useState([]);
 
             // Auth
             useEffect(() => {
@@ -391,7 +434,6 @@
                     data.sort((a, b) => new Date(a.date) - new Date(b.date));
                     setEvents(data);
                     
-                    // Simple "new activity" detector for notification dot
                     const hasRecent = data.some(e => {
                         const eventRecent = new Date(e.createdAt?.toDate()) > new Date(Date.now() - 86400000);
                         const commentRecent = e.tasks.some(t => t.comments?.some(c => new Date(c.createdAt) > new Date(Date.now() - 86400000)));
@@ -410,7 +452,6 @@
                 return () => { unsubEvents(); unsubTeam(); unsubSettings(); };
             }, [user]);
 
-            // Sistema de Toasts
             const addToast = (msg, type = 'success') => {
                 const id = Date.now();
                 setToasts(prev => [...prev, { id, msg, type }]);
@@ -422,11 +463,16 @@
                 const totalPending = flatTasks.filter(t => t.status === 'pending').length;
                 const totalDone = flatTasks.filter(t => t.status === 'done').length;
                 
-                // Workload precisa bater nome exato
                 const workload = team.map(m => ({
                     ...m,
-                    tasks: flatTasks.filter(t => t.assignee === m.name && t.status === 'pending'),
-                    count: flatTasks.filter(t => t.assignee === m.name && t.status === 'pending').length
+                    tasks: flatTasks.filter(t => {
+                        const assignees = t.assignees || (t.assignee ? [t.assignee] : []);
+                        return assignees.includes(m.name) && t.status === 'pending';
+                    }),
+                    count: flatTasks.filter(t => {
+                        const assignees = t.assignees || (t.assignee ? [t.assignee] : []);
+                        return assignees.includes(m.name) && t.status === 'pending';
+                    }).length
                 }));
 
                 const alerts = events.map(e => ({ eventId: e.id, eventTitle: e.title, pendingCount: e.tasks.filter(t => t.status === 'pending').length })).filter(a => a.pendingCount > 0);
@@ -439,15 +485,12 @@
             }, [events, team]);
 
             const handleFileUpload = (file) => new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(file); });
-            
-            // Setters
             const updateSettings = async (field, value) => {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { [field]: value }, { merge: true });
                 addToast("Configuração salva!");
             };
             const updateLogo = async (e) => { if (e.target.files[0]) updateSettings('logo', await handleFileUpload(e.target.files[0])); };
             
-            // CRUD Ações
             const addTeamMember = async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
@@ -466,20 +509,43 @@
                 addToast("Membro atualizado!");
             };
             
+            // Lógica de Criar Evento
+            const toggleTaskSelection = (title) => {
+                const newSet = new Set(selectedDefaultTasks);
+                if (newSet.has(title)) newSet.delete(title);
+                else newSet.add(title);
+                setSelectedDefaultTasks(newSet);
+            };
+
+            const addCustomTaskToCreate = () => {
+                if(!newCustomTaskInput.trim()) return;
+                setCustomTasksList([...customTasksList, { title: newCustomTaskInput, category: newCustomTaskCategory }]);
+                setNewCustomTaskInput('');
+            };
+
             const handleCreateEvent = async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
                 const startDate = fd.get('startDate');
                 const endDate = isOneDayEvent ? startDate : fd.get('endDate');
+                
+                const filteredDefaults = DEFAULT_TASKS.filter(t => selectedDefaultTasks.has(t.title));
+                const customTasks = customTasksList.map(t => ({ ...t, assignees: [], status: 'pending', deadline: '' }));
+                
+                const allTasks = [...filteredDefaults, ...customTasks].map(t => ({ ...t, id: crypto.randomUUID() }));
+
                 const newEvent = { 
                     title: fd.get('title'), date: startDate, endDate: endDate,
                     location: fd.get('location'), mainResponsible: fd.get('responsible'), 
                     status: 'planning', leadsCount: 0, feedback: '', createdAt: serverTimestamp(), 
-                    tasks: DEFAULT_TASKS.map(t => ({ ...t, id: crypto.randomUUID() })) 
+                    tasks: allTasks 
                 };
+                
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'), newEvent);
                 setShowNewEventModal(false);
                 setIsOneDayEvent(false);
+                setSelectedDefaultTasks(new Set(DEFAULT_TASKS.map(t => t.title)));
+                setCustomTasksList([]);
                 addToast("Evento criado com sucesso!");
             };
             
@@ -508,12 +574,10 @@
                 });
                 addToast("Comentário editado!");
             };
-            
-            // Add Task Fixed Logic
             const addTask = (evId, title, cat) => {
                 if (!title || !title.trim()) return;
                 const ev = events.find(e => e.id === evId);
-                const newT = { id: crypto.randomUUID(), title: title.trim(), category: cat, assignee: '', status: 'pending', deadline: '' };
+                const newT = { id: crypto.randomUUID(), title: title.trim(), category: cat, assignees: [], status: 'pending', deadline: '' };
                 updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: [...ev.tasks, newT] });
                 addToast("Tarefa adicionada!");
             };
@@ -528,7 +592,7 @@
                         
                         if (missing.length > 0) {
                             console.log("Migrating missing tasks for:", ev.title, missing);
-                            const newTasks = missing.map(t => ({ ...t, id: crypto.randomUUID(), status: 'pending', deadline: '' }));
+                            const newTasks = missing.map(t => ({ ...t, id: crypto.randomUUID(), status: 'pending', deadline: '', assignees: [] }));
                             updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', selectedEventId), {
                                 tasks: [...ev.tasks, ...newTasks]
                             });
@@ -542,16 +606,13 @@
             const DashboardView = () => {
                 const teamLeader = team.find(m => m.id === settings.teamLeaderId);
                 
-                // Segregar eventos
                 const now = new Date();
                 now.setHours(0,0,0,0);
-
                 const upcomingEvents = events.filter(e => {
                     const end = e.endDate ? new Date(e.endDate) : new Date(e.date);
                     end.setMinutes(end.getMinutes() + end.getTimezoneOffset());
                     return end >= now;
                 });
-
                 const pastEvents = events.filter(e => {
                     const end = e.endDate ? new Date(e.endDate) : new Date(e.date);
                     end.setMinutes(end.getMinutes() + end.getTimezoneOffset());
@@ -565,13 +626,10 @@
                                 <div className="flex items-center gap-6">
                                     {settings.logo && <img src={settings.logo} className="h-16 object-contain" />}
                                     {settings.logo && <div className="h-10 w-px bg-slate-200 hidden md:block"></div>}
-                                    
                                     <div>
                                         <h1 className="text-2xl font-black text-slate-800 tracking-tight">Event Hub</h1>
                                         <p className="text-slate-500 font-medium text-sm">Painel de Marketing</p>
                                     </div>
-
-                                    {/* Team Leader Section */}
                                     {teamLeader && (
                                         <div className="hidden md:flex items-center gap-3 pl-6 border-l border-slate-200 ml-4 animate-slideIn">
                                             <div className="relative">
@@ -586,7 +644,6 @@
                                     )}
                                 </div>
                                 <div className="flex gap-3 items-center">
-                                    {/* Notificações */}
                                     <div className="relative">
                                         <button onClick={() => { setShowNotifications(!showNotifications); setUnreadNotifications(false); }} className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 relative">
                                             <Bell size={20} className={unreadNotifications ? 'animate-bounce-short text-indigo-600' : ''} />
@@ -613,7 +670,6 @@
                                             </>
                                         )}
                                     </div>
-
                                     <button onClick={() => setShowSettingsModal(true)} className="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold flex gap-2 hover:bg-slate-200"><Settings size={20} /></button>
                                     <button onClick={() => { setShowNewEventModal(true); setIsOneDayEvent(false); }} className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold flex gap-2 shadow-lg hover:scale-105 transition-all"><Plus size={20} /> Novo Evento</button>
                                 </div>
@@ -642,7 +698,6 @@
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2 space-y-8">
-                                {/* PRÓXIMOS EVENTOS */}
                                 <div>
                                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-4"><div className="text-indigo-600"><Clock /></div> Próximos Eventos</h2>
                                     <div className="space-y-4">
@@ -660,14 +715,10 @@
                                                         </div>
                                                         <div>
                                                             <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{ev.title}</h3>
-                                                            <p className="text-sm text-slate-500 flex items-center gap-1">
-                                                                <MapPin size={14}/> {ev.location}
-                                                            </p>
+                                                            <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin size={14}/> {ev.location}</p>
                                                             <div className="flex gap-3 mt-1 text-xs font-semibold">
                                                                 <span className="text-indigo-600">{formatDateRange(ev.date, ev.endDate)}</span>
-                                                                <span className={`px-2 py-0.5 rounded-full ${daysLeftText === 'Finalizado' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
-                                                                    {daysLeftText}
-                                                                </span>
+                                                                <span className={`px-2 py-0.5 rounded-full ${daysLeftText === 'Finalizado' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>{daysLeftText}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -676,28 +727,20 @@
                                         })}
                                     </div>
                                 </div>
-
-                                {/* EVENTOS CONCLUÍDOS */}
                                 {pastEvents.length > 0 && (
                                     <div className="pt-4 border-t border-slate-200">
                                         <h2 className="text-lg font-bold text-slate-600 flex items-center gap-2 mb-4 opacity-80"><Archive size={20} /> Eventos Concluídos (Histórico)</h2>
                                         <div className="space-y-3">
                                             {pastEvents.map(ev => (
                                                 <div key={ev.id} onClick={() => { setSelectedEventId(ev.id); setCurrentView('detail'); }} className="bg-slate-50 rounded-xl p-4 border border-slate-200 hover:bg-white hover:shadow-md transition-all cursor-pointer flex justify-between items-center group">
-                                                    <div>
-                                                        <h3 className="font-bold text-slate-700 group-hover:text-slate-900">{ev.title}</h3>
-                                                        <p className="text-xs text-slate-500">{formatDateRange(ev.date, ev.endDate)} • {ev.location}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{ev.leadsCount || 0} Leads</div>
-                                                    </div>
+                                                    <div><h3 className="font-bold text-slate-700 group-hover:text-slate-900">{ev.title}</h3><p className="text-xs text-slate-500">{formatDateRange(ev.date, ev.endDate)} • {ev.location}</p></div>
+                                                    <div className="text-right"><div className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">{ev.leadsCount || 0} Leads</div></div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 )}
                             </div>
-
                             <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 max-h-[500px] overflow-auto flex flex-col">
                                 <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><MessageSquare size={18} className="text-indigo-500" /> Atualizações</h3>
                                 <div className="space-y-4">
@@ -725,13 +768,6 @@
                 
                 if (!event) return null;
                 
-                const categories = [
-                    { id: 'produto', label: 'Planejamento & Produto', icon: Package, color: 'text-rose-500', bg: 'bg-rose-50' },
-                    { id: 'logistica', label: 'Logística & Estande', icon: Truck, color: 'text-amber-500', bg: 'bg-amber-50' },
-                    { id: 'staff', label: 'Staff & Viagem', icon: Users, color: 'text-cyan-500', bg: 'bg-cyan-50' },
-                    { id: 'pos-evento', label: 'Pós-Evento & Leads', icon: BarChart3, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                ];
-                
                 const filteredTasks = event.tasks.filter(t => t.category === activeTab);
 
                 return (
@@ -742,9 +778,7 @@
                                 <div>
                                     <h1 className="text-3xl font-black text-slate-800">{event.title}</h1>
                                     <div className="flex gap-4 text-sm text-slate-500 mt-2">
-                                        <span className="flex gap-2 font-medium text-slate-600">
-                                            <Clock size={16}/> {formatDateRange(event.date, event.endDate)}
-                                        </span>
+                                        <span className="flex gap-2 font-medium text-slate-600"><Clock size={16}/> {formatDateRange(event.date, event.endDate)}</span>
                                         <span className="flex gap-2"><MapPin size={16}/> {event.location}</span>
                                         <span className="bg-indigo-50 text-indigo-700 px-2 rounded-full text-xs font-bold flex items-center">{getDaysLeft(event.date)}</span>
                                     </div>
@@ -761,22 +795,16 @@
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2">
-                                {/* Navegação de Abas */}
                                 <div className="flex overflow-x-auto gap-2 mb-4 pb-2">
-                                    {categories.map(cat => (
-                                        <button 
-                                            key={cat.id} 
-                                            onClick={() => setActiveTab(cat.id)} 
-                                            className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === cat.id ? 'bg-white shadow-md text-slate-800 border border-slate-100' : 'text-slate-500 hover:bg-white/50'}`}
-                                        >
-                                            <cat.icon size={16} className={cat.color} /> {cat.label}
+                                    {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                                        <button key={key} onClick={() => setActiveTab(key)} className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === key ? 'bg-white shadow-md text-slate-800 border border-slate-100' : 'text-slate-500 hover:bg-white/50'}`}>
+                                            {label}
                                         </button>
                                     ))}
                                 </div>
 
                                 <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4">
                                     {filteredTasks.length === 0 && <div className="text-center py-10 text-slate-400">Nenhuma tarefa nesta etapa.</div>}
-                                    
                                     {filteredTasks.map(task => (
                                         <TaskItem 
                                             key={task.id} 
@@ -789,15 +817,8 @@
                                             onUpdateComment={(tId, cId, txt) => updateComment(event.id, tId, cId, txt)}
                                         />
                                     ))}
-
                                     <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100">
-                                        <input 
-                                            value={newTaskName} 
-                                            onChange={e => setNewTaskName(e.target.value)} 
-                                            onKeyDown={e => e.key === 'Enter' && newTaskName && (addTask(event.id, newTaskName, activeTab), setNewTaskName(''))}
-                                            placeholder={`Nova tarefa de ${categories.find(c=>c.id===activeTab).label.split(' ')[0]}...`} 
-                                            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100" 
-                                        />
+                                        <input value={newTaskName} onChange={e => setNewTaskName(e.target.value)} onKeyDown={e => e.key === 'Enter' && newTaskName && (addTask(event.id, newTaskName, activeTab), setNewTaskName(''))} placeholder={`Nova tarefa...`} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100" />
                                         <button onClick={() => { if(newTaskName){ addTask(event.id, newTaskName, activeTab); setNewTaskName(''); } }} disabled={!newTaskName.trim()} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><Plus /></button>
                                     </div>
                                 </div>
@@ -808,7 +829,20 @@
                                     <h3 className="font-bold text-slate-800 mb-4 flex gap-2 items-center"><BarChart3 size={18} className="text-emerald-500"/> Pós-Evento</h3>
                                     <div className="space-y-4">
                                         <div>
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Leads Capturados</label>
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <label className="text-xs font-bold text-slate-500 uppercase">Leads Capturados</label>
+                                                <div className="relative group">
+                                                    <HelpCircle size={14} className="text-slate-400 cursor-help hover:text-indigo-500 transition-colors" />
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-800 text-white text-xs rounded-xl p-4 hidden group-hover:block z-50 shadow-2xl pointer-events-none">
+                                                        <p className="font-bold mb-2 text-indigo-300">O que é um Lead?</p>
+                                                        <p className="mb-2 leading-relaxed">Lead é um potencial cliente ou um contato comercial valioso que você conquistou durante a feira ou evento.</p>
+                                                        <p className="mb-2 leading-relaxed">Basicamente, é qualquer pessoa que demonstrou interesse na Doremus e deixou algum contato (cartão de visita, e-mail, telefone, bipou o crachá no estande, etc.).</p>
+                                                        <p className="mb-2 leading-relaxed">No aplicativo, este campo serve para registrar o <strong>número total</strong> dessas pessoas. É crucial para medir o sucesso pós-evento.</p>
+                                                        <p className="italic text-slate-400">Ex: "Investimos X no evento e conseguimos 150 leads (150 possíveis novos clientes)."</p>
+                                                        <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <input type="number" value={event.leadsCount||0} onChange={e => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', event.id), { leadsCount: parseInt(e.target.value) })} className="w-full p-3 border border-slate-200 rounded-xl text-2xl font-black text-center text-slate-700 outline-none focus:border-indigo-300" />
                                         </div>
                                         <div>
@@ -840,18 +874,10 @@
                                     </div>
                                     <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
                                         <label className="block text-sm font-bold text-slate-700 mb-2">Gestor da Equipe (Aparece no Topo)</label>
-                                        <select 
-                                            value={settings.teamLeaderId || ''} 
-                                            onChange={(e) => updateSettings('teamLeaderId', e.target.value)}
-                                            className="w-full p-2 border rounded-lg text-sm"
-                                        >
-                                            <option value="">Selecione um gestor...</option>
-                                            {team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                        </select>
+                                        <select value={settings.teamLeaderId || ''} onChange={(e) => updateSettings('teamLeaderId', e.target.value)} className="w-full p-2 border rounded-lg text-sm"><option value="">Selecione um gestor...</option>{team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
                                     </div>
                                 </div>
                             </section>
-
                             <section>
                                 <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><Users size={20} className="text-violet-600"/> Equipe</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -859,10 +885,7 @@
                                         <div key={member.id} className={`flex items-center gap-3 p-3 bg-white border rounded-xl shadow-sm ${editingMember?.id === member.id ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200'}`}>
                                             <Avatar name={member.name} photo={member.photo} color={member.color}/>
                                             <div className="flex-1 min-w-0"><p className="font-bold text-sm truncate">{member.name}</p><p className="text-xs text-slate-500 truncate">{member.role}</p></div>
-                                            <div className="flex gap-1">
-                                                <button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-violet-600 p-2"><Pencil size={16}/></button>
-                                                <button onClick={() => { if(confirm('Remover?')) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', member.id)); }} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={16}/></button>
-                                            </div>
+                                            <div className="flex gap-1"><button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-violet-600 p-2"><Pencil size={16}/></button><button onClick={() => { if(confirm('Remover?')) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', member.id)); }} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={16}/></button></div>
                                         </div>
                                     ))}
                                 </div>
@@ -880,17 +903,13 @@
                 </div>
             );
 
-            // Modal de Workload (Detalhes do membro)
             const WorkloadModal = () => (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-fadeIn overflow-hidden">
                         <div className="bg-indigo-600 p-4 text-white flex justify-between items-center">
                             <div className="flex items-center gap-3">
                                 <Avatar name={selectedWorkloadMember.name} photo={selectedWorkloadMember.photo} color={selectedWorkloadMember.color} />
-                                <div>
-                                    <h3 className="font-bold text-lg leading-tight">{selectedWorkloadMember.name}</h3>
-                                    <p className="text-xs opacity-80">{selectedWorkloadMember.role}</p>
-                                </div>
+                                <div><h3 className="font-bold text-lg leading-tight">{selectedWorkloadMember.name}</h3><p className="text-xs opacity-80">{selectedWorkloadMember.role}</p></div>
                             </div>
                             <button onClick={() => setShowWorkloadModal(false)} className="hover:bg-white/20 p-1 rounded-full"><X size={18} /></button>
                         </div>
@@ -908,9 +927,7 @@
                                         );
                                     })}
                                 </ul>
-                            ) : (
-                                <p className="text-center text-slate-400 text-sm py-4">Nenhuma tarefa pendente.</p>
-                            )}
+                            ) : <p className="text-center text-slate-400 text-sm py-4">Nenhuma tarefa pendente.</p>}
                         </div>
                     </div>
                 </div>
@@ -920,52 +937,108 @@
 
             return (
                 <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 max-w-7xl mx-auto">
-                    {/* Toasts Container */}
                     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
                         {toasts.map(t => <Toast key={t.id} message={t.msg} type={t.type} onClose={() => setToasts(p => p.filter(x => x.id !== t.id))} />)}
                     </div>
-
                     {currentView === 'dashboard' ? <DashboardView /> : <EventDetailView />}
                     {showSettingsModal && <SettingsModal />}
                     {showWorkloadModal && selectedWorkloadMember && <WorkloadModal />}
+                    
                     {showNewEventModal && (
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
-                                <div className="bg-blue-900 p-6 text-white"><h2 className="text-2xl font-black">Novo Evento</h2></div>
-                                <form onSubmit={handleCreateEvent} className="p-8 space-y-4">
-                                    <input required name="title" placeholder="Nome" className="w-full p-3 border rounded-xl"/>
-                                    
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Início</label>
-                                            <input required name="startDate" type="date" className="p-3 border rounded-xl w-full" />
+                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[95vh]">
+                                <div className="bg-blue-900 p-6 text-white flex-shrink-0">
+                                    <h2 className="text-2xl font-black">Novo Evento</h2>
+                                    <p className="text-blue-200 text-sm">Defina os detalhes e o escopo do evento.</p>
+                                </div>
+                                <form onSubmit={handleCreateEvent} className="p-8 space-y-8 overflow-y-auto flex-1">
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">1. Detalhes Básicos</h3>
+                                        <div className="space-y-4">
+                                            <input required name="title" placeholder="Nome do Evento" className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none" />
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">Início</label>
+                                                    <input required name="startDate" type="date" className="p-3 border border-slate-200 rounded-xl w-full" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">Fim</label>
+                                                    <input required={!isOneDayEvent} disabled={isOneDayEvent} name="endDate" type="date" className="p-3 border border-slate-200 rounded-xl w-full disabled:bg-slate-100 disabled:text-slate-400" />
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" id="oneDay" checked={isOneDayEvent} onChange={(e) => setIsOneDayEvent(e.target.checked)} className="w-4 h-4 text-blue-900 rounded focus:ring-blue-500" />
+                                                <label htmlFor="oneDay" className="text-sm text-slate-600 cursor-pointer">Evento de um único dia</label>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <select name="responsible" className="p-3 border border-slate-200 rounded-xl w-full text-slate-700">
+                                                    {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                                                </select>
+                                                <input required name="location" placeholder="Local" className="w-full p-3 border border-slate-200 rounded-xl" />
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 mb-1">Fim</label>
-                                            <input required={!isOneDayEvent} disabled={isOneDayEvent} name="endDate" type="date" className="p-3 border rounded-xl w-full disabled:bg-slate-100 disabled:text-slate-400" />
+                                    </section>
+
+                                    <hr className="border-slate-100" />
+
+                                    <section>
+                                        <h3 className="text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider flex items-center gap-2">
+                                            <ListTodo size={16} /> 2. Seleção de Tarefas (Escopo)
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                            {Object.entries(CATEGORY_LABELS).map(([catKey, catLabel]) => (
+                                                <div key={catKey} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                                    <h4 className="font-bold text-slate-700 text-sm mb-3 border-b border-slate-200 pb-2">{catLabel}</h4>
+                                                    <div className="space-y-2">
+                                                        {DEFAULT_TASKS.filter(t => t.category === catKey).map(task => (
+                                                            <label key={task.title} className="flex items-start gap-2 cursor-pointer hover:opacity-80">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={selectedDefaultTasks.has(task.title)} 
+                                                                    onChange={() => toggleTaskSelection(task.title)}
+                                                                    className="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                                />
+                                                                <span className={`text-xs ${selectedDefaultTasks.has(task.title) ? 'text-slate-700 font-medium' : 'text-slate-400'}`}>{task.title}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <input 
-                                            type="checkbox" 
-                                            id="oneDay" 
-                                            checked={isOneDayEvent} 
-                                            onChange={(e) => setIsOneDayEvent(e.target.checked)} 
-                                            className="w-4 h-4 text-blue-900 rounded focus:ring-blue-500"
-                                        />
-                                        <label htmlFor="oneDay" className="text-sm text-slate-600 cursor-pointer">Evento de um único dia</label>
-                                    </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <select name="responsible" className="p-3 border rounded-xl w-full">
-                                            {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-                                        </select>
-                                        <input required name="location" placeholder="Local" className="w-full p-3 border rounded-xl"/>
-                                    </div>
+                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                            <h4 className="font-bold text-blue-800 text-sm mb-2">Adicionar Tarefas Extras</h4>
+                                            <div className="flex gap-2 mb-3">
+                                                <input 
+                                                    value={newCustomTaskInput}
+                                                    onChange={(e) => setNewCustomTaskInput(e.target.value)}
+                                                    placeholder="Nome da tarefa personalizada..." 
+                                                    className="flex-1 p-2 text-xs border border-blue-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
+                                                />
+                                                <select 
+                                                    value={newCustomTaskCategory}
+                                                    onChange={(e) => setNewCustomTaskCategory(e.target.value)}
+                                                    className="p-2 text-xs border border-blue-200 rounded-lg text-slate-600 outline-none"
+                                                >
+                                                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                                                </select>
+                                                <button type="button" onClick={addCustomTaskToCreate} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-700">Add</button>
+                                            </div>
+                                            {customTasksList.length > 0 && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {customTasksList.map((t, idx) => (
+                                                        <span key={idx} className="bg-white border border-blue-200 text-blue-700 px-2 py-1 rounded-lg text-xs flex items-center gap-1">
+                                                            {t.title} <button type="button" onClick={() => setCustomTasksList(prev => prev.filter((_, i) => i !== idx))} className="hover:text-red-500"><X size={12}/></button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
 
-                                    <div className="flex gap-4 mt-4">
-                                        <button type="button" onClick={() => setShowNewEventModal(false)} className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl">Cancelar</button>
-                                        <button type="submit" className="flex-1 py-3 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-colors">Criar</button>
+                                    <div className="flex gap-4 pt-4 border-t border-slate-100 flex-shrink-0">
+                                        <button type="button" onClick={() => setShowNewEventModal(false)} className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl font-bold transition-colors">Cancelar</button>
+                                        <button type="submit" className="flex-1 py-3 bg-blue-900 text-white rounded-xl font-bold hover:bg-blue-800 transition-colors shadow-lg">Criar Evento</button>
                                     </div>
                                 </form>
                             </div>
