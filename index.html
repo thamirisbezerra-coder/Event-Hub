@@ -812,11 +812,14 @@
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <div className="lg:col-span-2">
                                 <div className="flex overflow-x-auto gap-2 mb-4 pb-2">
-                                    {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                                        <button key={key} onClick={() => setActiveTab(key)} className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === key ? 'bg-white shadow-md text-slate-800 border border-slate-100' : 'text-slate-500 hover:bg-white/50'}`}>
-                                            {label}
-                                        </button>
-                                    ))}
+                                    {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+                                        const Icon = CATEGORY_ICONS[key];
+                                        return (
+                                            <button key={key} onClick={() => setActiveTab(key)} className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === key ? 'bg-white shadow-md text-slate-800 border border-slate-100' : 'text-slate-500 hover:bg-white/50'}`}>
+                                                {Icon && <Icon size={16} />} {label}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4 relative overflow-hidden">
@@ -1080,4 +1083,5 @@
     </script>
 </body>
 </html>
+
 
