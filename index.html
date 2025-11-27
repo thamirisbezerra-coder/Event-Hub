@@ -53,7 +53,7 @@
             Calendar, CheckCircle2, Circle, Clock, AlertTriangle, 
             Users, Package, Truck, BarChart3, Plus, 
             ArrowLeft, Trash2, MapPin, MessageSquare, Send, CornerDownLeft,
-            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon, Ban, Bell, Check
+            Settings, Upload, UserPlus, Image as ImageIcon, Pencil, X, AlertOctagon, Ban, Bell, Check, Crown
         } from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { 
@@ -99,7 +99,7 @@
         ];
 
         const DEFAULT_TASKS = [
-            // Produto & Planejamento (Adicionados novos itens)
+            // Produto & Planejamento
             { title: 'Definição de Produtos Inovação', category: 'produto', assignee: '', status: 'pending', deadline: '' },
             { title: 'Design: Etiquetas e Apresentações', category: 'produto', assignee: '', status: 'pending', deadline: '' },
             { title: 'Entrega Final Design (1 mês antes)', category: 'produto', assignee: '', status: 'pending', deadline: '' },
@@ -116,7 +116,7 @@
             { title: 'Emissão de Notas Fiscais', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
             { title: 'Transporte (Agendamento/Placa/Motorista)', category: 'logistica', assignee: '', status: 'pending', deadline: '', notes: 'Placa: \nMotorista: \nCredencial: ' },
             
-            // Staff & Envolvidos (Adicionadas perguntas de verificação)
+            // Staff
             { title: 'Contratação Fotografia/Agência', category: 'staff', assignee: '', status: 'pending', deadline: '' },
             { title: 'Lista de Equipamentos', category: 'staff', assignee: '', status: 'pending', deadline: '' },
             { title: 'Hospedagem Técnicos/Staff', category: 'staff', assignee: '', status: 'pending', deadline: '' },
@@ -418,7 +418,6 @@
             };
 
             const stats = useMemo(() => {
-                const allTasks = events.flatMap(e => ({...e, tasks: e.tasks})); // Flatten structure helper
                 const flatTasks = events.flatMap(e => e.tasks);
                 const totalPending = flatTasks.filter(t => t.status === 'pending').length;
                 const totalDone = flatTasks.filter(t => t.status === 'done').length;
@@ -434,13 +433,19 @@
                 
                 const recentComments = events.flatMap(e => e.tasks.flatMap(t => (t.comments || []).map(c => ({ 
                     ...c, taskTitle: t.title, eventTitle: e.title 
-                })))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10); // Last 10
+                })))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 10);
 
                 return { totalPending, totalDone, workload, alerts, recentComments };
             }, [events, team]);
 
             const handleFileUpload = (file) => new Promise((resolve) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.readAsDataURL(file); });
-            const updateLogo = async (e) => { if (e.target.files[0]) setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logo: await handleFileUpload(e.target.files[0]) }, { merge: true }); };
+            
+            // Setters
+            const updateSettings = async (field, value) => {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { [field]: value }, { merge: true });
+                addToast("Configuração salva!");
+            };
+            const updateLogo = async (e) => { if (e.target.files[0]) updateSettings('logo', await handleFileUpload(e.target.files[0])); };
             
             // CRUD Ações
             const addTeamMember = async (e) => {
@@ -503,127 +508,172 @@
                 });
                 addToast("Comentário editado!");
             };
+            
+            // Add Task Fixed Logic
             const addTask = (evId, title, cat) => {
+                if (!title || !title.trim()) return;
                 const ev = events.find(e => e.id === evId);
-                const newT = { id: crypto.randomUUID(), title, category: cat, assignee: '', status: 'pending', deadline: '' };
+                const newT = { id: crypto.randomUUID(), title: title.trim(), category: cat, assignee: '', status: 'pending', deadline: '' };
                 updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', evId), { tasks: [...ev.tasks, newT] });
                 addToast("Tarefa adicionada!");
             };
 
+            // Sync/Migration Logic (Auto-run when opening event)
+            useEffect(() => {
+                if (currentView === 'detail' && selectedEventId) {
+                    const ev = events.find(e => e.id === selectedEventId);
+                    if (ev) {
+                        const existingTitles = new Set(ev.tasks.map(t => t.title));
+                        const missing = DEFAULT_TASKS.filter(dt => !existingTitles.has(dt.title));
+                        
+                        if (missing.length > 0) {
+                            console.log("Migrating missing tasks for:", ev.title, missing);
+                            const newTasks = missing.map(t => ({ ...t, id: crypto.randomUUID(), status: 'pending', deadline: '' }));
+                            updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', selectedEventId), {
+                                tasks: [...ev.tasks, ...newTasks]
+                            });
+                            addToast("Tarefas atualizadas automaticamente!");
+                        }
+                    }
+                }
+            }, [currentView, selectedEventId, events]);
+
             // View Components
-            const DashboardView = () => (
-                <div className="space-y-8 animate-fadeIn pb-20">
-                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-                        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
-                            <div className="flex items-center gap-6">
-                                {settings.logo && <img src={settings.logo} className="h-16 object-contain" />}
-                                {settings.logo && <div className="h-10 w-px bg-slate-200 hidden md:block"></div>}
-                                <div><h1 className="text-2xl font-black text-slate-800 tracking-tight">Event Hub</h1><p className="text-slate-500 font-medium text-sm">Painel de Marketing</p></div>
-                            </div>
-                            <div className="flex gap-3 items-center">
-                                {/* Notificações */}
-                                <div className="relative">
-                                    <button onClick={() => { setShowNotifications(!showNotifications); setUnreadNotifications(false); }} className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 relative">
-                                        <Bell size={20} className={unreadNotifications ? 'animate-bounce-short text-indigo-600' : ''} />
-                                        {unreadNotifications && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
-                                    </button>
-                                    {showNotifications && (
-                                        <>
-                                            <div className="fixed inset-0 z-30" onClick={() => setShowNotifications(false)}></div>
-                                            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 z-40 max-h-96 overflow-y-auto animate-fadeIn">
-                                                <div className="p-4 border-b border-slate-50 font-bold text-sm text-slate-700">Novidades Recentes</div>
-                                                {stats.recentComments.length === 0 && <div className="p-4 text-xs text-slate-400 text-center">Nenhuma atividade.</div>}
-                                                {stats.recentComments.map((c, i) => (
-                                                    <div key={i} className="p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                                        <div className="flex gap-2 items-center mb-1">
-                                                            <Avatar name={c.authorName} size="xs" />
-                                                            <span className="font-bold text-xs">{c.authorName}</span>
-                                                            <span className="text-[10px] text-slate-400 ml-auto">{new Date(c.createdAt).toLocaleDateString()}</span>
-                                                        </div>
-                                                        <div className="text-[10px] text-indigo-500 font-medium mb-1 truncate">{c.eventTitle} • {c.taskTitle}</div>
-                                                        <p className="text-xs text-slate-600">{c.text}</p>
-                                                    </div>
-                                                ))}
+            const DashboardView = () => {
+                const teamLeader = team.find(m => m.id === settings.teamLeaderId);
+                
+                return (
+                    <div className="space-y-8 animate-fadeIn pb-20">
+                        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
+                                <div className="flex items-center gap-6">
+                                    {settings.logo && <img src={settings.logo} className="h-16 object-contain" />}
+                                    {settings.logo && <div className="h-10 w-px bg-slate-200 hidden md:block"></div>}
+                                    
+                                    <div>
+                                        <h1 className="text-2xl font-black text-slate-800 tracking-tight">Event Hub</h1>
+                                        <p className="text-slate-500 font-medium text-sm">Painel de Marketing</p>
+                                    </div>
+
+                                    {/* Team Leader Section */}
+                                    {teamLeader && (
+                                        <div className="hidden md:flex items-center gap-3 pl-6 border-l border-slate-200 ml-4 animate-slideIn">
+                                            <div className="relative">
+                                                <Avatar name={teamLeader.name} photo={teamLeader.photo} color={teamLeader.color} size="lg" />
+                                                <div className="absolute -bottom-1 -right-1 bg-amber-400 text-white rounded-full p-0.5 border-2 border-white"><Crown size={10} /></div>
                                             </div>
-                                        </>
+                                            <div>
+                                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wide">Líder da Equipe</p>
+                                                <p className="text-sm font-bold text-slate-800 leading-tight">{teamLeader.name}</p>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
+                                <div className="flex gap-3 items-center">
+                                    {/* Notificações */}
+                                    <div className="relative">
+                                        <button onClick={() => { setShowNotifications(!showNotifications); setUnreadNotifications(false); }} className="p-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 relative">
+                                            <Bell size={20} className={unreadNotifications ? 'animate-bounce-short text-indigo-600' : ''} />
+                                            {unreadNotifications && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
+                                        </button>
+                                        {showNotifications && (
+                                            <>
+                                                <div className="fixed inset-0 z-30" onClick={() => setShowNotifications(false)}></div>
+                                                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-2xl border border-slate-100 z-40 max-h-96 overflow-y-auto animate-fadeIn">
+                                                    <div className="p-4 border-b border-slate-50 font-bold text-sm text-slate-700">Novidades Recentes</div>
+                                                    {stats.recentComments.length === 0 && <div className="p-4 text-xs text-slate-400 text-center">Nenhuma atividade.</div>}
+                                                    {stats.recentComments.map((c, i) => (
+                                                        <div key={i} className="p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                                            <div className="flex gap-2 items-center mb-1">
+                                                                <Avatar name={c.authorName} size="xs" />
+                                                                <span className="font-bold text-xs">{c.authorName}</span>
+                                                                <span className="text-[10px] text-slate-400 ml-auto">{new Date(c.createdAt).toLocaleDateString()}</span>
+                                                            </div>
+                                                            <div className="text-[10px] text-indigo-500 font-medium mb-1 truncate">{c.eventTitle} • {c.taskTitle}</div>
+                                                            <p className="text-xs text-slate-600">{c.text}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
 
-                                <button onClick={() => setShowSettingsModal(true)} className="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold flex gap-2 hover:bg-slate-200"><Settings size={20} /></button>
-                                <button onClick={() => { setShowNewEventModal(true); setIsOneDayEvent(false); }} className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold flex gap-2 shadow-lg hover:scale-105 transition-all"><Plus size={20} /> Novo Evento</button>
+                                    <button onClick={() => setShowSettingsModal(true)} className="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold flex gap-2 hover:bg-slate-200"><Settings size={20} /></button>
+                                    <button onClick={() => { setShowNewEventModal(true); setIsOneDayEvent(false); }} className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold flex gap-2 shadow-lg hover:scale-105 transition-all"><Plus size={20} /> Novo Evento</button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
+                                    <div className="relative w-24 h-24 flex-shrink-0">
+                                        <svg className="w-full h-full" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" /><circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray={`${(stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 251} 251`} strokeDashoffset="0" className="origin-center -rotate-90" /></svg>
+                                        <div className="absolute inset-0 flex items-center justify-center flex-col"><span className="text-xl font-black text-slate-700">{Math.round((stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 100)}%</span></div>
+                                    </div>
+                                    <div><h3 className="font-bold text-slate-800">Status Global</h3><div className="flex gap-3 text-xs font-bold mt-2"><span className="text-emerald-600 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalDone} Feitas</span><span className="text-amber-500 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalPending} Pend.</span></div></div>
+                                </div>
+                                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 col-span-1 md:col-span-2">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Users size={16} /> Carga de Trabalho (Clique para ver detalhes)</h3>
+                                    <div className="flex gap-4 items-end h-24 overflow-x-auto pb-2">
+                                        {stats.workload.map(m => (
+                                            <div key={m.id} onClick={() => { setSelectedWorkloadMember(m); setShowWorkloadModal(true); }} className="flex flex-col items-center gap-2 min-w-[50px] cursor-pointer group hover:scale-105 transition-transform">
+                                                <div className="w-8 bg-slate-200 rounded-t-lg relative flex-1 min-h-[10px] group-hover:bg-indigo-100"><div className="absolute bottom-0 left-0 right-0 bg-indigo-600 rounded-t-lg transition-all" style={{ height: `${Math.max(Math.min((m.count / 10) * 100, 100), 5)}%` }}></div></div>
+                                                <Avatar name={m.name} photo={m.photo} color={m.color} size="xs" />
+                                                <span className="text-[10px] font-bold text-indigo-600">{m.count}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
-                                <div className="relative w-24 h-24 flex-shrink-0">
-                                    <svg className="w-full h-full" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" /><circle cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" strokeDasharray={`${(stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 251} 251`} strokeDashoffset="0" className="origin-center -rotate-90" /></svg>
-                                    <div className="absolute inset-0 flex items-center justify-center flex-col"><span className="text-xl font-black text-slate-700">{Math.round((stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 100)}%</span></div>
-                                </div>
-                                <div><h3 className="font-bold text-slate-800">Status Global</h3><div className="flex gap-3 text-xs font-bold mt-2"><span className="text-emerald-600 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalDone} Feitas</span><span className="text-amber-500 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalPending} Pend.</span></div></div>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 space-y-4">
+                                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><div className="text-indigo-600"><Clock /></div> Próximos Eventos</h2>
+                                {events.map(ev => {
+                                    const pend = ev.tasks.filter(t => t.status === 'pending').length;
+                                    const daysLeftText = getDaysLeft(ev.date);
+                                    return (
+                                        <div key={ev.id} onClick={() => { setSelectedEventId(ev.id); setCurrentView('detail'); }} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 relative group">
+                                            {pend > 0 && <div className="absolute top-4 right-4 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100 flex items-center gap-1 animate-pulse"><AlertTriangle size={12}/> faltam {pend}</div>}
+                                            <div className="flex gap-4">
+                                                <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[70px]">
+                                                    <span className="block text-xs font-bold text-slate-500 uppercase">{new Date(ev.date).toLocaleDateString('pt-BR', { month: 'short' })}</span>
+                                                    <span className="block text-2xl font-black text-slate-800">{new Date(ev.date).getDate()}</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{ev.title}</h3>
+                                                    <p className="text-sm text-slate-500 flex items-center gap-1">
+                                                        <MapPin size={14}/> {ev.location}
+                                                    </p>
+                                                    <div className="flex gap-3 mt-1 text-xs font-semibold">
+                                                        <span className="text-indigo-600">{formatDateRange(ev.date, ev.endDate)}</span>
+                                                        <span className={`px-2 py-0.5 rounded-full ${daysLeftText === 'Finalizado' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                            {daysLeftText}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 col-span-1 md:col-span-2">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Users size={16} /> Carga de Trabalho (Clique para ver detalhes)</h3>
-                                <div className="flex gap-4 items-end h-24 overflow-x-auto pb-2">
-                                    {stats.workload.map(m => (
-                                        <div key={m.id} onClick={() => { setSelectedWorkloadMember(m); setShowWorkloadModal(true); }} className="flex flex-col items-center gap-2 min-w-[50px] cursor-pointer group hover:scale-105 transition-transform">
-                                            <div className="w-8 bg-slate-200 rounded-t-lg relative flex-1 min-h-[10px] group-hover:bg-indigo-100"><div className="absolute bottom-0 left-0 right-0 bg-indigo-600 rounded-t-lg transition-all" style={{ height: `${Math.max(Math.min((m.count / 10) * 100, 100), 5)}%` }}></div></div>
-                                            <Avatar name={m.name} photo={m.photo} color={m.color} size="xs" />
-                                            <span className="text-[10px] font-bold text-indigo-600">{m.count}</span>
+                            <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 max-h-[500px] overflow-auto flex flex-col">
+                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><MessageSquare size={18} className="text-indigo-500" /> Atualizações</h3>
+                                <div className="space-y-4">
+                                    {stats.recentComments.map((c, i) => (
+                                        <div key={i} className="flex gap-3 pb-3 border-b border-slate-50 last:border-0">
+                                            <Avatar name={c.authorName} photo={team.find(m=>m.name===c.authorName)?.photo} color={team.find(m=>m.name===c.authorName)?.color} size="xs" className="mt-1"/>
+                                            <div>
+                                                <div className="flex gap-2 items-baseline"><span className="text-xs font-bold text-slate-700">{c.authorName.split(' ')[0]}</span><span className="text-[10px] text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</span></div>
+                                                <div className="text-[10px] text-indigo-500 font-medium mb-1 flex items-center gap-1"><CornerDownLeft size={10}/> {c.eventTitle}</div>
+                                                <p className="text-xs bg-slate-50 p-2 rounded-lg text-slate-600">{c.text}</p>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2 space-y-4">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><div className="text-indigo-600"><Clock /></div> Próximos Eventos</h2>
-                            {events.map(ev => {
-                                const pend = ev.tasks.filter(t => t.status === 'pending').length;
-                                const daysLeftText = getDaysLeft(ev.date);
-                                return (
-                                    <div key={ev.id} onClick={() => { setSelectedEventId(ev.id); setCurrentView('detail'); }} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 relative group">
-                                        {pend > 0 && <div className="absolute top-4 right-4 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100 flex items-center gap-1 animate-pulse"><AlertTriangle size={12}/> faltam {pend}</div>}
-                                        <div className="flex gap-4">
-                                            <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[70px]">
-                                                <span className="block text-xs font-bold text-slate-500 uppercase">{new Date(ev.date).toLocaleDateString('pt-BR', { month: 'short' })}</span>
-                                                <span className="block text-2xl font-black text-slate-800">{new Date(ev.date).getDate()}</span>
-                                            </div>
-                                            <div>
-                                                <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{ev.title}</h3>
-                                                <p className="text-sm text-slate-500 flex items-center gap-1">
-                                                    <MapPin size={14}/> {ev.location}
-                                                </p>
-                                                <div className="flex gap-3 mt-1 text-xs font-semibold">
-                                                    <span className="text-indigo-600">{formatDateRange(ev.date, ev.endDate)}</span>
-                                                    <span className={`px-2 py-0.5 rounded-full ${daysLeftText === 'Finalizado' ? 'bg-slate-100 text-slate-500' : 'bg-emerald-100 text-emerald-700'}`}>
-                                                        {daysLeftText}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                        <div className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 max-h-[500px] overflow-auto flex flex-col">
-                            <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><MessageSquare size={18} className="text-indigo-500" /> Atualizações</h3>
-                            <div className="space-y-4">
-                                {stats.recentComments.map((c, i) => (
-                                    <div key={i} className="flex gap-3 pb-3 border-b border-slate-50 last:border-0">
-                                        <Avatar name={c.authorName} photo={team.find(m=>m.name===c.authorName)?.photo} color={team.find(m=>m.name===c.authorName)?.color} size="xs" className="mt-1"/>
-                                        <div>
-                                            <div className="flex gap-2 items-baseline"><span className="text-xs font-bold text-slate-700">{c.authorName.split(' ')[0]}</span><span className="text-[10px] text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</span></div>
-                                            <div className="text-[10px] text-indigo-500 font-medium mb-1 flex items-center gap-1"><CornerDownLeft size={10}/> {c.eventTitle}</div>
-                                            <p className="text-xs bg-slate-50 p-2 rounded-lg text-slate-600">{c.text}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
+                );
+            }
 
             const EventDetailView = () => {
                 const event = events.find(e => e.id === selectedEventId);
@@ -705,7 +755,7 @@
                                             placeholder={`Nova tarefa de ${categories.find(c=>c.id===activeTab).label.split(' ')[0]}...`} 
                                             className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100" 
                                         />
-                                        <button onClick={() => { if(newTaskName){ addTask(event.id, newTaskName, activeTab); setNewTaskName(''); } }} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors"><Plus /></button>
+                                        <button onClick={() => { if(newTaskName){ addTask(event.id, newTaskName, activeTab); setNewTaskName(''); } }} disabled={!newTaskName.trim()} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><Plus /></button>
                                     </div>
                                 </div>
                             </div>
@@ -738,13 +788,28 @@
                             <button onClick={() => { setShowSettingsModal(false); setEditingMember(null); }}><X/></button>
                         </div>
                         <div className="p-8 overflow-y-auto space-y-8 flex-1">
+                            {/* Logo Section */}
                             <section>
-                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><ImageIcon size={20} className="text-violet-600"/> Logo</h3>
-                                <div className="flex items-center gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                                    <div className="w-32 h-16 bg-white border rounded flex items-center justify-center overflow-hidden">{settings.logo ? <img src={settings.logo} className="w-full h-full object-contain"/> : <span className="text-xs text-slate-400">Sem Logo</span>}</div>
-                                    <div><label className="block text-sm font-medium mb-2">Carregar logo</label><input type="file" accept="image/*" onChange={updateLogo} className="text-xs text-slate-500"/></div>
+                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><ImageIcon size={20} className="text-violet-600"/> Identidade</h3>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                        <div className="w-32 h-16 bg-white border rounded flex items-center justify-center overflow-hidden">{settings.logo ? <img src={settings.logo} className="w-full h-full object-contain"/> : <span className="text-xs text-slate-400">Sem Logo</span>}</div>
+                                        <div><label className="block text-sm font-medium mb-2">Carregar logo</label><input type="file" accept="image/*" onChange={updateLogo} className="text-xs text-slate-500"/></div>
+                                    </div>
+                                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Líder da Equipe (Aparece no Topo)</label>
+                                        <select 
+                                            value={settings.teamLeaderId || ''} 
+                                            onChange={(e) => updateSettings('teamLeaderId', e.target.value)}
+                                            className="w-full p-2 border rounded-lg text-sm"
+                                        >
+                                            <option value="">Selecione um líder...</option>
+                                            {team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    </div>
                                 </div>
                             </section>
+
                             <section>
                                 <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><Users size={20} className="text-violet-600"/> Equipe</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -791,9 +856,6 @@
                             {selectedWorkloadMember.tasks && selectedWorkloadMember.tasks.length > 0 ? (
                                 <ul className="space-y-3">
                                     {selectedWorkloadMember.tasks.map((task, i) => {
-                                        // Encontrar o nome do evento para esta tarefa (não temos diretamente no task object, precisamos buscar no events array)
-                                        // Mas aqui no `stats` a gente já filtrou as tarefas. Precisamos do contexto do evento.
-                                        // Vamos ajustar o `stats.workload` pra incluir o titulo do evento
                                         const event = events.find(e => e.tasks.some(t => t.id === task.id));
                                         return (
                                             <li key={i} className="border-b border-slate-100 pb-2 last:border-0">
