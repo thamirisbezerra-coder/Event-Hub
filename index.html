@@ -141,17 +141,25 @@
         const CATEGORY_LABELS = CATEGORY_CONFIG.reduce((acc, cat) => ({...acc, [cat.id]: cat.label}), {});
 
         // --- Helpers ---
+        // Corrige o problema de fuso horário adicionando o offset
+        const parseDate = (dateStr) => {
+            if (!dateStr) return null;
+            const date = new Date(dateStr);
+            date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+            return date;
+        };
+
         const formatDateRange = (start, end) => {
             if (!start) return '';
-            const d1 = new Date(start); d1.setMinutes(d1.getMinutes() + d1.getTimezoneOffset());
-            const d2 = end ? new Date(end) : d1; d2.setMinutes(d2.getMinutes() + d2.getTimezoneOffset());
+            const d1 = parseDate(start);
+            const d2 = end ? parseDate(end) : d1;
             if (d1.toDateString() === d2.toDateString()) return d1.toLocaleDateString('pt-BR');
             return `${d1.toLocaleDateString('pt-BR')} - ${d2.toLocaleDateString('pt-BR')}`;
         };
 
         const getDaysLeft = (dateStr) => {
             if (!dateStr) return null;
-            const target = new Date(dateStr); target.setMinutes(target.getMinutes() + target.getTimezoneOffset());
+            const target = parseDate(dateStr);
             const today = new Date();
             target.setHours(0,0,0,0); today.setHours(0,0,0,0);
             const diffTime = target - today;
@@ -184,7 +192,7 @@
             return <Icon size={size} strokeWidth={1} />;
         };
 
-        const AssigneeSelector = ({ currentAssignees = [], onUpdate, team, minimal = false, onToggle }) => {
+        const AssigneeSelector = ({ currentAssignees = [], onUpdate, team, minimal = false, onToggle, singleSelect = false }) => {
             const [isOpen, setIsOpen] = useState(false);
             const safeAssignees = Array.isArray(currentAssignees) ? currentAssignees : (currentAssignees ? [currentAssignees] : []);
 
@@ -194,10 +202,22 @@
             };
 
             const toggleMember = (memberName) => {
-                if (safeAssignees.includes(memberName)) {
-                    onUpdate(safeAssignees.filter(n => n !== memberName));
+                if (singleSelect) {
+                    // Modo de seleção única (para comentários)
+                    if (safeAssignees.includes(memberName)) {
+                         // Se clicar no mesmo, não faz nada ou desmarca (opcional). Vamos manter selecionado.
+                         onUpdate([memberName]);
+                    } else {
+                         onUpdate([memberName]);
+                    }
+                    handleToggle(false); // Fecha automaticamente ao selecionar
                 } else {
-                    onUpdate([...safeAssignees, memberName]);
+                    // Modo múltiplo (para tarefas)
+                    if (safeAssignees.includes(memberName)) {
+                        onUpdate(safeAssignees.filter(n => n !== memberName));
+                    } else {
+                        onUpdate([...safeAssignees, memberName]);
+                    }
                 }
             };
 
@@ -222,7 +242,9 @@
                         <>
                             <div className="fixed inset-0 z-40" onClick={() => handleToggle(false)} />
                             <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden max-h-60 overflow-y-auto animate-fadeIn">
-                                <div className="p-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">Selecionar Responsáveis</div>
+                                <div className="p-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">
+                                    {singleSelect ? 'Selecionar Autor' : 'Selecionar Responsáveis'}
+                                </div>
                                 {team.map(member => {
                                     const isSelected = safeAssignees.includes(member.name);
                                     return (
@@ -333,7 +355,7 @@
                                     onToggle={setIsSelectorOpen}
                                 />
                                 
-                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 bg-white text-xs ${task.deadline && new Date(task.deadline) < new Date() && task.status !== 'done' ? 'border-red-200 text-red-600 bg-red-50' : ''}`}>
+                                <div className={`flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 bg-white text-xs ${task.deadline && parseDate(task.deadline) < new Date() && task.status !== 'done' ? 'border-red-200 text-red-600 bg-red-50' : ''}`}>
                                     <Calendar size={12} className="opacity-50" />
                                     <input type="date" value={task.deadline} onChange={(e) => onUpdate(task.id, { deadline: e.target.value })} className="outline-none bg-transparent w-24 cursor-pointer" />
                                 </div>
@@ -380,7 +402,8 @@
                                                 currentAssignees={[commentAuthor]} 
                                                 onUpdate={(arr) => setCommentAuthor(arr[0])} 
                                                 minimal team={team} 
-                                                onToggle={setIsCommentSelectorOpen} 
+                                                onToggle={setIsCommentSelectorOpen}
+                                                singleSelect={true} // Ativa o modo de substituição
                                             />
                                         </div>
                                         <input 
@@ -420,13 +443,15 @@
             const now = new Date();
             now.setHours(0,0,0,0);
             const upcomingEvents = events.filter(e => {
-                const end = e.endDate ? new Date(e.endDate) : new Date(e.date);
-                end.setMinutes(end.getMinutes() + end.getTimezoneOffset());
+                const end = e.endDate ? parseDate(e.endDate) : parseDate(e.date);
+                if(!end) return false;
+                end.setHours(23,59,59,999);
                 return end >= now;
             });
             const pastEvents = events.filter(e => {
-                const end = e.endDate ? new Date(e.endDate) : new Date(e.date);
-                end.setMinutes(end.getMinutes() + end.getTimezoneOffset());
+                const end = e.endDate ? parseDate(e.endDate) : parseDate(e.date);
+                if(!end) return true; // Fallback if invalid date, assume past or handle error
+                end.setHours(23,59,59,999);
                 return end < now;
             });
 
@@ -504,7 +529,10 @@
                                             <div key={ev.id} onClick={() => onSelectEvent(ev.id)} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 relative group">
                                                 {pend > 0 && <div className="absolute top-4 right-4 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100 flex items-center gap-1 animate-pulse"><AlertTriangle size={12}/> faltam {pend} tarefas</div>}
                                                 <div className="flex gap-4">
-                                                    <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[70px]"><span className="block text-xs font-bold text-slate-500 uppercase">{new Date(ev.date).toLocaleDateString('pt-BR', { month: 'short' })}</span><span className="block text-2xl font-black text-slate-800">{new Date(ev.date).getDate()}</span></div>
+                                                    <div className="bg-slate-100 p-3 rounded-xl text-center min-w-[70px]">
+                                                        <span className="block text-xs font-bold text-slate-500 uppercase">{parseDate(ev.date)?.toLocaleDateString('pt-BR', { month: 'short' })}</span>
+                                                        <span className="block text-2xl font-black text-slate-800">{parseDate(ev.date)?.getDate()}</span>
+                                                    </div>
                                                     <div className="flex-1">
                                                         <h3 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">{ev.title}</h3>
                                                         <p className="text-sm text-slate-500 flex items-center gap-1"><MapPin size={14}/> {ev.location}</p>
@@ -547,108 +575,6 @@
                                         </div>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const EventDetailView = ({ event, team, onBack, onDeleteEvent, onUpdateTask, onAddComment, onDeleteComment, onUpdateComment, onAddTask, onUpdateEvent }) => {
-            const [activeTab, setActiveTab] = useState('produto');
-            const [newTaskName, setNewTaskName] = useState('');
-            
-            if (!event) return null;
-            
-            const filteredTasks = event.tasks.filter(t => t.category === activeTab);
-            const activeCategoryConfig = CATEGORY_CONFIG.find(c => c.id === activeTab);
-            const watermarkColor = activeCategoryConfig ? activeCategoryConfig.color : 'text-slate-200';
-
-            return (
-                <div className="animate-fadeIn pb-20">
-                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl mb-8 flex flex-col md:flex-row justify-between gap-6 border border-slate-100">
-                        <div className="flex items-center gap-4">
-                            <button onClick={onBack} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-600"><ArrowLeft size={24}/></button>
-                            <div>
-                                <h1 className="text-3xl font-black text-slate-800">{event.title}</h1>
-                                <div className="flex gap-4 text-sm text-slate-500 mt-2">
-                                    <span className="flex gap-2 font-medium text-slate-600"><Clock size={16}/> {formatDateRange(event.date, event.endDate)}</span>
-                                    <span className="flex gap-2"><MapPin size={16}/> {event.location}</span>
-                                    <span className="bg-indigo-50 text-indigo-700 px-2 rounded-full text-xs font-bold flex items-center">{getDaysLeft(event.date)}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 items-center">
-                            <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                                <Avatar name={event.mainResponsible} photo={team.find(m=>m.name===event.mainResponsible)?.photo} color={team.find(m=>m.name===event.mainResponsible)?.color} size="md"/>
-                                <div><p className="text-xs font-bold text-slate-400 uppercase">Líder</p><p className="font-bold text-slate-700 text-sm">{event.mainResponsible}</p></div>
-                            </div>
-                            <button onClick={onDeleteEvent} className="text-red-400 hover:bg-red-50 p-3 rounded-lg"><Trash2/></button>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2">
-                            <div className="flex overflow-x-auto gap-2 mb-4 pb-2">
-                                {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
-                                    const Icon = CATEGORY_ICONS[key];
-                                    return (
-                                        <button key={key} onClick={() => setActiveTab(key)} className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === key ? 'bg-white shadow-md text-slate-800 border border-slate-100' : 'text-slate-500 hover:bg-white/50'}`}>
-                                            {Icon && <Icon size={16} />} {label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4 relative">
-                                <div className={`absolute -right-10 -bottom-10 pointer-events-none opacity-20 ${watermarkColor} overflow-hidden inset-0 z-0 rounded-2xl`}>
-                                    <div className="absolute right-0 bottom-0">
-                                        <CategoryWatermark category={activeTab} size={300} />
-                                    </div>
-                                </div>
-
-                                {filteredTasks.length === 0 && <div className="text-center py-10 text-slate-400 relative z-10">Nenhuma tarefa nesta etapa.</div>}
-                                {filteredTasks.map(task => (
-                                    <TaskItem 
-                                        key={task.id} 
-                                        task={task} 
-                                        eventId={event.id}
-                                        team={team}
-                                        onUpdate={(tId, ups) => onUpdateTask(event.id, tId, ups)}
-                                        onAddComment={(tId, txt, auth) => onAddComment(event.id, tId, txt, auth)}
-                                        onDeleteComment={(tId, cId) => onDeleteComment(event.id, tId, cId)}
-                                        onUpdateComment={(tId, cId, txt) => onUpdateComment(event.id, tId, cId, txt)}
-                                    />
-                                ))}
-                                <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100 relative z-10">
-                                    <input value={newTaskName} onChange={e => setNewTaskName(e.target.value)} onKeyDown={e => e.key === 'Enter' && newTaskName && (onAddTask(event.id, newTaskName, activeTab), setNewTaskName(''))} placeholder={`Nova tarefa...`} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100" />
-                                    <button onClick={() => { if(newTaskName){ onAddTask(event.id, newTaskName, activeTab); setNewTaskName(''); } }} disabled={!newTaskName.trim()} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><Plus /></button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-6">
-                            <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
-                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2 items-center"><BarChart3 size={18} className="text-emerald-500"/> Pós-Evento</h3>
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex items-center gap-1 mb-1">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Leads Capturados</label>
-                                            <div className="relative group">
-                                                <HelpCircle size={14} className="text-slate-400 cursor-help hover:text-indigo-500 transition-colors" />
-                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-xs rounded-xl p-3 hidden group-hover:block z-50 shadow-xl pointer-events-none">
-                                                    <p>Lead é um potencial cliente que demonstrou interesse na Doremus e deixou seu contato durante o evento.</p>
-                                                    <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <input type="number" value={event.leadsCount||0} onChange={e => onUpdateEvent('leadsCount', parseInt(e.target.value))} className="w-full p-3 border border-slate-200 rounded-xl text-2xl font-black text-center text-slate-700 outline-none focus:border-indigo-300" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Feedback & Anotações</label>
-                                        <textarea value={event.feedback||''} onChange={e => onUpdateEvent('feedback', e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl h-32 text-sm resize-none outline-none focus:border-indigo-300" placeholder="Resumo do evento..." />
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -820,12 +746,10 @@
                 
                 // Filter active events for Workload
                 const activeEvents = events.filter(e => {
-                    const end = e.endDate ? new Date(e.endDate) : new Date(e.date);
-                    const endDate = new Date(end);
-                    // Fix timezone offset for comparison
-                    endDate.setMinutes(endDate.getMinutes() + endDate.getTimezoneOffset());
-                    endDate.setHours(23,59,59,999); // End of the day
-                    return endDate >= now;
+                    const end = e.endDate ? parseDate(e.endDate) : parseDate(e.date);
+                    if(!end) return false;
+                    end.setHours(23,59,59,999); // End of the day
+                    return end >= now;
                 });
 
                 const flatTasks = activeEvents.flatMap(e => e.tasks);
@@ -906,7 +830,7 @@
                                                     <li key={i} className="border-b border-slate-100 pb-2 last:border-0">
                                                         <div className="text-xs font-bold text-slate-400 mb-1">{event?.title}</div>
                                                         <div className="text-sm font-medium text-slate-700">{task.title}</div>
-                                                        {task.deadline && <div className="text-xs text-red-500 mt-1 flex items-center gap-1"><Clock size={10}/> {new Date(task.deadline).toLocaleDateString()}</div>}
+                                                        {task.deadline && <div className="text-xs text-red-500 mt-1 flex items-center gap-1"><Clock size={10}/> {parseDate(task.deadline)?.toLocaleDateString()}</div>}
                                                     </li>
                                                 );
                                             })}
