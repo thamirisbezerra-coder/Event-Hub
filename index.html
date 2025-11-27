@@ -1,0 +1,786 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Calendar, CheckCircle2, Circle, Clock, AlertTriangle, 
+  Users, Package, Truck, Camera, BarChart3, Plus, 
+  ChevronRight, ArrowLeft, Save, Trash2, MoreVertical,
+  Ban, MapPin, FileText, Share2, LayoutDashboard,
+  Search, Filter, X, MessageSquare, Send, CornerDownLeft,
+  Bell, PieChart, TrendingUp, AlertCircle, Settings, Upload, UserPlus, Image as ImageIcon, Pencil
+} from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, collection, onSnapshot, 
+  addDoc, updateDoc, doc, deleteDoc, query, orderBy, serverTimestamp, setDoc, getDoc 
+} from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+
+// --- Firebase Configuration ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// --- Interfaces ---
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  photo?: string; // Base64 string
+  color: string;
+  bubble: string;
+}
+
+interface AppSettings {
+  logo?: string; // Base64 string
+}
+
+interface Comment {
+  id: string;
+  text: string;
+  createdAt: string;
+  authorName: string;
+  taskTitle?: string;
+  eventTitle?: string;
+}
+
+interface Task {
+  id: string;
+  title: string;
+  category: 'produto' | 'logistica' | 'staff' | 'pos-evento' | 'geral';
+  assignee: string; 
+  status: 'pending' | 'done' | 'na'; 
+  deadline: string;
+  notes?: string;
+  comments?: Comment[];
+}
+
+interface EventData {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  mainResponsible: string;
+  status: 'planning' | 'active' | 'completed';
+  tasks: Task[];
+  leadsCount?: number;
+  feedback?: string;
+  createdAt: any;
+}
+
+// --- Constants ---
+const PRESET_COLORS = [
+  { color: 'bg-rose-500', bubble: 'bg-rose-100 text-rose-900 border-rose-200' },
+  { color: 'bg-violet-600', bubble: 'bg-violet-100 text-violet-900 border-violet-200' },
+  { color: 'bg-amber-500', bubble: 'bg-amber-100 text-amber-900 border-amber-200' },
+  { color: 'bg-cyan-500', bubble: 'bg-cyan-100 text-cyan-900 border-cyan-200' },
+  { color: 'bg-emerald-500', bubble: 'bg-emerald-100 text-emerald-900 border-emerald-200' },
+  { color: 'bg-blue-500', bubble: 'bg-blue-100 text-blue-900 border-blue-200' },
+  { color: 'bg-fuchsia-500', bubble: 'bg-fuchsia-100 text-fuchsia-900 border-fuchsia-200' },
+];
+
+const DEFAULT_TASKS: Omit<Task, 'id'>[] = [
+  { title: 'Definição de Produtos Inovação', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Design: Etiquetas e Apresentações', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Entrega Final Design (1 mês antes)', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Solicitação de Brindes/Amostras', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Material de Merchandising', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Acompanhamento Design do Estande', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Acompanhamento Obra do Estande', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Emissão de Notas Fiscais', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Transporte (Agendamento/Placa/Motorista)', category: 'logistica', assignee: '', status: 'pending', deadline: '', notes: 'Placa: \nMotorista: \nCredencial: ' },
+  { title: 'Contratação Fotografia/Agência', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Lista de Equipamentos', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Hospedagem Técnicos/Staff', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Aluguel de Carros', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Lead Tracking / Coleta de Dados', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Feedback Pós-Feira', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
+  { title: 'Postagens Cobertura (Vídeos/Fotos)', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
+];
+
+// --- Helper Components ---
+
+const Avatar = ({ photo, name, color, size = 'md', className = '' }: { photo?: string, name: string, color?: string, size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl', className?: string }) => {
+  const sizeClasses = {
+    xs: 'w-6 h-6 text-[9px]',
+    sm: 'w-8 h-8 text-[10px]',
+    md: 'w-10 h-10 text-xs',
+    lg: 'w-14 h-14 text-sm',
+    xl: 'w-24 h-24 text-base'
+  };
+
+  if (photo) {
+    return (
+      <img 
+        src={photo} 
+        alt={name} 
+        className={`${sizeClasses[size]} rounded-full object-cover border-2 border-white shadow-sm hover:scale-105 transition-transform duration-200 ${className}`}
+      />
+    );
+  }
+
+  const initials = name ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?';
+  const bgColor = color || 'bg-slate-300';
+
+  return (
+    <div className={`${sizeClasses[size]} rounded-full ${bgColor} flex items-center justify-center text-white font-bold border-2 border-white shadow-sm ${className}`}>
+      {initials}
+    </div>
+  );
+};
+
+export default function MarketingEventsSuperApp() {
+  const [user, setUser] = useState<any>(null);
+  const [events, setEvents] = useState<EventData[]>([]);
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [settings, setSettings] = useState<AppSettings>({});
+  const [loading, setLoading] = useState(true);
+  
+  const [currentView, setCurrentView] = useState<'dashboard' | 'detail'>('dashboard');
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  
+  // Modals
+  const [showNewEventModal, setShowNewEventModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  
+  // Editing State
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+
+  // --- Auth & Initial Data ---
+  useEffect(() => {
+    const initAuth = async () => {
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch Events
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as EventData[];
+      eventsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setEvents(eventsData);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch Team
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), orderBy('name'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        setTeam(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TeamMember)));
+      } else {
+        // Init default team if empty
+        const defaultTeam = [
+          { name: 'Suzana Santos', role: 'Gestão', color: 'bg-rose-500', bubble: 'bg-rose-100 text-rose-900 border-rose-200' },
+          { name: 'Felipe Paiva', role: 'Design', color: 'bg-violet-600', bubble: 'bg-violet-100 text-violet-900 border-violet-200' },
+          { name: 'Matheus Silva', role: 'Logística', color: 'bg-amber-500', bubble: 'bg-amber-100 text-amber-900 border-amber-200' },
+          { name: 'Larissa Tomé', role: 'Eventos', color: 'bg-cyan-500', bubble: 'bg-cyan-100 text-cyan-900 border-cyan-200' },
+        ];
+        defaultTeam.forEach(member => {
+           addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), member);
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch Settings (Logo)
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), (doc) => {
+      if (doc.exists()) {
+        setSettings(doc.data() as AppSettings);
+      }
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // --- Logic Hooks ---
+  const stats = useMemo(() => {
+    const allTasks = events.flatMap(e => e.tasks);
+    const totalPending = allTasks.filter(t => t.status === 'pending').length;
+    const totalDone = allTasks.filter(t => t.status === 'done').length;
+    const totalNA = allTasks.filter(t => t.status === 'na').length;
+    
+    const workload = team.map(member => ({
+      ...member,
+      count: allTasks.filter(t => t.assignee === member.name && t.status === 'pending').length,
+    }));
+
+    const alerts = events.map(event => {
+      const pendingCount = event.tasks.filter(t => t.status === 'pending').length;
+      return { eventId: event.id, eventTitle: event.title, pendingCount, hasWarning: pendingCount > 0 };
+    }).filter(a => a.hasWarning);
+
+    const recentComments = events
+      .flatMap(e => e.tasks.flatMap(t => (t.comments || []).map(c => ({ ...c, taskTitle: t.title, eventTitle: e.title }))))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+
+    return { totalPending, totalDone, totalNA, workload, alerts, recentComments };
+  }, [events, team]);
+
+  const getMemberData = (name: string) => team.find(m => m.name === name) || { name, role: 'Staff', color: 'bg-slate-400', bubble: 'bg-slate-100 text-slate-800' };
+
+  // --- File Handling Functions ---
+  const handleFileUpload = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const updateLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const base64 = await handleFileUpload(e.target.files[0]);
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logo: base64 }, { merge: true });
+    }
+  };
+
+  const addTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const name = formData.get('name') as string;
+    const role = formData.get('role') as string;
+    const file = (formData.get('photo') as File);
+    
+    let photo = '';
+    if (file.size > 0) {
+      photo = await handleFileUpload(file);
+    }
+
+    const randomColor = PRESET_COLORS[team.length % PRESET_COLORS.length];
+
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'team_members'), {
+      name,
+      role,
+      photo,
+      ...randomColor
+    });
+    form.reset();
+  };
+
+  const updateTeamMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const name = formData.get('name') as string;
+    const role = formData.get('role') as string;
+    const file = (formData.get('photo') as File);
+
+    const updates: any = { name, role };
+
+    if (file.size > 0) {
+      updates.photo = await handleFileUpload(file);
+    }
+
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', editingMember.id), updates);
+    setEditingMember(null);
+    form.reset();
+  };
+
+  const deleteTeamMember = async (id: string) => {
+    if(confirm('Remover este membro da equipe?')) {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', id));
+    }
+  };
+
+  // --- Sub-Components (Inside to access state) ---
+  const AssigneeSelector = ({ currentAssignee, onSelect, minimal = false }: { currentAssignee: string, onSelect: (name: string) => void, minimal?: boolean }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const assignedMember = getMemberData(currentAssignee);
+
+    return (
+      <div className="relative">
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className={`flex items-center gap-2 ${minimal ? 'p-1 hover:bg-slate-100 rounded-full' : 'pl-1 pr-3 py-1 bg-white border border-slate-200 rounded-full hover:border-violet-400'} transition-colors group shadow-sm`}
+        >
+          <Avatar name={currentAssignee} photo={assignedMember?.photo} color={assignedMember?.color} size={minimal ? "xs" : "sm"} />
+          {!minimal && (
+            <span className={`text-xs font-medium truncate max-w-[80px] ${currentAssignee ? 'text-slate-700' : 'text-slate-400'}`}>
+              {currentAssignee ? currentAssignee.split(' ')[0] : 'Responsável'}
+            </span>
+          )}
+        </button>
+
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden animate-fadeIn max-h-60 overflow-y-auto">
+              <div className="p-2 bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase">
+                Selecionar
+              </div>
+              {team.map(member => (
+                <button
+                  key={member.id}
+                  onClick={() => { onSelect(member.name); setIsOpen(false); }}
+                  className="w-full flex items-center gap-3 p-2 hover:bg-violet-50 transition-colors text-left"
+                >
+                  <Avatar name={member.name} photo={member.photo} color={member.color} size="sm" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-slate-700">{member.name}</span>
+                    <span className="text-[10px] text-slate-400">{member.role}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // --- Main Actions ---
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const newEvent = {
+      title: formData.get('title') as string,
+      date: formData.get('date') as string,
+      location: formData.get('location') as string,
+      mainResponsible: formData.get('responsible') as string, 
+      status: 'planning',
+      leadsCount: 0,
+      feedback: '',
+      createdAt: serverTimestamp(),
+      tasks: DEFAULT_TASKS.map(t => ({ ...t, id: crypto.randomUUID() }))
+    };
+    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'marketing_events'), newEvent);
+    setShowNewEventModal(false);
+  };
+
+  const handleUpdateTask = async (eventId: string, taskId: string, updates: Partial<Task>) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    const updatedTasks = event.tasks.map(t => t.id === taskId ? { ...t, ...updates } : t);
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', eventId), { tasks: updatedTasks });
+  };
+
+  const handleAddTaskComment = async (eventId: string, taskId: string, text: string, author: string) => {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    const newComment: Comment = {
+      id: crypto.randomUUID(),
+      text,
+      authorName: author,
+      createdAt: new Date().toISOString()
+    };
+    const updatedTasks = event.tasks.map(t => {
+      if (t.id === taskId) return { ...t, comments: [...(t.comments || []), newComment] };
+      return t;
+    });
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', eventId), { tasks: updatedTasks });
+  };
+
+  // --- Render Views ---
+
+  const SettingsModal = () => (
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="bg-slate-800 p-6 text-white flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2"><Settings className="text-violet-400" /> Configurações do App</h2>
+            <p className="text-slate-400 text-sm">Personalize imagens e equipe</p>
+          </div>
+          <button onClick={() => { setShowSettingsModal(false); setEditingMember(null); }} className="p-2 hover:bg-white/10 rounded-full"><X /></button>
+        </div>
+        
+        <div className="p-8 overflow-y-auto space-y-8 flex-1">
+          {/* Logo Section */}
+          <section>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><ImageIcon size={20} className="text-violet-600" /> Logo do App</h3>
+            <div className="flex items-center gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+               <div className="w-32 h-16 bg-white border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden">
+                 {settings.logo ? <img src={settings.logo} className="w-full h-full object-contain" /> : <span className="text-xs text-slate-400">Sem Logo</span>}
+               </div>
+               <div className="flex-1">
+                 <label className="block text-sm font-medium text-slate-700 mb-2">Carregar nova logo</label>
+                 <div className="relative">
+                   <input type="file" accept="image/*" onChange={updateLogo} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                   <div className="flex items-center gap-2 bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors w-fit shadow-sm cursor-pointer">
+                      <Upload size={16} className="text-slate-500" />
+                      <span className="text-sm font-medium text-slate-700">Escolher Arquivo</span>
+                   </div>
+                 </div>
+                 <p className="text-xs text-slate-400 mt-2">Recomendado: PNG Transparente</p>
+               </div>
+            </div>
+          </section>
+
+          {/* Team Section */}
+          <section>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><Users size={20} className="text-violet-600" /> Gestão da Equipe</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {team.map(member => (
+                <div key={member.id} className={`flex items-center gap-3 p-3 bg-white border rounded-xl shadow-sm transition-all ${editingMember?.id === member.id ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200'}`}>
+                  <Avatar name={member.name} photo={member.photo} color={member.color} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-800 text-sm truncate">{member.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{member.role}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-violet-600 p-2 rounded-lg hover:bg-violet-50 transition-colors" title="Editar"><Pencil size={16} /></button>
+                    <button onClick={() => deleteTeamMember(member.id)} className="text-slate-400 hover:text-red-500 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Remover"><Trash2 size={16} /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className={`bg-slate-50 p-6 rounded-2xl border transition-all ${editingMember ? 'border-violet-200 bg-violet-50' : 'border-slate-200'}`}>
+              <div className="flex justify-between items-center mb-4">
+                 <h4 className={`text-sm font-bold flex items-center gap-2 ${editingMember ? 'text-violet-700' : 'text-slate-700'}`}>
+                   {editingMember ? <><Pencil size={16} /> Editando: {editingMember.name}</> : <><UserPlus size={16} /> Adicionar Novo Membro</>}
+                 </h4>
+                 {editingMember && (
+                   <button onClick={() => setEditingMember(null)} className="text-xs text-slate-500 hover:text-slate-700 underline">Cancelar Edição</button>
+                 )}
+              </div>
+              
+              <form onSubmit={editingMember ? updateTeamMember : addTeamMember} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <input required name="name" defaultValue={editingMember?.name} placeholder="Nome Completo" className="p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-violet-200" />
+                  <input required name="role" defaultValue={editingMember?.role} placeholder="Cargo / Função" className="p-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-violet-200" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Foto {editingMember ? '(Deixe em branco para manter a atual)' : '(Opcional)'}</label>
+                  <input name="photo" type="file" accept="image/*" className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-violet-100 file:text-violet-700 hover:file:bg-violet-200" />
+                </div>
+                <button type="submit" className={`w-full text-white py-2 rounded-lg font-bold text-sm transition-colors shadow-md ${editingMember ? 'bg-violet-600 hover:bg-violet-700' : 'bg-slate-800 hover:bg-slate-900'}`}>
+                  {editingMember ? 'Salvar Alterações' : 'Adicionar à Equipe'}
+                </button>
+              </form>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+
+  const DashboardView = () => (
+    <div className="space-y-8 animate-fadeIn pb-20">
+      {/* Hero Section */}
+      <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
+            <div className="flex items-center gap-6">
+              {settings.logo && <img src={settings.logo} alt="Logo" className="h-16 object-contain" />}
+              {settings.logo && <div className="h-10 w-px bg-slate-200 hidden md:block"></div>}
+              <div>
+                  <h1 className="text-2xl font-black text-slate-800 tracking-tight">Event Hub</h1>
+                  <p className="text-slate-500 font-medium text-sm">Painel de Controle de Marketing</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowSettingsModal(true)}
+                className="bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-200 transition-colors"
+                title="Configurações & Imagens"
+              >
+                <Settings size={20} />
+              </button>
+              <button 
+                onClick={() => setShowNewEventModal(true)}
+                className="bg-blue-900 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+              >
+                <Plus size={20} /> Novo Evento
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Dashboard */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Stat 1: Global Progress */}
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 flex items-center gap-4">
+                <div className="relative w-24 h-24 flex-shrink-0">
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="transparent" stroke="#e2e8f0" strokeWidth="12" />
+                    <circle 
+                      cx="50" cy="50" r="40" fill="transparent" stroke="#10b981" strokeWidth="12" 
+                      strokeDasharray={`${(stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 251} 251`}
+                      strokeDashoffset="0"
+                      className="transition-all duration-1000 ease-out origin-center -rotate-90"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center flex-col">
+                      <span className="text-xl font-black text-slate-700">{Math.round((stats.totalDone / (stats.totalDone + stats.totalPending || 1)) * 100)}%</span>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800">Status Global</h3>
+                  <div className="flex gap-3 text-xs font-bold mt-2">
+                      <span className="text-emerald-600 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalDone} Feitas</span>
+                      <span className="text-amber-500 flex items-center gap-1"><Circle size={8} fill="currentColor" /> {stats.totalPending} Pend.</span>
+                  </div>
+                </div>
+            </div>
+
+            {/* Stat 2: Team Workload */}
+            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 col-span-1 md:col-span-2">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><Users size={16} /> Carga de Trabalho (Pendências)</h3>
+                <div className="flex gap-4 items-end h-24 overflow-x-auto pb-2">
+                  {stats.workload.map(member => (
+                      <div key={member.id} className="flex flex-col items-center gap-2 group min-w-[50px]">
+                        <div className="w-8 bg-slate-200 rounded-t-lg relative group-hover:bg-indigo-100 transition-colors flex-1 min-h-[10px]">
+                            <div 
+                              className="absolute bottom-0 left-0 right-0 bg-indigo-600 rounded-t-lg transition-all duration-700"
+                              style={{ height: `${Math.max(Math.min((member.count / 10) * 100, 100), 5)}%` }}
+                            ></div>
+                        </div>
+                        <Avatar name={member.name} photo={member.photo} color={member.color} size="xs" />
+                      </div>
+                  ))}
+                </div>
+            </div>
+          </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Calendar className="text-indigo-600" /> Próximos Eventos</h2>
+            {events.map(event => {
+              const pendingCount = event.tasks.filter(t => t.status === 'pending').length;
+              const total = event.tasks.filter(t => t.status !== 'na').length;
+              const done = event.tasks.filter(t => t.status === 'done').length;
+              return (
+                <div key={event.id} onClick={() => { setSelectedEventId(event.id); setCurrentView('detail'); }} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 group relative">
+                  {pendingCount > 0 && (
+                    <div className="absolute top-4 right-4 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border border-amber-100 animate-pulse">
+                        <AlertTriangle size={12} /> verificar: faltam {pendingCount}
+                    </div>
+                  )}
+                  <div className="flex gap-4">
+                    <div className="bg-slate-100 border border-slate-200 p-3 rounded-xl text-center min-w-[70px]">
+                      <span className="block text-xs font-bold text-slate-500 uppercase">{new Date(event.date).toLocaleDateString('pt-BR', { month: 'short' })}</span>
+                      <span className="block text-2xl font-black text-slate-800">{new Date(event.date).getDate()}</span>
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="text-lg font-bold text-slate-800 mb-1 group-hover:text-indigo-600">{event.title}</h3>
+                        <p className="text-sm text-slate-500 mb-3 flex items-center gap-1"><MapPin size={14} /> {event.location}</p>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div className="bg-indigo-500 h-full transition-all" style={{ width: `${total ? (done/total)*100 : 0}%` }}></div>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="space-y-6">
+             {/* Feed */}
+             <div className="bg-white rounded-2xl p-5 shadow-lg shadow-slate-200/50 border border-slate-100 max-h-[500px] overflow-hidden flex flex-col">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4"><MessageSquare size={18} className="text-indigo-500" /> Últimas Atualizações</h3>
+                <div className="overflow-y-auto pr-2 space-y-4 flex-1 scrollbar-thin scrollbar-thumb-slate-200">
+                  {stats.recentComments.map((comment, idx) => {
+                     const author = getMemberData(comment.authorName);
+                     return (
+                      <div key={idx} className="flex gap-3 items-start pb-3 border-b border-slate-50 last:border-0">
+                          <Avatar name={comment.authorName} photo={author?.photo} color={author?.color} size="xs" className="mt-1" />
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-xs font-bold text-slate-700">{comment.authorName.split(' ')[0]}</span>
+                                <span className="text-[10px] text-slate-400">{new Date(comment.createdAt).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}</span>
+                            </div>
+                            <div className="text-[10px] text-indigo-500 font-medium mb-0.5 flex items-center gap-1">
+                                <CornerDownLeft size={10} /> {comment.eventTitle} • {comment.taskTitle}
+                            </div>
+                            <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg rounded-tl-none">{comment.text}</p>
+                          </div>
+                      </div>
+                     );
+                  })}
+                </div>
+             </div>
+          </div>
+      </div>
+    </div>
+  );
+
+  const EventDetailView = () => {
+    const event = events.find(e => e.id === selectedEventId);
+    const [activeTab, setActiveTab] = useState<'produto' | 'logistica' | 'staff' | 'pos-evento'>('produto');
+    const [newTaskName, setNewTaskName] = useState('');
+    const [commentText, setCommentText] = useState('');
+    const [commentAuthor, setCommentAuthor] = useState('');
+
+    if (!event) return null;
+    const categories = [
+      { id: 'produto', label: 'Planejamento & Produto', icon: Package, color: 'text-rose-500', bg: 'bg-rose-50' },
+      { id: 'logistica', label: 'Logística & Estande', icon: Truck, color: 'text-amber-500', bg: 'bg-amber-50' },
+      { id: 'staff', label: 'Staff & Viagem', icon: Users, color: 'text-cyan-500', bg: 'bg-cyan-50' },
+      { id: 'pos-evento', label: 'Pós-Evento & Leads', icon: BarChart3, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    ];
+    const filteredTasks = event.tasks.filter(t => t.category === activeTab);
+
+    return (
+      <div className="animate-fadeIn pb-20">
+         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl mb-8 border border-slate-100 flex flex-col md:flex-row justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setCurrentView('dashboard')} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-600"><ArrowLeft size={24} /></button>
+              <div>
+                <h1 className="text-3xl font-black text-slate-800">{event.title}</h1>
+                <div className="flex items-center gap-4 text-sm text-slate-500 mt-2">
+                  <span className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg"><Calendar size={16} /> {new Date(event.date).toLocaleDateString('pt-BR')}</span>
+                  <span className="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-lg"><MapPin size={16} /> {event.location}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+               <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <Avatar name={event.mainResponsible} photo={getMemberData(event.mainResponsible)?.photo} color={getMemberData(event.mainResponsible)?.color} size="md" />
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase">Líder</p>
+                    <p className="font-bold text-slate-700 text-sm">{event.mainResponsible}</p>
+                  </div>
+               </div>
+               <button onClick={() => { if(confirm('Excluir evento?')) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', event.id)); }} className="text-red-400 hover:bg-red-50 p-3 rounded-lg"><Trash2 /></button>
+            </div>
+         </div>
+
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+               <div className="flex overflow-x-auto gap-2 mb-4">
+                  {categories.map(cat => (
+                    <button key={cat.id} onClick={() => setActiveTab(cat.id as any)} className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all ${activeTab === cat.id ? 'bg-white shadow-md text-slate-800' : 'text-slate-500 hover:bg-white/50'}`}>
+                      <cat.icon size={16} className={cat.color} /> {cat.label}
+                    </button>
+                  ))}
+               </div>
+               
+               <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4">
+                  {filteredTasks.map(task => (
+                    <div key={task.id} className={`p-4 rounded-xl border transition-all ${task.status === 'done' ? 'bg-emerald-50/50 border-emerald-100' : 'bg-white border-slate-100 hover:border-indigo-100'}`}>
+                       <div className="flex gap-4">
+                          <button onClick={() => handleUpdateTask(event.id, task.id, { status: task.status === 'done' ? 'pending' : 'done' })} className={`mt-1 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${task.status === 'done' ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300'}`}><CheckCircle2 size={16} /></button>
+                          <div className="flex-1">
+                             <div className="flex justify-between mb-2">
+                                <span className={`font-semibold ${task.status === 'done' ? 'text-emerald-800 line-through' : 'text-slate-800'}`}>{task.title}</span>
+                                <div className="flex gap-2">
+                                  <button onClick={() => setExpandedComments(p => ({...p, [task.id]: !p[task.id]}))} className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-indigo-500"><MessageSquare size={14} /> {task.comments?.length || 0}</button>
+                                  <button onClick={() => handleUpdateTask(event.id, task.id, { status: task.status === 'na' ? 'pending' : 'na' })} className="text-xs font-bold text-slate-300 hover:text-slate-500">N/A</button>
+                                </div>
+                             </div>
+                             
+                             <div className="flex items-center gap-3">
+                                <AssigneeSelector currentAssignee={task.assignee} onSelect={(name) => handleUpdateTask(event.id, task.id, { assignee: name })} />
+                                <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-slate-200 bg-white text-xs">
+                                  <Calendar size={12} className="text-slate-400" />
+                                  <input type="date" value={task.deadline} onChange={(e) => handleUpdateTask(event.id, task.id, { deadline: e.target.value })} className="outline-none bg-transparent text-slate-600 w-24" />
+                                </div>
+                             </div>
+
+                             {expandedComments[task.id] && (
+                               <div className="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                  <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
+                                    {task.comments?.map(c => {
+                                      const author = getMemberData(c.authorName);
+                                      return (
+                                        <div key={c.id} className="flex gap-2 items-end">
+                                          <Avatar name={c.authorName} photo={author?.photo} color={author?.color} size="xs" />
+                                          <div className={`px-3 py-2 rounded-2xl rounded-bl-none border text-xs ${author?.bubble || 'bg-white border-slate-200'}`}>{c.text}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="flex gap-2">
+                                     <div className="w-8 flex-shrink-0"><AssigneeSelector currentAssignee={commentAuthor || event.mainResponsible} onSelect={setCommentAuthor} minimal /></div>
+                                     <input value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Comentar..." className="flex-1 text-xs bg-white border border-slate-200 rounded-lg px-3 outline-none" />
+                                     <button onClick={() => { if(commentText) { handleAddTaskComment(event.id, task.id, commentText, commentAuthor || event.mainResponsible); setCommentText(''); } }} className="bg-indigo-600 text-white p-2 rounded-lg"><Send size={14} /></button>
+                                  </div>
+                               </div>
+                             )}
+
+                             {(task.notes || activeTab === 'logistica') && (
+                               <textarea value={task.notes||''} onChange={e => handleUpdateTask(event.id, task.id, { notes: e.target.value })} placeholder="Detalhes (Motorista, Placa...)" className="w-full mt-3 text-xs bg-slate-50 border-slate-100 rounded-lg p-2 h-16 resize-none" />
+                             )}
+                          </div>
+                       </div>
+                    </div>
+                  ))}
+                  
+                  {/* Add Task Input */}
+                  <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+                     <input value={newTaskName} onChange={e => setNewTaskName(e.target.value)} placeholder="Nova tarefa..." className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none" />
+                     <button onClick={() => { if(newTaskName){ const newTask = { id: crypto.randomUUID(), title: newTaskName, category: activeTab as any, assignee: '', status: 'pending', deadline: '' }; updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', event.id), { tasks: [...event.tasks, newTask] }); setNewTaskName(''); } }} className="bg-indigo-600 text-white p-2 rounded-lg"><Plus /></button>
+                  </div>
+               </div>
+            </div>
+
+            <div className="space-y-6">
+               <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
+                  <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><BarChart3 size={18} /> Pós-Evento</h3>
+                  <div className="space-y-4">
+                     <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase">Leads</label>
+                       <input type="number" value={event.leadsCount||0} onChange={e => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', event.id), { leadsCount: parseInt(e.target.value) })} className="w-full p-3 border rounded-xl text-2xl font-black text-center" />
+                     </div>
+                     <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase">Feedback</label>
+                       <textarea value={event.feedback||''} onChange={e => updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'marketing_events', event.id), { feedback: e.target.value })} className="w-full p-3 border rounded-xl h-32 text-sm resize-none" placeholder="Resumo..." />
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+    );
+  };
+
+  if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>;
+
+  return (
+    <div className="min-h-screen bg-slate-50/50 text-slate-900 font-sans p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {currentView === 'dashboard' ? <DashboardView /> : <EventDetailView />}
+
+        {showSettingsModal && <SettingsModal />}
+        
+        {showNewEventModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+               <div className="bg-gradient-to-r from-blue-900 to-indigo-900 p-6 text-white">
+                 <h2 className="text-2xl font-black">Novo Evento</h2>
+               </div>
+               <form onSubmit={handleCreateEvent} className="p-8 space-y-4">
+                 <input required name="title" placeholder="Nome do Evento" className="w-full p-3 border rounded-xl" />
+                 <div className="grid grid-cols-2 gap-4">
+                   <input required name="date" type="date" className="p-3 border rounded-xl" />
+                   <select name="responsible" className="p-3 border rounded-xl">
+                      {team.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+                   </select>
+                 </div>
+                 <input required name="location" placeholder="Local" className="w-full p-3 border rounded-xl" />
+                 <div className="flex gap-4 mt-4">
+                   <button type="button" onClick={() => setShowNewEventModal(false)} className="flex-1 py-3 text-slate-500 hover:bg-slate-50 rounded-xl">Cancelar</button>
+                   <button type="submit" className="flex-1 py-3 bg-blue-900 text-white rounded-xl font-bold">Criar</button>
+                 </div>
+               </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
