@@ -99,19 +99,32 @@
         ];
 
         const DEFAULT_TASKS = [
+            // Produto & Planejamento (Adicionados novos itens)
             { title: 'Definição de Produtos Inovação', category: 'produto', assignee: '', status: 'pending', deadline: '' },
             { title: 'Design: Etiquetas e Apresentações', category: 'produto', assignee: '', status: 'pending', deadline: '' },
             { title: 'Entrega Final Design (1 mês antes)', category: 'produto', assignee: '', status: 'pending', deadline: '' },
             { title: 'Solicitação de Brindes/Amostras', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Receituário', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Dinâmicas', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Aula Técnica ou Teórica', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Vídeo Institucional', category: 'produto', assignee: '', status: 'pending', deadline: '' },
+
+            // Logística
             { title: 'Material de Merchandising', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
             { title: 'Acompanhamento Design do Estande', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
             { title: 'Acompanhamento Obra do Estande', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
             { title: 'Emissão de Notas Fiscais', category: 'logistica', assignee: '', status: 'pending', deadline: '' },
             { title: 'Transporte (Agendamento/Placa/Motorista)', category: 'logistica', assignee: '', status: 'pending', deadline: '', notes: 'Placa: \nMotorista: \nCredencial: ' },
+            
+            // Staff & Envolvidos (Adicionadas perguntas de verificação)
             { title: 'Contratação Fotografia/Agência', category: 'staff', assignee: '', status: 'pending', deadline: '' },
             { title: 'Lista de Equipamentos', category: 'staff', assignee: '', status: 'pending', deadline: '' },
             { title: 'Hospedagem Técnicos/Staff', category: 'staff', assignee: '', status: 'pending', deadline: '' },
             { title: 'Aluguel de Carros', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+            { title: 'Time de Amostras será envolvido?', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+            { title: 'P&D será envolvido?', category: 'staff', assignee: '', status: 'pending', deadline: '' },
+
+            // Pós-Evento
             { title: 'Lead Tracking / Coleta de Dados', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
             { title: 'Feedback Pós-Feira', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
             { title: 'Postagens Cobertura (Vídeos/Fotos)', category: 'pos-evento', assignee: '', status: 'pending', deadline: '' },
@@ -191,7 +204,10 @@
             const [editingCommentId, setEditingCommentId] = useState(null);
             const [editCommentText, setEditCommentText] = useState('');
 
-            // Salvar edição do título da tarefa
+            // Detecta se é uma tarefa "pergunta" para ajustar o placeholder
+            const isQuestionTask = task.title.includes('?');
+            const notesPlaceholder = isQuestionTask ? "Com quem foi alinhado?" : "Adicionar detalhes técnicos (Placa, Motorista, Credencial)...";
+
             const saveTaskTitle = () => {
                 if (taskTitle.trim() && taskTitle !== task.title) {
                     onUpdate(task.id, { title: taskTitle });
@@ -313,12 +329,14 @@
                                 </div>
                             )}
 
-                            {(task.notes || task.category === 'logistica' || task.title.includes('Transporte')) && (
+                            {/* Notas Técnicas / Alinhamento */}
+                            {(task.notes || task.category === 'logistica' || task.title.includes('Transporte') || isQuestionTask) && (
                                 <div className="mt-3">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">{isQuestionTask ? "Alinhamento" : "Observações"}</div>
                                     <textarea 
                                         value={task.notes || ''} 
                                         onChange={(e) => onUpdate(task.id, { notes: e.target.value })} 
-                                        placeholder="Adicionar detalhes técnicos (Placa, Motorista, Credencial)..." 
+                                        placeholder={notesPlaceholder} 
                                         className="w-full text-xs bg-slate-50/50 border border-slate-200 rounded-lg p-2 h-16 resize-none focus:bg-white focus:border-indigo-300 outline-none transition-colors" 
                                     />
                                 </div>
@@ -858,3 +876,4 @@
     </script>
 </body>
 </html>
+
