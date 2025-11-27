@@ -99,6 +99,7 @@
         ];
 
         const DEFAULT_TASKS = [
+            // Produto & Planejamento
             { title: 'Definição de Produtos Inovação', category: 'produto', assignees: [], status: 'pending', deadline: '' },
             { title: 'Design: Etiquetas e Apresentações', category: 'produto', assignees: [], status: 'pending', deadline: '' },
             { title: 'Entrega Final Design (1 mês antes)', category: 'produto', assignees: [], status: 'pending', deadline: '' },
@@ -107,17 +108,23 @@
             { title: 'Dinâmicas', category: 'produto', assignees: [], status: 'pending', deadline: '' },
             { title: 'Aula Técnica ou Teórica', category: 'produto', assignees: [], status: 'pending', deadline: '' },
             { title: 'Vídeo Institucional', category: 'produto', assignees: [], status: 'pending', deadline: '' },
+
+            // Logística
             { title: 'Material de Merchandising', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
             { title: 'Acompanhamento Design do Estande', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
             { title: 'Acompanhamento Obra do Estande', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
             { title: 'Emissão de Notas Fiscais', category: 'logistica', assignees: [], status: 'pending', deadline: '' },
             { title: 'Transporte (Agendamento/Placa/Motorista)', category: 'logistica', assignees: [], status: 'pending', deadline: '', notes: 'Placa: \nMotorista: \nCredencial: ' },
+            
+            // Staff
             { title: 'Contratação Fotografia/Agência', category: 'staff', assignees: [], status: 'pending', deadline: '' },
             { title: 'Lista de Equipamentos', category: 'staff', assignees: [], status: 'pending', deadline: '' },
             { title: 'Hospedagem Técnicos/Staff', category: 'staff', assignees: [], status: 'pending', deadline: '' },
             { title: 'Aluguel de Carros', category: 'staff', assignees: [], status: 'pending', deadline: '' },
             { title: 'Time de Amostras será envolvido?', category: 'staff', assignees: [], status: 'pending', deadline: '' },
             { title: 'P&D será envolvido?', category: 'staff', assignees: [], status: 'pending', deadline: '' },
+
+            // Pós-Evento
             { title: 'Lead Tracking / Coleta de Dados', category: 'pos-evento', assignees: [], status: 'pending', deadline: '' },
             { title: 'Feedback Pós-Feira', category: 'pos-evento', assignees: [], status: 'pending', deadline: '' },
             { title: 'Postagens Cobertura (Vídeos/Fotos)', category: 'pos-evento', assignees: [], status: 'pending', deadline: '' },
@@ -500,10 +507,13 @@
                             <div>
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-4"><div className="text-indigo-600"><Clock /></div> Próximos Eventos</h2>
                                 <div className="space-y-4">
+                                    {upcomingEvents.length === 0 && <div className="text-center py-10 bg-white rounded-2xl border border-slate-200 text-slate-400">Nenhum evento futuro.</div>}
                                     {upcomingEvents.map(ev => {
-                                        const pend = (ev.tasks||[]).filter(t => t.status === 'pending').length;
-                                        const total = (ev.tasks||[]).filter(t => t.status !== 'na').length;
-                                        const done = (ev.tasks||[]).filter(t => t.status === 'done').length;
+                                        // SAFETY: Check if tasks exist
+                                        const tasks = ev.tasks || [];
+                                        const pend = tasks.filter(t => t.status === 'pending').length;
+                                        const total = tasks.filter(t => t.status !== 'na').length;
+                                        const done = tasks.filter(t => t.status === 'done').length;
                                         const percent = total > 0 ? Math.round((done / total) * 100) : 0;
                                         return (
                                             <div key={ev.id} onClick={() => onSelectEvent(ev.id)} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-indigo-100 relative group">
@@ -522,14 +532,153 @@
             );
         };
 
+        const EventDetailView = ({ event, team, onBack, onDeleteEvent, onUpdateTask, onAddComment, onDeleteComment, onUpdateComment, onAddTask, onUpdateEvent }) => {
+            const [activeTab, setActiveTab] = useState('produto');
+            const [newTaskName, setNewTaskName] = useState('');
+            
+            if (!event) return <div className="flex h-screen items-center justify-center flex-col"><p className="text-slate-500 mb-4">Evento não encontrado.</p><button onClick={onBack} className="text-indigo-600 underline">Voltar ao Dashboard</button></div>;
+            
+            // SAFETY: Ensure tasks exists
+            const tasks = event.tasks || [];
+            const filteredTasks = tasks.filter(t => t.category === activeTab);
+            
+            const activeCategoryConfig = CATEGORY_CONFIG.find(c => c.id === activeTab);
+            const watermarkColor = activeCategoryConfig ? activeCategoryConfig.color : 'text-slate-200';
+
+            return (
+                <div className="animate-fadeIn pb-20">
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl mb-8 flex flex-col md:flex-row justify-between gap-6 border border-slate-100">
+                        <div className="flex items-center gap-4">
+                            <button onClick={onBack} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-600"><ArrowLeft size={24}/></button>
+                            <div>
+                                <h1 className="text-3xl font-black text-slate-800">{event.title}</h1>
+                                <div className="flex gap-4 text-sm text-slate-500 mt-2">
+                                    <span className="flex gap-2 font-medium text-slate-600"><Clock size={16}/> {formatDateRange(event.date, event.endDate)}</span>
+                                    <span className="flex gap-2"><MapPin size={16}/> {event.location}</span>
+                                    <span className="bg-indigo-50 text-indigo-700 px-2 rounded-full text-xs font-bold flex items-center">{getDaysLeft(event.date)}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex gap-4 items-center">
+                            <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                <Avatar name={event.mainResponsible} photo={team.find(m=>m.name===event.mainResponsible)?.photo} color={team.find(m=>m.name===event.mainResponsible)?.color} size="md"/>
+                                <div><p className="text-xs font-bold text-slate-400 uppercase">Líder</p><p className="font-bold text-slate-700 text-sm">{event.mainResponsible}</p></div>
+                            </div>
+                            <button onClick={onDeleteEvent} className="text-red-400 hover:bg-red-50 p-3 rounded-lg"><Trash2/></button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="lg:col-span-2">
+                            <div className="flex overflow-x-auto gap-2 mb-4 pb-2">
+                                {Object.entries(CATEGORY_LABELS).map(([key, label]) => {
+                                    const Icon = CATEGORY_ICONS[key];
+                                    return (
+                                        <button key={key} onClick={() => setActiveTab(key)} className={`px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all whitespace-nowrap ${activeTab === key ? 'bg-white shadow-md text-slate-800 border border-slate-100' : 'text-slate-500 hover:bg-white/50'}`}>
+                                            {Icon && <Icon size={16} />} {label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 space-y-4 relative">
+                                <div className={`absolute -right-10 -bottom-10 pointer-events-none opacity-20 ${watermarkColor} overflow-hidden inset-0 z-0 rounded-2xl`}>
+                                    <div className="absolute right-0 bottom-0">
+                                        <CategoryWatermark category={activeTab} size={300} />
+                                    </div>
+                                </div>
+
+                                {filteredTasks.length === 0 && <div className="text-center py-10 text-slate-400 relative z-10">Nenhuma tarefa nesta etapa.</div>}
+                                {filteredTasks.map(task => (
+                                    <TaskItem 
+                                        key={task.id} 
+                                        task={task} 
+                                        eventId={event.id}
+                                        team={team}
+                                        onUpdate={(tId, ups) => onUpdateTask(event.id, tId, ups)}
+                                        onAddComment={(tId, txt, auth) => onAddComment(event.id, tId, txt, auth)}
+                                        onDeleteComment={(tId, cId) => onDeleteComment(event.id, tId, cId)}
+                                        onUpdateComment={(tId, cId, txt) => onUpdateComment(event.id, tId, cId, txt)}
+                                    />
+                                ))}
+                                <div className="flex gap-2 mt-6 pt-4 border-t border-slate-100 relative z-10">
+                                    <input value={newTaskName} onChange={e => setNewTaskName(e.target.value)} onKeyDown={e => e.key === 'Enter' && newTaskName && (onAddTask(event.id, newTaskName, activeTab), setNewTaskName(''))} placeholder={`Nova tarefa...`} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-100" />
+                                    <button onClick={() => { if(newTaskName){ onAddTask(event.id, newTaskName, activeTab); setNewTaskName(''); } }} disabled={!newTaskName.trim()} className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"><Plus /></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
+                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2 items-center"><BarChart3 size={18} className="text-emerald-500"/> Pós-Evento</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Leads Capturados</label>
+                                            <div className="relative group">
+                                                <HelpCircle size={14} className="text-slate-400 cursor-help hover:text-indigo-500 transition-colors" />
+                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 text-white text-xs rounded-xl p-3 hidden group-hover:block z-50 shadow-xl pointer-events-none">
+                                                    <p>Lead é um potencial cliente que demonstrou interesse na Doremus e deixou seu contato durante o evento.</p>
+                                                    <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-800 rotate-45"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <input type="number" value={event.leadsCount||0} onChange={e => onUpdateEvent('leadsCount', parseInt(e.target.value))} className="w-full p-3 border border-slate-200 rounded-xl text-2xl font-black text-center text-slate-700 outline-none focus:border-indigo-300" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase">Feedback & Anotações</label>
+                                        <textarea value={event.feedback||''} onChange={e => onUpdateEvent('feedback', e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl h-32 text-sm resize-none outline-none focus:border-indigo-300" placeholder="Resumo do evento..." />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const SettingsModal = ({ settings, team, editingMember, setEditingMember, setShowSettingsModal, updateSettings, updateLogo, addTeamMember, updateTeamMember, deleteTeamMember }) => {
             return (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col animate-fadeIn">
-                        <div className="bg-slate-800 p-6 text-white flex justify-between items-center"><h2 className="text-xl font-bold flex gap-2"><Settings className="text-violet-400"/> Configurações</h2><button onClick={() => { setShowSettingsModal(false); setEditingMember(null); }}><X/></button></div>
+                        <div className="bg-slate-800 p-6 text-white flex justify-between items-center">
+                            <h2 className="text-xl font-bold flex gap-2"><Settings className="text-violet-400"/> Configurações</h2>
+                            <button onClick={() => { setShowSettingsModal(false); setEditingMember(null); }}><X/></button>
+                        </div>
                         <div className="p-8 overflow-y-auto space-y-8 flex-1">
-                            <section><h3 className="font-bold text-slate-800 mb-4 flex gap-2"><ImageIcon size={20} className="text-violet-600"/> Identidade</h3><div className="space-y-4"><div className="flex items-center gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200"><div className="w-32 h-16 bg-white border rounded flex items-center justify-center overflow-hidden">{settings.logo ? <img src={settings.logo} className="w-full h-full object-contain"/> : <span className="text-xs text-slate-400">Sem Logo</span>}</div><div><label className="block text-sm font-medium mb-2">Carregar logo</label><input type="file" accept="image/*" onChange={updateLogo} className="text-xs text-slate-500"/></div></div><div className="bg-slate-50 p-6 rounded-2xl border border-slate-200"><label className="block text-sm font-bold text-slate-700 mb-2">Gestor da Equipe</label><select value={settings.teamLeaderId || ''} onChange={(e) => updateSettings('teamLeaderId', e.target.value)} className="w-full p-2 border rounded-lg text-sm"><option value="">Selecione...</option>{team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div></div></section>
-                            <section><h3 className="font-bold text-slate-800 mb-4 flex gap-2"><Users size={20} className="text-violet-600"/> Equipe</h3><div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">{team.map(member => <div key={member.id} className={`flex items-center gap-3 p-3 bg-white border rounded-xl shadow-sm ${editingMember?.id === member.id ? 'border-violet-500 ring-2' : 'border-slate-200'}`}><Avatar name={member.name} photo={member.photo} color={member.color}/><div className="flex-1 min-w-0"><p className="font-bold text-sm truncate">{member.name}</p><p className="text-xs text-slate-500 truncate">{member.role}</p></div><div className="flex gap-1"><button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-violet-600 p-2"><Pencil size={16}/></button><button onClick={() => deleteTeamMember(member.id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={16}/></button></div></div>)}</div><div className="bg-slate-50 p-6 rounded-2xl border border-slate-200"><div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold flex gap-2">{editingMember ? <><Pencil size={16}/> Editando</> : <><UserPlus size={16}/> Novo Membro</>}</h4>{editingMember && <button onClick={() => setEditingMember(null)} className="text-xs underline">Cancelar</button>}</div><form onSubmit={editingMember ? updateTeamMember : addTeamMember} className="space-y-4"><div className="grid grid-cols-2 gap-4"><input required name="name" defaultValue={editingMember?.name} placeholder="Nome" className="p-2 border rounded-lg text-sm"/><input required name="role" defaultValue={editingMember?.role} placeholder="Cargo" className="p-2 border rounded-lg text-sm"/></div><div><label className="text-xs font-medium text-slate-600">Foto</label><input name="photo" type="file" accept="image/*" className="block w-full text-xs text-slate-500 mt-1"/></div><button type="submit" className="w-full text-white py-2 rounded-lg font-bold text-sm bg-violet-600">{editingMember ? 'Salvar' : 'Adicionar'}</button></form></div></section>
+                            <section>
+                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><ImageIcon size={20} className="text-violet-600"/> Identidade</h3>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                        <div className="w-32 h-16 bg-white border rounded flex items-center justify-center overflow-hidden">{settings.logo ? <img src={settings.logo} className="w-full h-full object-contain"/> : <span className="text-xs text-slate-400">Sem Logo</span>}</div>
+                                        <div><label className="block text-sm font-medium mb-2">Carregar logo</label><input type="file" accept="image/*" onChange={updateLogo} className="text-xs text-slate-500"/></div>
+                                    </div>
+                                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Gestor da Equipe (Aparece no Topo)</label>
+                                        <select value={settings.teamLeaderId || ''} onChange={(e) => updateSettings('teamLeaderId', e.target.value)} className="w-full p-2 border rounded-lg text-sm"><option value="">Selecione um gestor...</option>{team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+                                    </div>
+                                </div>
+                            </section>
+                            <section>
+                                <h3 className="font-bold text-slate-800 mb-4 flex gap-2"><Users size={20} className="text-violet-600"/> Equipe</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    {team.map(member => (
+                                        <div key={member.id} className={`flex items-center gap-3 p-3 bg-white border rounded-xl shadow-sm ${editingMember?.id === member.id ? 'border-violet-500 ring-2 ring-violet-100' : 'border-slate-200'}`}>
+                                            <Avatar name={member.name} photo={member.photo} color={member.color}/>
+                                            <div className="flex-1 min-w-0"><p className="font-bold text-sm truncate">{member.name}</p><p className="text-xs text-slate-500 truncate">{member.role}</p></div>
+                                            <div className="flex gap-1"><button onClick={() => setEditingMember(member)} className="text-slate-400 hover:text-violet-600 p-2"><Pencil size={16}/></button><button onClick={() => deleteTeamMember(member.id)} className="text-slate-400 hover:text-red-500 p-2"><Trash2 size={16}/></button></div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className={`bg-slate-50 p-6 rounded-2xl border ${editingMember ? 'border-violet-200 bg-violet-50' : 'border-slate-200'}`}>
+                                    <div className="flex justify-between items-center mb-4"><h4 className="text-sm font-bold flex gap-2">{editingMember ? <><Pencil size={16}/> Editando: {editingMember.name}</> : <><UserPlus size={16}/> Novo Membro</>}</h4>{editingMember && <button onClick={() => setEditingMember(null)} className="text-xs underline">Cancelar</button>}</div>
+                                    <form onSubmit={editingMember ? updateTeamMember : addTeamMember} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4"><input required name="name" defaultValue={editingMember?.name} placeholder="Nome" className="p-2 border rounded-lg text-sm"/><input required name="role" defaultValue={editingMember?.role} placeholder="Cargo" className="p-2 border rounded-lg text-sm"/></div>
+                                        <div><label className="text-xs font-medium text-slate-600">Foto</label><input name="photo" type="file" accept="image/*" className="block w-full text-xs text-slate-500 mt-1"/></div>
+                                        <button type="submit" className={`w-full text-white py-2 rounded-lg font-bold text-sm ${editingMember ? 'bg-violet-600' : 'bg-slate-800'}`}>{editingMember ? 'Salvar' : 'Adicionar'}</button>
+                                    </form>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>
@@ -550,8 +699,6 @@
 
         // --- New Event Modal (EXTRAÍDO) ---
         const NewEventModal = ({ setShowNewEventModal, handleCreateEvent, team, isOneDayEvent, setIsOneDayEvent, selectedDefaultTasks, toggleTaskSelection, newCustomTaskInput, setNewCustomTaskInput, newCustomTaskCategory, setNewCustomTaskCategory, addCustomTaskToCreate, customTasksList, setCustomTasksList }) => {
-             // ... (Mesma lógica do anterior, garantindo renderização limpa)
-             // Para brevidade, incluído na função principal abaixo, mas seguindo a lógica segura
              return null; 
         }
 
@@ -578,6 +725,7 @@
             const [editingMember, setEditingMember] = useState(null);
             const [isOneDayEvent, setIsOneDayEvent] = useState(false);
 
+            // Task Selection for New Event
             const [selectedDefaultTasks, setSelectedDefaultTasks] = useState(new Set(DEFAULT_TASKS.map(t => t.title)));
             const [newCustomTaskInput, setNewCustomTaskInput] = useState('');
             const [newCustomTaskCategory, setNewCustomTaskCategory] = useState('produto');
@@ -695,7 +843,7 @@
                     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
                         {toasts.map(t => <Toast key={t.id} message={t.msg} type={t.type} onClose={() => setToasts(p => p.filter(x => x.id !== t.id))} />)}
                     </div>
-                    
+
                     {currentView === 'dashboard' ? (
                         <DashboardView 
                             events={events} team={team} settings={settings} stats={stats}
@@ -727,6 +875,7 @@
                         deleteTeamMember={(id) => { if(confirm('Remover?')) deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'team_members', id)); }}
                     />}
                     
+                    {/* Workload Modal (Uses selectedWorkloadMember) */}
                     {showWorkloadModal && selectedWorkloadMember && <WorkloadModal selectedWorkloadMember={selectedWorkloadMember} setShowWorkloadModal={setShowWorkloadModal} events={events} />}
                     
                     {showNewEventModal && (
@@ -768,6 +917,7 @@
     </script>
 </body>
 </html>
+
 
 
 
