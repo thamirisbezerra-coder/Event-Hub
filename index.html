@@ -40,6 +40,7 @@ import {
 
 // --- Firebase Imports ---
 import { initializeApp } from 'firebase/app';
+import { getAnalytics } from "firebase/analytics";
 import { 
   getFirestore, 
   collection, 
@@ -59,11 +60,23 @@ import {
 } from 'firebase/auth';
 
 // --- Configuração Firebase ---
-const firebaseConfig = JSON.parse(__firebase_config);
+const firebaseConfig = {
+  apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
+  authDomain: "bolsas-termicas.firebaseapp.com",
+  projectId: "bolsas-termicas",
+  storageBucket: "bolsas-termicas.firebasestorage.app",
+  messagingSenderId: "372188665466",
+  appId: "1:372188665466:web:104cdf5b4db6dabe920dc3",
+  measurementId: "G-M9J3J6GGH5"
+};
+
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// Identificador fixo para o caminho no banco de dados
+const appId = "bolsas-termicas";
 
 // --- Assets Iniciais (SVGs Inline) ---
 const DefaultLogo = () => (
@@ -927,9 +940,14 @@ export default function App() {
   // --- Auth & Data Fetching ---
   useEffect(() => {
     const initAuth = async () => {
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        await signInWithCustomToken(auth, __initial_auth_token);
-      } else {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          throw new Error('No initial token');
+        }
+      } catch (error) {
+        console.log("Autenticação via token falhou ou não existe, tentando anônima...", error);
         await signInAnonymously(auth);
       }
     };
