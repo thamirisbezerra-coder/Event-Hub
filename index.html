@@ -55,8 +55,7 @@ import {
 import { 
   getAuth, 
   signInAnonymously, 
-  onAuthStateChanged,
-  signInWithCustomToken
+  onAuthStateChanged
 } from 'firebase/auth';
 
 // --- Configuração Firebase ---
@@ -86,89 +85,92 @@ const DefaultLogo = () => (
   </svg>
 );
 
-// --- Avatares "Executivos Fofos P&B" (Minimalista) ---
+// --- Avatares "Executivos Doodle P&B" (Estilo Notion/Hand-drawn) ---
 const ExecutiveAvatars = [
   { 
     id: 'e1', 
-    label: 'Executivo Gravata', 
+    label: 'Homem Oculos', 
     svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M50 95V70" strokeWidth="10" stroke="#1a1a1a"/>
-        <circle cx="50" cy="40" r="22" fill="white"/>
-        <path d="M25 95C25 80 35 70 50 70C65 70 75 80 75 95" fill="white"/>
-        <path d="M50 70L50 85" strokeWidth="6"/>
-        <path d="M40 45C40 45 45 48 50 48C55 48 60 45 60 45"/>
-        <path d="M38 35L38 38 M62 35L62 38" strokeWidth="5"/>
-        <path d="M30 35C30 20 40 15 50 15C60 15 70 20 70 35" fill="white"/>
+      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
+        <circle cx="50" cy="35" r="25" fill="white"/>
+        <path d="M50 55V80" /> {/* Gravata */}
+        <path d="M25 35C25 25 35 10 50 10C60 10 70 20 75 30" fill="white"/> {/* Cabelo */}
+        <circle cx="40" cy="35" r="7" fill="white"/> {/* Oculos E */}
+        <circle cx="60" cy="35" r="7" fill="white"/> {/* Oculos D */}
+        <path d="M47 35H53"/>
+        <path d="M45 50H55"/> {/* Boca */}
       </svg>
     ) 
   },
   { 
     id: 'e2', 
-    label: 'Executiva Coque', 
+    label: 'Mulher Cabelo Longo', 
     svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="50" cy="40" r="22" fill="white"/>
-        <path d="M25 95C25 75 30 65 50 65C70 65 75 75 75 95" fill="white"/>
-        <circle cx="50" cy="18" r="8" fill="white"/>
-        <path d="M40 45C40 45 45 48 50 48C55 48 60 45 60 45"/>
-        <path d="M38 35L38 38 M62 35L62 38" strokeWidth="5"/>
-        <path d="M28 40C28 25 35 20 50 20C65 20 72 25 72 40" />
+      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
+        <circle cx="50" cy="35" r="25" fill="white"/>
+        <path d="M25 35C20 70 20 90 20 90" fill="none"/> {/* Cabelo E */}
+        <path d="M75 35C80 70 80 90 80 90" fill="none"/> {/* Cabelo D */}
+        <path d="M25 35C25 15 35 10 50 10C65 10 75 15 75 35" fill="white"/> {/* Cabelo Topo */}
+        <circle cx="42" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
+        <circle cx="58" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
+        <path d="M48 45Q50 48 52 45"/>
       </svg>
     ) 
   },
   { 
     id: 'e3', 
-    label: 'Executivo Óculos', 
+    label: 'Homem Barba', 
     svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="50" cy="40" r="22" fill="white"/>
-        <path d="M25 95C25 80 35 70 50 70C65 70 75 80 75 95" fill="white"/>
-        <path d="M50 70V95" />
-        <circle cx="42" cy="38" r="6" fill="white"/>
-        <circle cx="58" cy="38" r="6" fill="white"/>
-        <path d="M48 38H52"/>
-        <path d="M45 50H55"/>
-        <path d="M30 30C35 20 65 20 70 30" fill="white"/>
+      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
+        <circle cx="50" cy="35" r="25" fill="white"/>
+        <path d="M30 40Q50 65 70 40" fill="white"/> {/* Barba */}
+        <path d="M25 30C25 15 35 10 50 10C65 10 75 15 75 30" fill="white"/>
+        <path d="M40 30L40 32 M60 30L60 32" strokeWidth="4"/>
       </svg>
     ) 
   },
   { 
     id: 'e4', 
-    label: 'Executiva Cabelo Solto', 
+    label: 'Mulher Coque', 
     svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 95C20 75 30 65 50 65C70 65 80 75 80 95" fill="white"/>
-        <circle cx="50" cy="40" r="22" fill="white"/>
-        <path d="M42 45C42 45 46 48 50 48C54 48 58 45 58 45"/>
-        <path d="M40 36L40 38 M60 36L60 38" strokeWidth="5"/>
-        <path d="M28 45C28 20 35 15 50 15C65 15 72 20 72 45V55" />
+      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
+        <circle cx="50" cy="38" r="25" fill="white"/>
+        <circle cx="50" cy="12" r="10" fill="white"/> {/* Coque */}
+        <path d="M25 38C25 20 35 18 50 18C65 18 75 20 75 38" fill="white"/>
+        <circle cx="42" cy="38" r="2" fill="#1a1a1a" stroke="none"/>
+        <circle cx="58" cy="38" r="2" fill="#1a1a1a" stroke="none"/>
+        <path d="M48 48Q50 50 52 48"/>
       </svg>
     ) 
   },
   { 
     id: 'e5', 
-    label: 'Executivo Barba', 
+    label: 'Homem Cabelo Curto', 
     svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="50" cy="40" r="22" fill="white"/>
-        <path d="M22 95C22 75 30 68 50 68C70 68 78 75 78 95" fill="white"/>
-        <path d="M35 45Q50 60 65 45" fill="white"/>
-        <path d="M38 35L38 38 M62 35L62 38" strokeWidth="5"/>
-        <path d="M30 32C35 22 65 22 70 32" fill="white"/>
+      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
+        <circle cx="50" cy="35" r="25" fill="white"/>
+        <path d="M30 25C40 10 60 10 70 25L70 30L30 30Z" fill="#1a1a1a" stroke="none"/> {/* Cabelo Preto */}
+        <circle cx="42" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
+        <circle cx="58" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
+        <path d="M45 45H55"/>
       </svg>
     ) 
   },
   { 
     id: 'e6', 
-    label: 'Executiva Óculos', 
+    label: 'Mulher Oculos', 
     svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="50" cy="40" r="22" fill="white"/>
-        <path d="M25 95C25 75 30 65 50 65C70 65 75 75 75 95" fill="white"/>
-        <rect x="36" y="34" width="28" height="10" rx="3" fill="white"/>
-        <path d="M42 50H58"/>
-        <path d="M28 35C28 20 35 15 50 15C65 15 72 20 72 35" fill="white"/>
+      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
+        <circle cx="50" cy="35" r="25" fill="white"/>
+        <path d="M20 40C20 15 35 10 50 10C65 10 80 15 80 40" fill="white"/>
+        <rect x="35" y="30" width="30" height="10" rx="3" fill="white"/>
+        <path d="M47 48Q50 50 53 48"/>
       </svg>
     ) 
   },
@@ -229,7 +231,6 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }) => {
 
 // --- COMPONENTE DE NOTIFICAÇÕES (Dropdown) ---
 const NotificationsDropdown = ({ onClose }) => {
-    // Mock de notificações
     const notifications = [
         { id: 1, text: "Bem-vindo ao Event Hub! Configure sua equipe.", time: "Agora", isNew: true },
     ];
@@ -939,17 +940,13 @@ export default function App() {
 
   // --- Auth & Data Fetching ---
   useEffect(() => {
+    // Autenticação anônima direta para evitar erro de token
     const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          throw new Error('No initial token');
+        try {
+            await signInAnonymously(auth);
+        } catch (error) {
+            console.error("Erro no login anônimo:", error);
         }
-      } catch (error) {
-        console.log("Autenticação via token falhou ou não existe, tentando anônima...", error);
-        await signInAnonymously(auth);
-      }
     };
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, setUser);
@@ -1078,6 +1075,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 
