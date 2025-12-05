@@ -1,1097 +1,447 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Calendar as CalendarIcon, 
-  Users, 
-  CheckSquare, 
-  Flag, 
-  Plus, 
-  X, 
-  Clock, 
-  Edit2, 
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  Truck,
-  Briefcase,
-  ArrowLeft,
-  PieChart,
-  Search,
-  Bell,
-  MessageSquare,
-  Send,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  Settings,
-  MoreHorizontal,
-  Camera,
-  User,
-  UserPlus,
-  Target,
-  Box,
-  Plane,
-  TrendingUp,
-  Filter,
-  Check,
-  Image as ImageIcon,
-  Upload,
-  Info,
-  AlertTriangle
-} from 'lucide-react';
-
-// --- Firebase Imports ---
-import { initializeApp } from 'firebase/app';
-import { getAnalytics } from "firebase/analytics";
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  onSnapshot, 
-  query, 
-  where 
-} from 'firebase/firestore';
-import { 
-  getAuth, 
-  signInAnonymously, 
-  onAuthStateChanged
-} from 'firebase/auth';
-
-// --- Configuração Firebase ---
-const firebaseConfig = {
-  apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
-  authDomain: "bolsas-termicas.firebaseapp.com",
-  projectId: "bolsas-termicas",
-  storageBucket: "bolsas-termicas.firebasestorage.app",
-  messagingSenderId: "372188665466",
-  appId: "1:372188665466:web:2a343ec375462f56920dc3",
-  measurementId: "G-THXNWD3M6D"
-};
-
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// Identificador fixo para o caminho no banco de dados
-const appId = "bolsas-termicas";
-
-// --- Assets Iniciais (SVGs Inline) ---
-const DefaultLogo = () => (
-  <svg viewBox="0 0 200 60" className="h-full w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <text x="0" y="40" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="38" fill="#002060">Doremus</text>
-    <path d="M0 50 Q50 65 100 50 T200 50" stroke="#E60000" strokeWidth="5" fill="none"/>
-  </svg>
-);
-
-// --- Avatares "Executivos Doodle P&B" (Estilo Notion/Hand-drawn) ---
-const ExecutiveAvatars = [
-  { 
-    id: 'e1', 
-    label: 'Homem Oculos', 
-    svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
-        <circle cx="50" cy="35" r="25" fill="white"/>
-        <path d="M50 55V80" /> {/* Gravata */}
-        <path d="M25 35C25 25 35 10 50 10C60 10 70 20 75 30" fill="white"/> {/* Cabelo */}
-        <circle cx="40" cy="35" r="7" fill="white"/> {/* Oculos E */}
-        <circle cx="60" cy="35" r="7" fill="white"/> {/* Oculos D */}
-        <path d="M47 35H53"/>
-        <path d="M45 50H55"/> {/* Boca */}
-      </svg>
-    ) 
-  },
-  { 
-    id: 'e2', 
-    label: 'Mulher Cabelo Longo', 
-    svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
-        <circle cx="50" cy="35" r="25" fill="white"/>
-        <path d="M25 35C20 70 20 90 20 90" fill="none"/> {/* Cabelo E */}
-        <path d="M75 35C80 70 80 90 80 90" fill="none"/> {/* Cabelo D */}
-        <path d="M25 35C25 15 35 10 50 10C65 10 75 15 75 35" fill="white"/> {/* Cabelo Topo */}
-        <circle cx="42" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
-        <circle cx="58" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
-        <path d="M48 45Q50 48 52 45"/>
-      </svg>
-    ) 
-  },
-  { 
-    id: 'e3', 
-    label: 'Homem Barba', 
-    svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
-        <circle cx="50" cy="35" r="25" fill="white"/>
-        <path d="M30 40Q50 65 70 40" fill="white"/> {/* Barba */}
-        <path d="M25 30C25 15 35 10 50 10C65 10 75 15 75 30" fill="white"/>
-        <path d="M40 30L40 32 M60 30L60 32" strokeWidth="4"/>
-      </svg>
-    ) 
-  },
-  { 
-    id: 'e4', 
-    label: 'Mulher Coque', 
-    svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
-        <circle cx="50" cy="38" r="25" fill="white"/>
-        <circle cx="50" cy="12" r="10" fill="white"/> {/* Coque */}
-        <path d="M25 38C25 20 35 18 50 18C65 18 75 20 75 38" fill="white"/>
-        <circle cx="42" cy="38" r="2" fill="#1a1a1a" stroke="none"/>
-        <circle cx="58" cy="38" r="2" fill="#1a1a1a" stroke="none"/>
-        <path d="M48 48Q50 50 52 48"/>
-      </svg>
-    ) 
-  },
-  { 
-    id: 'e5', 
-    label: 'Homem Cabelo Curto', 
-    svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
-        <circle cx="50" cy="35" r="25" fill="white"/>
-        <path d="M30 25C40 10 60 10 70 25L70 30L30 30Z" fill="#1a1a1a" stroke="none"/> {/* Cabelo Preto */}
-        <circle cx="42" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
-        <circle cx="58" cy="35" r="2" fill="#1a1a1a" stroke="none"/>
-        <path d="M45 45H55"/>
-      </svg>
-    ) 
-  },
-  { 
-    id: 'e6', 
-    label: 'Mulher Oculos', 
-    svg: (
-      <svg viewBox="0 0 100 100" className="w-full h-full" fill="white" stroke="#1a1a1a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 100V80C20 60 30 55 50 55C70 55 80 60 80 80V100" fill="white"/>
-        <circle cx="50" cy="35" r="25" fill="white"/>
-        <path d="M20 40C20 15 35 10 50 10C65 10 80 15 80 40" fill="white"/>
-        <rect x="35" y="30" width="30" height="10" rx="3" fill="white"/>
-        <path d="M47 48Q50 50 53 48"/>
-      </svg>
-    ) 
-  },
-];
-
-// --- Utilitários ---
-const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
-const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-const calculateDaysRemaining = (dateString) => {
-  if (dateString.includes("Junho")) return 21;
-  if (dateString.includes("Fevereiro")) return 59;
-  if (dateString.includes("Mar")) return 116;
-  if (dateString.includes("Maio")) return 147;
-  return 30;
-};
-
-// --- Componentes Compartilhados ---
-
-const PriorityBadge = ({ level, onClick }) => {
-  const styles = {
-    high: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200",
-    medium: "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200",
-    low: "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
-  };
-  const labels = { high: "Alta", medium: "Média", low: "Baixa" };
-  
-  return (
-    <button 
-      onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} 
-      className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${styles[level]}`}
-    >
-      <Flag size={10} fill="currentColor" /> {labels[level]}
-    </button>
-  );
-};
-
-const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidth} overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]`}>
-        <div className="flex items-center justify-between p-4 border-b bg-[#1e1b4b] text-white">
-          <div className="flex items-center gap-2">
-             {title === "Configurações" && <Settings size={20}/>}
-             <h3 className="text-lg font-bold">{title}</h3>
-          </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-0 overflow-y-auto flex-1 bg-white">{children}</div>
-      </div>
-    </div>
-  );
-};
-
-// --- COMPONENTE DE NOTIFICAÇÕES (Dropdown) ---
-const NotificationsDropdown = ({ onClose }) => {
-    // Mock de notificações
-    const notifications = [
-        { id: 1, text: "Bem-vindo ao Event Hub! Configure sua equipe.", time: "Agora", isNew: true },
-    ];
-
-    return (
-        <div className="absolute top-12 right-0 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                <span className="font-bold text-gray-700 text-sm">Notificações</span>
-                <span className="text-[10px] text-blue-600 cursor-pointer hover:underline">Marcar todas como lidas</span>
-            </div>
-            <div className="max-h-64 overflow-y-auto">
-                {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-gray-400 text-xs">
-                        Nenhuma notificação nova.
-                    </div>
-                ) : (
-                    notifications.map(notif => (
-                        <div key={notif.id} className={`p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${notif.isNew ? 'bg-blue-50/50' : ''}`}>
-                            <div className="flex gap-3">
-                                <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${notif.isNew ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                                <div>
-                                    <p className={`text-xs ${notif.isNew ? 'font-bold text-gray-800' : 'text-gray-600'}`}>{notif.text}</p>
-                                    <p className="text-[10px] text-gray-400 mt-1">{notif.time}</p>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-            <div className="p-2 border-t bg-gray-50 text-center">
-                <button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-800">Fechar</button>
-            </div>
-        </div>
-    );
-};
-
-// --- MODAL DE NOVA TAREFA ---
-const AddTaskModal = ({ isOpen, onClose, onAdd, members, categories }) => {
-    const [text, setText] = useState("");
-    const [category, setCategory] = useState(categories[0].id);
-    const [responsibleId, setResponsibleId] = useState(members[0]?.id || "");
-    const [priority, setPriority] = useState("medium");
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if(!text) return;
-        const responsible = members.find(m => m.id === responsibleId) || members[0] || { name: 'Desconhecido', role: 'N/A' };
-        onAdd({ text, category, responsible, priority });
-        setText("");
-        onClose();
-    };
-
-    if(!isOpen) return null;
-
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Nova Tarefa">
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Título</label><input autoFocus value={text} onChange={e => setText(e.target.value)} className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Contratar Buffet" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-2 border rounded-lg bg-white outline-none">{categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.title}</option>))}</select></div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Responsável</label><select value={responsibleId} onChange={e => setResponsibleId(e.target.value)} className="w-full p-2 border rounded-lg bg-white outline-none">{members.map(m => (<option key={m.id} value={m.id}>{m.name}</option>))}</select></div>
-                    <div><label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label><select value={priority} onChange={e => setPriority(e.target.value)} className="w-full p-2 border rounded-lg bg-white outline-none"><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option></select></div>
-                </div>
-                <div className="pt-4"><button type="submit" className="w-full py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 font-bold">Criar Tarefa</button></div>
-            </form>
-        </Modal>
-    );
-};
-
-// --- MODAL DE CONFIGURAÇÕES ---
-const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onAddMember, onUpdateMember, onDeleteMember }) => {
-  const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberRole, setNewMemberRole] = useState('');
-  const fileInputRef = useRef(null);
-
-  const [editingId, setEditingId] = useState(null);
-  const [editName, setEditName] = useState('');
-  const [editRole, setEditRole] = useState('');
-
-  const handleLogoUpload = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-              setLogo(reader.result); 
-          };
-          reader.readAsDataURL(file);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Hub - Doremus</title>
+    
+    <!-- Tailwind CSS (Estilos) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React e Babel (Para o código funcionar no navegador) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Mapa de Importação (Permite usar 'import' no navegador) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.344.0",
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+        "firebase/analytics": "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"
       }
-  };
+    }
+    </script>
 
-  const handleAdd = (e) => {
-      e.preventDefault();
-      if (!newMemberName || !newMemberRole) return;
-      onAddMember({ name: newMemberName, role: newMemberRole, avatarType: 'executive', avatarContent: 'e1' });
-      setNewMemberName('');
-      setNewMemberRole('');
-  };
+    <style>
+        /* Animações simples */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-in { animation: fadeIn 0.5s ease-out; }
+    </style>
+</head>
+<body class="bg-[#F8FAFC]">
+    <div id="root"></div>
 
-  const startEdit = (member) => {
-      setEditingId(member.id);
-      setEditName(member.name);
-      setEditRole(member.role);
-  };
+    <!-- SEU CÓDIGO DO APP -->
+    <script type="text/babel" data-type="module">
+        import React, { useState, useRef, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { 
+            Calendar as CalendarIcon, Users, CheckSquare, Flag, Plus, X, Clock, 
+            Edit2, Trash2, ChevronLeft, ChevronRight, Truck, ArrowLeft, 
+            Search, Bell, MessageSquare, Send, AlertCircle, ChevronDown, 
+            ChevronUp, Settings, UserPlus, Box, TrendingUp, Filter, Check, 
+            Image as ImageIcon, AlertTriangle 
+        } from 'lucide-react';
 
-  const saveEdit = (id) => {
-      onUpdateMember({ id, name: editName, role: editRole });
-      setEditingId(null);
-  };
+        // --- Firebase Imports ---
+        import { initializeApp, getApps, getApp } from 'firebase/app';
+        import { getAnalytics } from "firebase/analytics";
+        import { 
+            getFirestore, collection, addDoc, updateDoc, deleteDoc, 
+            doc, onSnapshot, query, where 
+        } from 'firebase/firestore';
+        import { 
+            getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken 
+        } from 'firebase/auth';
 
-  if (!isOpen) return null;
+        // --- Configuração Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
+            authDomain: "bolsas-termicas.firebaseapp.com",
+            projectId: "bolsas-termicas",
+            storageBucket: "bolsas-termicas.firebasestorage.app",
+            messagingSenderId: "372188665466",
+            appId: "1:372188665466:web:2a343ec375462f56920dc3",
+            measurementId: "G-THXNWD3M6D"
+        };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-2xl">
-      <div className="p-6 space-y-8">
-        <section>
-            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><ImageIcon size={18} /> Identidade</h4>
-            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
-                <div className="h-16 flex items-center justify-center px-4 bg-gray-50 rounded-lg border border-gray-100 min-w-[150px]">
-                    {typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-10 w-auto object-contain" /> : logo}
-                </div>
-                <div className="flex-1">
-                    <p className="font-bold text-gray-800 text-sm mb-1">Carregar logo</p>
-                    <div className="flex gap-2">
-                        <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 bg-white">Escolher arquivo</button>
-                        <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" />
-                    </div>
-                </div>
-            </div>
-        </section>
+        // --- Inicialização Segura do Firebase ---
+        const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = "bolsas-termicas";
 
-        <section>
-            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><Users size={18} /> Equipe</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                {members.map(member => (
-                    <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:shadow-sm transition-shadow">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full border border-gray-200 overflow-hidden flex items-center justify-center bg-gray-50">
-                                {member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span className="text-blue-900 font-bold text-xs">{member.avatar}</span>}
+        // --- Assets Iniciais ---
+        const DefaultLogo = () => (
+            <svg viewBox="0 0 200 60" className="h-full w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <text x="0" y="40" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="38" fill="#002060">Doremus</text>
+                <path d="M0 50 Q50 65 100 50 T200 50" stroke="#E60000" strokeWidth="5" fill="none"/>
+            </svg>
+        );
+
+        // --- Avatares ---
+        const ExecutiveAvatars = [
+            { id: 'ex1', svg: (<svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="50" cy="50" r="48" fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1"/><path d="M50 90V75" strokeWidth="8"/><path d="M25 95C25 80 35 75 50 75C65 75 75 80 75 95" fill="#f3f4f6"/><circle cx="50" cy="40" r="20" fill="white"/><path d="M50 75L50 85" strokeWidth="4"/><path d="M42 42C42 42 45 45 50 45C55 45 58 42 58 42"/><path d="M40 35V35.5 M60 35V35.5" strokeWidth="4"/><path d="M30 35C30 20 40 15 50 15C60 15 70 20 70 35" fill="white"/></svg>) },
+            { id: 'ex2', svg: (<svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="50" cy="50" r="48" fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1"/><path d="M25 95C25 80 35 75 50 75C65 75 75 80 75 95" fill="#f3f4f6"/><circle cx="50" cy="40" r="20" fill="white"/><path d="M30 40C30 15 35 10 50 10C65 10 70 15 70 40V55" /><path d="M42 45C42 45 45 47 50 47C55 47 58 45 58 45"/><path d="M40 38V38.5 M60 38V38.5" strokeWidth="4"/></svg>) },
+            { id: 'ex3', svg: (<svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="50" cy="50" r="48" fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1"/><path d="M25 95C25 80 35 75 50 75C65 75 75 80 75 95" fill="#f3f4f6"/><circle cx="50" cy="40" r="20" fill="white"/><circle cx="43" cy="40" r="5" /> <circle cx="57" cy="40" r="5" /><path d="M48 40H52"/><path d="M45 52H55"/><path d="M30 35C30 20 40 20 50 20C60 20 70 25 70 35" fill="white"/></svg>) },
+            { id: 'ex4', svg: (<svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="50" cy="50" r="48" fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1"/><path d="M25 95C25 80 35 75 50 75C65 75 75 80 75 95" fill="#f3f4f6"/><circle cx="50" cy="42" r="20" fill="white"/><circle cx="50" cy="18" r="8" fill="white"/><path d="M42 48C42 48 45 50 50 50C55 50 58 48 58 48"/><path d="M40 40V40.5 M60 40V40.5" strokeWidth="4"/><path d="M30 42C30 25 35 25 50 25C65 25 70 30 70 42"/></svg>) },
+            { id: 'ex5', svg: (<svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="50" cy="50" r="48" fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1"/><path d="M25 95C25 80 35 75 50 75C65 75 75 80 75 95" fill="#f3f4f6"/><circle cx="50" cy="40" r="20" fill="white"/><path d="M35 45Q50 60 65 45" fill="white"/><path d="M40 35V35.5 M60 35V35.5" strokeWidth="4"/><path d="M32 35C32 20 40 18 50 18C60 18 68 20 68 35" fill="white"/></svg>) }
+        ];
+
+        // --- Utilitários ---
+        const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const calculateDaysRemaining = (dateString) => {
+            if (dateString.includes("Junho")) return 21;
+            if (dateString.includes("Fevereiro")) return 59;
+            if (dateString.includes("Mar")) return 116;
+            if (dateString.includes("Maio")) return 147;
+            return 30;
+        };
+
+        // --- Componentes ---
+        const PriorityBadge = ({ level, onClick }) => {
+            const styles = {
+                high: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200",
+                medium: "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200",
+                low: "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200"
+            };
+            const labels = { high: "Alta", medium: "Média", low: "Baixa" };
+            return (
+                <button onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border transition-colors ${styles[level]}`}>
+                    <Flag size={10} fill="currentColor" /> {labels[level]}
+                </button>
+            );
+        };
+
+        const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidth} overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]`}>
+                        <div className="flex items-center justify-between p-4 border-b bg-[#1e1b4b] text-white">
+                            <div className="flex items-center gap-2">
+                                {title === "Configurações" && <Settings size={20}/>}
+                                <h3 className="text-lg font-bold">{title}</h3>
                             </div>
-                            <div className="flex-1">
-                                {editingId === member.id ? (
-                                    <div className="flex flex-col gap-1">
-                                        <input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" />
-                                        <input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <p className="font-bold text-gray-800 text-sm">{member.name}</p>
-                                        <p className="text-xs text-gray-500">{member.role}</p>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                        <div className="flex gap-1">
-                            {editingId === member.id ? (
-                                <button onClick={() => saveEdit(member.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16}/></button>
-                            ) : (
-                                <button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
-                            )}
-                            <button onClick={() => onDeleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                <h5 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><UserPlus size={16}/> Novo Membro</h5>
-                <form onSubmit={handleAdd} className="flex flex-col md:flex-row gap-3">
-                    <input placeholder="Nome" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/>
-                    <input placeholder="Cargo" value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/>
-                    <button type="submit" disabled={!newMemberName} className="bg-blue-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 disabled:opacity-50">Adicionar</button>
-                </form>
-            </div>
-        </section>
-      </div>
-    </Modal>
-  );
-};
-
-// --- COMPONENTE: DASHBOARD VIEW ---
-const DashboardView = ({ onSelectEvent, members, logo }) => {
-    // ... Código do Dashboard (mantido igual)
-    const events = [
-    { id: 2, day: "02", month: "FEV", title: "Convenção de Vendas", location: "Auditório Doremus", dateRange: "02/02/2026 - 06/02/2026", pending: 21, daysLeft: 59 },
-    { id: 3, day: "31", month: "MAR", title: "Nis Nutri", location: "Transamerica Expo Center", dateRange: "31/03/2026 - 01/04/2026", pending: 22, daysLeft: 116 },
-    { id: 4, day: "01", month: "MAI", title: "Jornada Técnica", location: "Hotel", dateRange: "01/05/2026", pending: 22, daysLeft: 147 },
-  ];
-  return (
-    <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8 animate-in slide-in-from-bottom-4 duration-500">
-      <div className="xl:col-span-3 space-y-8">
-        <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-             <div className="flex flex-col lg:flex-row gap-12">
-                <div className="flex items-center gap-8 min-w-[300px]">
-                    <div className="relative w-32 h-32 flex-shrink-0">
-                        <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="64" cy="64" r="56" stroke="#F3F4F6" strokeWidth="12" fill="transparent" />
-                            <circle cx="64" cy="64" r="56" stroke="#002060" strokeWidth="12" fill="transparent" strokeDasharray="351.86" strokeDashoffset="348" strokeLinecap="round" />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-800">
-                            <span className="text-3xl font-extrabold text-[#002060]">1%</span>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Status Global</h3>
-                        <div className="flex items-center gap-4 text-sm font-semibold">
-                            <span className="text-emerald-600 flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> 1 Feitas</span>
-                            <span className="text-amber-600 flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-500"></div> 175 Pend.</span>
-                        </div>
-                    </div>
-                </div>
-                <div className="hidden lg:block w-px bg-gray-100"></div>
-                <div className="flex-1">
-                    <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
-                        <Users size={18} /> Carga de Trabalho
-                    </h3>
-                    <div className="flex items-start gap-6 overflow-x-auto pb-2">
-                        {members.map(member => (
-                            <div key={member.id} className="flex flex-col items-center gap-2 min-w-[50px]">
-                                <div className="h-1 w-8 bg-gray-200 rounded-full overflow-hidden mb-1">
-                                    <div className="h-full bg-blue-600 w-0"></div>
-                                </div>
-                                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xs font-bold text-gray-600 border border-gray-200 shadow-sm overflow-hidden">
-                                    {member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span className="text-blue-900">{member.avatar}</span>}
-                                </div>
-                                <span className="text-xs font-bold text-blue-600">0</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-             </div>
-        </section>
-        <section>
-            <h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><Clock size={20} /> Próximos Eventos</h2>
-            <div className="space-y-4">
-            {events.map(event => (
-                <div key={event.id} onClick={() => onSelectEvent(event)} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group flex flex-col md:flex-row items-center gap-6">
-                    <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl flex flex-col items-center justify-center group-hover:bg-blue-50 transition-colors">
-                        <span className="text-xs font-bold text-gray-500 uppercase">{event.month}</span>
-                        <span className="text-3xl font-extrabold text-gray-800 group-hover:text-blue-900">{event.day}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                             <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors truncate">{event.title}</h3>
-                             <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-100 hidden md:inline-block">⚠ faltam {event.pending} tarefas</span>
-                        </div>
-                        <div className="flex flex-col gap-1 text-sm text-gray-500">
-                            <span className="flex items-center gap-1.5"><Truck size={14}/> {event.location}</span>
-                            <div className="flex items-center gap-3">
-                                <span className="text-blue-600 font-medium">{event.dateRange}</span>
-                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">Faltam {event.daysLeft} dias</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-            </div>
-        </section>
-      </div>
-       <div className="xl:col-span-1">
-        <section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 h-full">
-            <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2"><MessageSquare size={20} className="text-blue-900"/> Atualizações</h2>
-            <div className="space-y-6">
-                <div className="text-sm text-gray-500 italic">Nenhuma atualização recente.</div>
-            </div>
-        </section>
-      </div>
-    </div>
-  );
-};
-
-// --- MODAL DE DETALHES DA TAREFA ---
-const TaskDetailModal = ({ task, isOpen, onClose, members, onAddSupport, onSendMessage, onAssignResponsible }) => {
-    const [messageText, setMessageText] = useState("");
-    const [isImportant, setIsImportant] = useState(false);
-    const [isSelectingResponsible, setIsSelectingResponsible] = useState(false);
-    const [isSelectingSupport, setIsSelectingSupport] = useState(false);
-
-    if (!task) return null;
-    const messages = task.messages || [];
-    const responsible = task.responsible || { name: "Não definido", role: "-", avatar: "?" };
-    const supportList = task.support || [];
-
-    const handleSend = () => {
-        if (!messageText.trim()) return;
-        onSendMessage(task.id, messageText, isImportant);
-        setMessageText("");
-        setIsImportant(false);
-    };
-
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Detalhes da Tarefa" maxWidth="max-w-2xl">
-            <div className="flex flex-col h-[70vh]">
-                <div className="px-6 py-4 border-b bg-gray-50">
-                    <div className="flex items-center gap-3 mb-2">
-                        <PriorityBadge level={task.priority} />
-                        <span className="text-xs font-mono text-gray-400">ID: #{task.id}</span>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 leading-tight">{task.text}</h2>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                    <div className="flex items-start gap-8">
-                        {/* Responsável */}
-                        <div className="relative">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Responsável</p>
-                            <button onClick={() => setIsSelectingResponsible(!isSelectingResponsible)} className="flex items-center gap-2 p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors text-left group border border-transparent hover:border-gray-200">
-                                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold border border-blue-200 overflow-hidden">
-                                    {responsible.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === responsible.avatarContent)?.svg : <span>{responsible.avatar}</span>}
-                                </div>
-                                <div><p className="text-sm font-bold text-gray-800 flex items-center gap-1">{responsible.name} <ChevronDown size={14} className="text-gray-400 group-hover:text-blue-600"/></p><p className="text-xs text-gray-500">{responsible.role}</p></div>
+                            <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white">
+                                <X size={20} />
                             </button>
-                            {isSelectingResponsible && (
-                                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2 animate-in fade-in zoom-in duration-200">
-                                    <p className="text-xs font-bold text-gray-400 uppercase px-2 py-1">Definir Responsável</p>
-                                    <div className="space-y-1">
-                                        {members.map(member => (
-                                            <button key={member.id} onClick={() => { onAssignResponsible(task.id, member); setIsSelectingResponsible(false); }} className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors text-left ${responsible.name === member.name ? 'bg-blue-50' : ''}`}>
-                                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700 border border-blue-200 overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span>{member.avatar}</span>}</div>
-                                                <div><p className="text-sm font-medium text-gray-900">{member.name}</p></div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
-                        
-                        {/* Apoio */}
-                         <div className="flex-1 relative">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Apoio</p>
-                                <button onClick={() => setIsSelectingSupport(!isSelectingSupport)} className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1">+ Gerenciar</button>
-                            </div>
-                            {isSelectingSupport && (
-                                <div className="absolute top-8 left-0 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-3 animate-in fade-in zoom-in duration-200">
-                                    <p className="text-xs font-bold text-gray-400 uppercase mb-2">Selecionar Apoio</p>
-                                    <div className="max-h-40 overflow-y-auto space-y-1">
-                                        {members.map(member => {
-                                            const isSelected = supportList.some(s => s.id === member.id);
-                                            return (
-                                                <button key={member.id} onClick={() => onAddSupport(task.id, member)} className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors text-left ${isSelected ? 'bg-blue-50 text-blue-900' : 'hover:bg-gray-50 text-gray-700'}`}>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[8px] overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : member.avatar}</div>
-                                                        <span className="text-xs font-medium">{member.name}</span>
-                                                    </div>
-                                                    {isSelected && <Check size={14} className="text-blue-600"/>}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                    <button onClick={() => setIsSelectingSupport(false)} className="mt-2 w-full py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">Pronto</button>
-                                </div>
-                            )}
-                            {supportList.length > 0 ? (
-                                <div className="flex flex-wrap gap-2">
-                                    {supportList.map((s, idx) => (
-                                        <div key={idx} className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-full border">
-                                            <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600 overflow-hidden">{s.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === s.avatarContent)?.svg : <span>{s.avatar}</span>}</div>
-                                            <span className="text-xs font-medium text-gray-700">{s.name}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (<p className="text-sm text-gray-400 italic">Ninguém alocado.</p>)}
-                        </div>
-                    </div>
-                     <div>
-                        <div className="flex items-center gap-2 mb-4"><MessageSquare size={16} className="text-gray-400" /><h3 className="text-sm font-bold text-gray-800">Comunicação & Avisos</h3></div>
-                        <div className="bg-gray-50 rounded-xl p-4 min-h-[200px] max-h-[300px] overflow-y-auto mb-4 border border-gray-100">
-                            {messages.length === 0 ? <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60"><MessageSquare size={32} className="mb-2"/><p className="text-sm">Nenhuma mensagem ainda.</p></div> : 
-                            <div className="space-y-3">{messages.map((msg, i) => (<div key={i} className={`flex gap-3 ${msg.sender === 'Eu' ? 'flex-row-reverse' : ''}`}><div className={`p-3 rounded-xl max-w-[80%] text-sm ${msg.isImportant ? 'bg-red-50 border border-red-100 text-red-800' : 'bg-white border border-gray-200 text-gray-700'}`}>{msg.isImportant && <div className="flex items-center gap-1 text-red-600 font-bold text-xs mb-1"><AlertCircle size={12} /> Importante</div>}{msg.text}</div></div>))}</div>}
-                        </div>
-                        <div className="bg-white border border-gray-200 rounded-xl p-2 shadow-sm">
-                             <div className="flex items-center gap-2 mb-2 px-2"><label className="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer hover:text-gray-800 select-none"><input type="checkbox" checked={isImportant} onChange={(e) => setIsImportant(e.target.checked)} className="rounded text-red-500 focus:ring-red-500" /> Marcar como Aviso Importante</label></div>
-                             <div className="flex items-center gap-2"><input type="text" placeholder="Escreva uma mensagem ou observação..." className="flex-1 text-sm p-2 outline-none text-gray-700" value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()}/><button onClick={handleSend} className="p-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"><Send size={16} /></button></div>
-                        </div>
+                        <div className="p-0 overflow-y-auto flex-1 bg-white">{children}</div>
                     </div>
                 </div>
-            </div>
-        </Modal>
-    );
-};
+            );
+        };
 
-// --- TELA 2: DETALHES DO EVENTO ---
-const EventDetailView = ({ event, onBack, globalMembers, db, user }) => {
-  const [eventTeam, setEventTeam] = useState(globalMembers.slice(0, 3)); 
-  const [isAddingMember, setIsAddingMember] = useState(false);
-  const [isTeamExpanded, setIsTeamExpanded] = useState(true);
-  const [isAgendaExpanded, setIsAgendaExpanded] = useState(true);
-  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
-
-  const taskCategories = [
-    { id: 'planning', title: 'Planejamento & Produto', icon: <Box size={18}/>, color: 'text-blue-600 bg-blue-50 border-blue-200' },
-    { id: 'logistics', title: 'Logística & Estande', icon: <Truck size={18}/>, color: 'text-amber-600 bg-amber-50 border-amber-200' },
-    { id: 'staff', title: 'Staff & Viagem', icon: <Users size={18}/>, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-    { id: 'post', title: 'Pós-Evento & Leads', icon: <TrendingUp size={18}/>, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' }
-  ];
-
-  const [tasks, setTasks] = useState([]);
-  
-  useEffect(() => {
-    if (!user) return;
-    const q = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const loadedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Filtrar por evento se houvesse ID, aqui vamos assumir global para o demo ou filtrar em memória
-        setTasks(loadedTasks);
-    }, (error) => console.error("Erro tasks:", error));
-    return () => unsubscribe();
-  }, [db, user]);
-
-  const [calendarEvents, setCalendarEvents] = useState([
-    { id: 1, date: "2024-06-10", title: "Abertura Stand", type: "meeting" },
-    { id: 2, date: "2024-06-11", title: "Coquetel VIP", type: "material" },
-  ]);
-  
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 5, 1));
-  const [selectedDayForEvent, setSelectedDayForEvent] = useState(null);
-  const [newEventText, setNewEventText] = useState("");
-  const [newEventType, setNewEventType] = useState("meeting");
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const daysRemaining = calculateDaysRemaining(event.dateRange);
-
-  const handleAddTeamMember = (member) => {
-    if (!eventTeam.find(m => m.id === member.id)) {
-        setEventTeam([...eventTeam, member]);
-    }
-    setIsAddingMember(false);
-  };
-
-  const handleRemoveTeamMember = (memberId) => {
-    // Remoção direta sem confirm() para teste, ou mantenha se preferir
-    setEventTeam(eventTeam.filter(m => m.id !== memberId));
-  };
-
-  const toggleTask = async (e, id) => {
-    e.stopPropagation();
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { completed: !task.completed });
-    }
-  };
-  
-  const cyclePriority = async (id) => {
-    const priorities = ["low", "medium", "high"];
-    const task = tasks.find(t => t.id === id);
-    if(task) {
-        const nextIndex = (priorities.indexOf(task.priority) + 1) % priorities.length;
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { priority: priorities[nextIndex] });
-    }
-  };
-
-  const handleAddTask = async (newTask) => {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), {
-          ...newTask,
-          completed: false,
-          messages: [],
-          support: [],
-          eventId: event.id // Associar task ao evento
-      });
-  };
-
-  const handleAssignResponsible = async (taskId, member) => {
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { responsible: member });
-    if (selectedTask && selectedTask.id === taskId) setSelectedTask({ ...selectedTask, responsible: member });
-  };
-  
-  const handleSendMessage = async (taskId, text, isImportant) => {
-      const newMessage = { sender: "Eu", text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isImportant };
-      const task = tasks.find(t => t.id === taskId);
-      if(task) {
-          const updatedMessages = [...(task.messages || []), newMessage];
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { messages: updatedMessages });
-          setSelectedTask(prev => ({...prev, messages: updatedMessages}));
-      }
-  };
-  
-  const handleAddSupport = async (taskId, member) => {
-      const task = tasks.find(t => t.id === taskId);
-      if(task) {
-          const currentSupport = task.support || [];
-          const exists = currentSupport.some(s => s.id === member.id);
-          let newSupport;
-          if (exists) newSupport = currentSupport.filter(s => s.id !== member.id); 
-          else newSupport = [...currentSupport, member];
-          
-          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { support: newSupport });
-          if (selectedTask && selectedTask.id === taskId) setSelectedTask(prev => ({...prev, support: newSupport}));
-      }
-  };
-
-  const renderCalendarGrid = (isSmall = false) => {
-      const days = []; 
-      for(let i=1; i<=30; i++) {
-        days.push(<div key={i} className={`p-1 text-center text-xs ${isSmall ? 'h-6' : 'h-16 border rounded'}`}>{i}</div>)
-      }
-      return days;
-  };
-
-  const filteredTasks = tasks.filter(t => t.text.toLowerCase().includes(searchTerm.toLowerCase()));
-
-  return (
-    <div className="animate-in slide-in-from-right-4 duration-500 pb-10">
-      {/* Header do Evento */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-        <div className="flex items-center gap-6">
-            <button onClick={onBack} className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors group">
-                <ArrowLeft size={24} className="text-gray-500 group-hover:text-blue-600" />
-            </button>
-            <div>
-                <h1 className="text-3xl font-extrabold text-gray-900 mb-1">{event.title}</h1>
-                <p className="text-gray-500 flex items-center gap-3 text-sm font-medium">
-                    <span className="flex items-center gap-1"><Truck size={16} className="text-blue-900"/> {event.location}</span>
-                    <span className="h-4 w-px bg-gray-300"></span>
-                    <span className="flex items-center gap-1"><CalendarIcon size={16} className="text-blue-900"/> {event.dateRange}</span>
-                </p>
-            </div>
-        </div>
-        <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white px-8 py-4 rounded-2xl shadow-xl flex items-center gap-4">
-            <Clock size={32} className="text-blue-200" />
-            <div>
-                <p className="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Contagem Regressiva</p>
-                <p className="text-3xl font-black leading-none">{daysRemaining} dias</p>
-            </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        
-        {/* COLUNA ESQUERDA */}
-        <div className="lg:col-span-1 space-y-6">
-            
-            {/* Equipe do Evento (Remoção Corrigida) */}
-            <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300">
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><Users size={18} className="text-blue-900"/> Equipe do Evento</h2>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setIsAddingMember(true)} className="p-1 hover:bg-gray-100 rounded text-blue-900" title="Adicionar Pessoa"><Plus size={16}/></button>
-                        <button onClick={() => setIsTeamExpanded(!isTeamExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400">
-                            {isTeamExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-                        </button>
-                    </div>
-                </div>
-                
-                {isTeamExpanded && (
-                    <div className="space-y-2 mt-4 animate-in fade-in slide-in-from-top-1">
-                        <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 bg-blue-200 text-blue-800 text-[9px] px-2 py-0.5 rounded-bl-lg font-bold uppercase tracking-wide">Responsável</div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center overflow-hidden">
-                                     {eventTeam[0]?.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === eventTeam[0].avatarContent)?.svg : <span>{eventTeam[0]?.avatar}</span>}
-                                </div>
-                                <div><p className="font-bold text-xs text-blue-900">{eventTeam[0]?.name}</p><p className="text-[10px] text-blue-600">Líder do Evento</p></div>
-                            </div>
-                        </div>
-
-                        {eventTeam.slice(1).map(member => (
-                            <div key={member.id} className="flex items-center justify-between group p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-blue-900 font-bold text-xs overflow-hidden">
-                                        {member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span>{member.avatar}</span>}
-                                    </div>
-                                    <div className="leading-tight">
-                                        <p className="font-semibold text-xs text-gray-900">{member.name}</p>
-                                        <p className="text-[10px] text-gray-500">{member.role}</p>
-                                    </div>
-                                </div>
-                                {/* Botão de Remover visível sempre para teste de usabilidade, ou hover */}
-                                <button onClick={() => handleRemoveTeamMember(member.id)} className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
-                                    <X size={14} />
-                                </button>
+        const NotificationsDropdown = ({ onClose }) => {
+            const notifications = [{ id: 1, text: "Bem-vindo ao Event Hub! Configure sua equipe.", time: "Agora", isNew: true }];
+            return (
+                <div className="absolute top-12 right-0 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                    <div className="p-3 border-b bg-gray-50 flex justify-between items-center"><span className="font-bold text-gray-700 text-sm">Notificações</span><span className="text-[10px] text-blue-600 cursor-pointer hover:underline">Marcar todas como lidas</span></div>
+                    <div className="max-h-64 overflow-y-auto">
+                        {notifications.map(notif => (
+                            <div key={notif.id} className={`p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer ${notif.isNew ? 'bg-blue-50/50' : ''}`}>
+                                <div className="flex gap-3"><div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${notif.isNew ? 'bg-blue-600' : 'bg-gray-300'}`}></div><div><p className={`text-xs ${notif.isNew ? 'font-bold text-gray-800' : 'text-gray-600'}`}>{notif.text}</p><p className="text-[10px] text-gray-400 mt-1">{notif.time}</p></div></div>
                             </div>
                         ))}
-                        
-                        {isAddingMember && (
-                            <div className="mt-3 p-2 bg-gray-50 rounded-lg border border-gray-200">
-                                <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Banco de Talentos:</p>
-                                <div className="max-h-32 overflow-y-auto space-y-1">
-                                    {globalMembers.filter(gm => !eventTeam.find(et => et.id === gm.id)).map(gm => (
-                                        <button key={gm.id} onClick={() => handleAddTeamMember(gm)} className="w-full text-left flex items-center gap-2 p-1.5 hover:bg-white rounded text-xs text-gray-700">
-                                            <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-[8px] font-bold overflow-hidden">
-                                                {gm.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === gm.avatarContent)?.svg : gm.avatar}
-                                            </div>
-                                            {gm.name}
-                                        </button>
-                                    ))}
-                                </div>
-                                <button onClick={() => setIsAddingMember(false)} className="mt-2 w-full py-1 text-[10px] text-gray-500 hover:bg-gray-200 rounded">Cancelar</button>
-                            </div>
-                        )}
                     </div>
-                )}
-            </section>
-
-            {/* Calendário Mini */}
-            <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300">
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><CalendarIcon size={18} className="text-blue-900"/> Agenda</h2>
-                    <button onClick={() => setIsAgendaExpanded(!isAgendaExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400">
-                        {isAgendaExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
-                    </button>
+                    <div className="p-2 border-t bg-gray-50 text-center"><button onClick={onClose} className="text-xs text-gray-500 hover:text-gray-800">Fechar</button></div>
                 </div>
-                {isAgendaExpanded && (
-                    <div onClick={() => setIsCalendarOpen(true)} className="bg-white rounded-lg border border-gray-100 p-2 opacity-60 cursor-pointer hover:opacity-100 transition-opacity mt-2">
-                        <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 font-medium">
-                            {['D','S','T','Q','Q','S','S'].map((d, i) => <span key={i}>{d}</span>)}
-                            {renderCalendarGrid(true)}
+            );
+        };
+
+        const AddTaskModal = ({ isOpen, onClose, onAdd, members, categories }) => {
+            const [text, setText] = useState("");
+            const [category, setCategory] = useState(categories[0].id);
+            const [responsibleId, setResponsibleId] = useState(members[0]?.id || "");
+            const [priority, setPriority] = useState("medium");
+            const handleSubmit = (e) => { 
+                e.preventDefault(); 
+                if(!text) return; 
+                const responsible = members.find(m => m.id === responsibleId) || members[0] || { name: 'Desconhecido', role: 'N/A' }; 
+                onAdd({ text, category, responsible, priority }); 
+                setText(""); onClose(); 
+            };
+            if(!isOpen) return null;
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Nova Tarefa">
+                    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Título</label><input autoFocus value={text} onChange={e => setText(e.target.value)} className="w-full p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Contratar Buffet" /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-2 border rounded-lg bg-white outline-none">{categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.title}</option>))}</select></div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Responsável</label><select value={responsibleId} onChange={e => setResponsibleId(e.target.value)} className="w-full p-2 border rounded-lg bg-white outline-none">{members.map(m => (<option key={m.id} value={m.id}>{m.name}</option>))}</select></div>
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Prioridade</label><select value={priority} onChange={e => setPriority(e.target.value)} className="w-full p-2 border rounded-lg bg-white outline-none"><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option></select></div>
                         </div>
-                    </div>
-                )}
-            </section>
-        </div>
+                        <div className="pt-4"><button type="submit" className="w-full py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 font-bold">Criar Tarefa</button></div>
+                    </form>
+                </Modal>
+            );
+        };
 
-        {/* COLUNA DIREITA: Tarefas por Categoria */}
-        <div className="lg:col-span-3">
-             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-                <h2 className="text-lg font-bold flex items-center gap-2 text-gray-800"><CheckSquare size={20} className="text-blue-900"/> Tarefas do Projeto</h2>
-                
-                <div className="relative w-full sm:w-auto flex-1 max-w-md">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input type="text" placeholder="Pesquisar tarefa..." className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
-                </div>
-                <div className="flex gap-2">
-                    <button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-blue-900 transition-colors"><Filter size={18}/></button>
-                    <button onClick={() => setIsAddTaskOpen(true)} className="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-800 transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"><Plus size={16}/> Nova Tarefa</button>
-                </div>
-             </div>
+        const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onAddMember, onUpdateMember, onDeleteMember }) => {
+            const [newMemberName, setNewMemberName] = useState('');
+            const [newMemberRole, setNewMemberRole] = useState('');
+            const fileInputRef = useRef(null);
+            const [editingId, setEditingId] = useState(null);
+            const [editName, setEditName] = useState('');
+            const [editRole, setEditRole] = useState('');
+            
+            const handleLogoUpload = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => { setLogo(reader.result); }; reader.readAsDataURL(file); } };
+            const handleAdd = (e) => { e.preventDefault(); if (!newMemberName || !newMemberRole) return; onAddMember({ name: newMemberName, role: newMemberRole, avatarType: 'executive', avatarContent: 'ex1' }); setNewMemberName(''); setNewMemberRole(''); };
+            const startEdit = (member) => { setEditingId(member.id); setEditName(member.name); setEditRole(member.role); };
+            const saveEdit = (id) => { onUpdateMember({ id, name: editName, role: editRole }); setEditingId(null); };
 
-             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
-                {taskCategories.map(cat => {
-                    const catTasks = filteredTasks.filter(t => t.category === cat.id);
-                    return (
-                        <div key={cat.id} className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex flex-col h-full min-h-[300px]">
-                            <div className={`flex items-center gap-2 p-2 rounded-lg mb-3 border ${cat.color} bg-white shadow-sm`}>
-                                <div className={`p-1 rounded ${cat.color.split(' ')[1]} ${cat.color.split(' ')[0]}`}>
-                                    {cat.icon}
-                                </div>
-                                <span className="text-xs font-bold text-gray-700">{cat.title}</span>
-                                <span className="ml-auto text-[10px] font-bold bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{catTasks.length}</span>
+            if (!isOpen) return null;
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-2xl">
+                    <div className="p-6 space-y-8">
+                        <section>
+                            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><ImageIcon size={18} /> Identidade</h4>
+                            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
+                                <div className="h-16 flex items-center justify-center px-4 bg-gray-50 rounded-lg border border-gray-100 min-w-[150px]">{typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-10 w-auto object-contain" /> : logo}</div>
+                                <div className="flex-1"><p className="font-bold text-gray-800 text-sm mb-1">Carregar logo</p><div className="flex gap-2"><button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 bg-white">Escolher arquivo</button><input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" /></div></div>
                             </div>
-
-                            <div className="space-y-2 flex-1">
-                                {catTasks.map(task => (
-                                    <div key={task.id} onClick={() => setSelectedTask(task)} className={`bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-all group relative ${task.completed ? 'opacity-60' : 'hover:border-blue-300'}`}>
-                                        <div className="flex items-start gap-2 mb-2">
-                                            <button onClick={(e) => toggleTask(e, task.id)} className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 text-transparent hover:border-blue-400'}`}>
-                                                <CheckSquare size={10} fill="currentColor" />
-                                            </button>
-                                            <p className={`text-xs font-medium leading-tight ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.text}</p>
+                        </section>
+                        <section>
+                            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><Users size={18} /> Equipe</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                {members.map(member => (
+                                    <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:shadow-sm transition-shadow">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full border border-gray-200 overflow-hidden flex items-center justify-center bg-gray-50">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span className="text-blue-900 font-bold text-xs">{member.avatar}</span>}</div>
+                                            <div className="flex-1">{editingId === member.id ? (<div className="flex flex-col gap-1"><input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" /><input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" /></div>) : (<><p className="font-bold text-gray-800 text-sm">{member.name}</p><p className="text-xs text-gray-500">{member.role}</p></>)}</div>
                                         </div>
-                                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
-                                            <div className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden" title={task.responsible?.name}>
-                                                {task.responsible?.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === task.responsible.avatarContent)?.svg : task.responsible?.avatar}
-                                            </div>
-                                            <PriorityBadge level={task.priority} onClick={() => cyclePriority(task.id)} />
-                                        </div>
+                                        <div className="flex gap-1">{editingId === member.id ? (<button onClick={() => saveEdit(member.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16}/></button>) : (<button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>)}<button onClick={() => onDeleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></div>
                                     </div>
                                 ))}
-                                {catTasks.length === 0 && <div className="text-center py-8 text-gray-300 border-2 border-dashed border-gray-200 rounded-lg"><p className="text-[10px]">Vazio</p></div>}
+                            </div>
+                            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                                <h5 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><UserPlus size={16}/> Novo Membro</h5>
+                                <form onSubmit={handleAdd} className="flex flex-col md:flex-row gap-3"><input placeholder="Nome" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/><input placeholder="Cargo" value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/><button type="submit" disabled={!newMemberName} className="bg-blue-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 disabled:opacity-50">Adicionar</button></form>
+                            </div>
+                        </section>
+                    </div>
+                </Modal>
+            );
+        };
+
+        const TaskDetailModal = ({ task, isOpen, onClose, members, onAddSupport, onSendMessage, onAssignResponsible }) => {
+            const [messageText, setMessageText] = useState("");
+            const [isImportant, setIsImportant] = useState(false);
+            const [isSelectingResponsible, setIsSelectingResponsible] = useState(false);
+            const [isSelectingSupport, setIsSelectingSupport] = useState(false);
+
+            if (!task) return null;
+            const messages = task.messages || [];
+            const responsible = task.responsible || { name: "Não definido", role: "-", avatar: "?" };
+            const supportList = task.support || [];
+
+            const handleSend = () => { if (!messageText.trim()) return; onSendMessage(task.id, messageText, isImportant); setMessageText(""); setIsImportant(false); };
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Detalhes da Tarefa" maxWidth="max-w-2xl">
+                    <div className="flex flex-col h-[70vh]">
+                        <div className="px-6 py-4 border-b bg-gray-50">
+                            <div className="flex items-center gap-3 mb-2"><PriorityBadge level={task.priority} /><span className="text-xs font-mono text-gray-400">ID: #{task.id}</span></div>
+                            <h2 className="text-2xl font-bold text-gray-900 leading-tight">{task.text}</h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                            <div className="flex items-start gap-8">
+                                <div className="relative">
+                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Responsável</p>
+                                    <button onClick={() => setIsSelectingResponsible(!isSelectingResponsible)} className="flex items-center gap-2 p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors text-left group border border-transparent hover:border-gray-200">
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold border border-blue-200 overflow-hidden">{responsible.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === responsible.avatarContent)?.svg : <span>{responsible.avatar}</span>}</div>
+                                        <div><p className="text-sm font-bold text-gray-800 flex items-center gap-1">{responsible.name} <ChevronDown size={14} className="text-gray-400 group-hover:text-blue-600"/></p><p className="text-xs text-gray-500">{responsible.role}</p></div>
+                                    </button>
+                                    {isSelectingResponsible && (<div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2 animate-in fade-in zoom-in duration-200"><div className="space-y-1">{members.map(member => (<button key={member.id} onClick={() => { onAssignResponsible(task.id, member); setIsSelectingResponsible(false); }} className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors text-left ${responsible.name === member.name ? 'bg-blue-50' : ''}`}><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-700 border border-blue-200 overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span>{member.avatar}</span>}</div><p className="text-sm font-medium text-gray-900">{member.name}</p></button>))}</div></div>)}
+                                </div>
+                                <div className="flex-1 relative">
+                                    <div className="flex items-center justify-between mb-2"><p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Apoio</p><button onClick={() => setIsSelectingSupport(!isSelectingSupport)} className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1">+ Gerenciar</button></div>
+                                    {isSelectingSupport && (<div className="absolute top-8 left-0 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-3 animate-in fade-in zoom-in duration-200"><div className="max-h-40 overflow-y-auto space-y-1">{members.map(member => { const isSelected = supportList.some(s => s.id === member.id); return (<button key={member.id} onClick={() => onAddSupport(task.id, member)} className={`w-full flex items-center justify-between p-2 rounded-lg transition-colors text-left ${isSelected ? 'bg-blue-50 text-blue-900' : 'hover:bg-gray-50 text-gray-700'}`}><div className="flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[8px] overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : member.avatar}</div><span className="text-xs font-medium">{member.name}</span></div>{isSelected && <Check size={14} className="text-blue-600"/>}</button>)})}</div><button onClick={() => setIsSelectingSupport(false)} className="mt-2 w-full py-1 text-xs text-gray-500 hover:bg-gray-100 rounded">Pronto</button></div>)}
+                                    {supportList.length > 0 ? (<div className="flex flex-wrap gap-2">{supportList.map((s, idx) => (<div key={idx} className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-full border"><div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600 overflow-hidden">{s.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === s.avatarContent)?.svg : <span>{s.avatar}</span>}</div><span className="text-xs font-medium text-gray-700">{s.name}</span></div>))}</div>) : (<p className="text-sm text-gray-400 italic">Ninguém alocado.</p>)}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 mb-4"><MessageSquare size={16} className="text-gray-400" /><h3 className="text-sm font-bold text-gray-800">Comunicação</h3></div>
+                                <div className="bg-gray-50 rounded-xl p-4 min-h-[200px] max-h-[300px] overflow-y-auto mb-4 border border-gray-100">
+                                    {messages.length === 0 ? <p className="text-sm text-center text-gray-400">Nenhuma mensagem ainda.</p> : <div className="space-y-3">{messages.map((msg, i) => (<div key={i} className={`flex gap-3 ${msg.sender === 'Eu' ? 'flex-row-reverse' : ''}`}><div className={`p-3 rounded-xl max-w-[80%] text-sm ${msg.isImportant ? 'bg-red-50 border border-red-100 text-red-800' : 'bg-white border border-gray-200 text-gray-700'}`}>{msg.isImportant && <div className="flex items-center gap-1 text-red-600 font-bold text-xs mb-1"><AlertCircle size={12} /> Importante</div>}{msg.text}</div></div>))}</div>}
+                                </div>
+                                <div className="bg-white border border-gray-200 rounded-xl p-2 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-2 px-2"><label className="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer hover:text-gray-800 select-none"><input type="checkbox" checked={isImportant} onChange={(e) => setIsImportant(e.target.checked)} className="rounded text-red-500 focus:ring-red-500" /> Marcar como Aviso Importante</label></div>
+                                    <div className="flex items-center gap-2"><input type="text" placeholder="Escreva uma mensagem..." className="flex-1 text-sm p-2 outline-none text-gray-700" value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()}/><button onClick={handleSend} className="p-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors"><Send size={16} /></button></div>
+                                </div>
                             </div>
                         </div>
-                    );
-                })}
-             </div>
-        </div>
+                    </div>
+                </Modal>
+            );
+        };
 
-      </div>
+        const DashboardView = ({ onSelectEvent, members, logo }) => {
+            const events = [
+                { id: 2, day: "02", month: "FEV", title: "Convenção de Vendas", location: "Auditório Doremus", dateRange: "02/02/2026 - 06/02/2026", pending: 21, daysLeft: 59 },
+                { id: 3, day: "31", month: "MAR", title: "Nis Nutri", location: "Transamerica Expo Center", dateRange: "31/03/2026 - 01/04/2026", pending: 22, daysLeft: 116 },
+                { id: 4, day: "01", month: "MAI", title: "Jornada Técnica", location: "Hotel", dateRange: "01/05/2026", pending: 22, daysLeft: 147 },
+            ];
+            return (
+                <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="xl:col-span-3 space-y-8">
+                        <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+                            <div className="flex flex-col lg:flex-row gap-12">
+                                <div className="flex items-center gap-8 min-w-[300px]">
+                                    <div className="relative w-32 h-32 flex-shrink-0">
+                                        <svg className="w-full h-full transform -rotate-90"><circle cx="64" cy="64" r="56" stroke="#F3F4F6" strokeWidth="12" fill="transparent" /><circle cx="64" cy="64" r="56" stroke="#002060" strokeWidth="12" fill="transparent" strokeDasharray="351.86" strokeDashoffset="348" strokeLinecap="round" /></svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-800"><span className="text-3xl font-extrabold text-[#002060]">1%</span></div>
+                                    </div>
+                                    <div><h3 className="text-lg font-bold text-gray-900 mb-2">Status Global</h3><div className="flex items-center gap-4 text-sm font-semibold"><span className="text-emerald-600 flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> 1 Feitas</span><span className="text-amber-600 flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-amber-500"></div> 175 Pend.</span></div></div>
+                                </div>
+                                <div className="flex-1"><h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2"><Users size={18} /> Carga de Trabalho</h3><div className="flex items-start gap-6 overflow-x-auto pb-2">{members.map(member => (<div key={member.id} className="flex flex-col items-center gap-2 min-w-[50px]"><div className="h-1 w-8 bg-gray-200 rounded-full overflow-hidden mb-1"><div className="h-full bg-blue-600 w-0"></div></div><div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xs font-bold text-gray-600 border border-gray-200 shadow-sm overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span className="text-blue-900">{member.avatar}</span>}</div><span className="text-xs font-bold text-blue-600">0</span></div>))}</div></div>
+                            </div>
+                        </section>
+                        <section>
+                            <h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><Clock size={20} /> Próximos Eventos</h2>
+                            <div className="space-y-4">
+                                {events.map(event => (
+                                    <div key={event.id} onClick={() => onSelectEvent(event)} className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group flex flex-col md:flex-row items-center gap-6">
+                                        <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl flex flex-col items-center justify-center group-hover:bg-blue-50 transition-colors"><span className="text-xs font-bold text-gray-500 uppercase">{event.month}</span><span className="text-3xl font-extrabold text-gray-800 group-hover:text-blue-900">{event.day}</span></div>
+                                        <div className="flex-1 min-w-0"><div className="flex items-center justify-between mb-1"><h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors truncate">{event.title}</h3><span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded-full border border-amber-100 hidden md:inline-block">⚠ faltam {event.pending} tarefas</span></div><div className="flex flex-col gap-1 text-sm text-gray-500"><span className="flex items-center gap-1.5"><Truck size={14}/> {event.location}</span><div className="flex items-center gap-3"><span className="text-blue-600 font-medium">{event.dateRange}</span><span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">Faltam {event.daysLeft} dias</span></div></div></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                    <div className="xl:col-span-1"><section className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 h-full"><h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2"><MessageSquare size={20} className="text-blue-900"/> Atualizações</h2><div className="space-y-6"><div className="text-sm text-gray-500 italic">Nenhuma atualização recente.</div></div></section></div>
+                </div>
+            );
+        };
 
-      <TaskDetailModal task={selectedTask} isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} members={eventTeam} onAddSupport={handleAddSupport} onSendMessage={handleSendMessage} onAssignResponsible={handleAssignResponsible}/>
-      <AddTaskModal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} onAdd={handleAddTask} members={eventTeam} categories={taskCategories}/>
-      {isCalendarOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in zoom-in duration-200">
-             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b bg-gray-50">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-2xl font-bold text-gray-800">Agenda: {event.title}</h2>
-                        <div className="flex items-center bg-white rounded-lg border shadow-sm px-2 py-1">
-                            <button onClick={(e) => { e.stopPropagation(); setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)); }} className="p-1 hover:bg-gray-100 rounded"><ChevronLeft size={20}/></button>
-                            <span className="w-32 text-center font-bold text-sm text-gray-700">{MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
-                            <button onClick={(e) => { e.stopPropagation(); setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)); }} className="p-1 hover:bg-gray-100 rounded"><ChevronRight size={20}/></button>
+        const EventDetailView = ({ event, onBack, globalMembers, db, user }) => {
+            const [eventTeam, setEventTeam] = useState(globalMembers.slice(0, 3));
+            const [isAddingMember, setIsAddingMember] = useState(false);
+            const [isTeamExpanded, setIsTeamExpanded] = useState(true);
+            const [isAgendaExpanded, setIsAgendaExpanded] = useState(true);
+            const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+            const [tasks, setTasks] = useState([]);
+            const [selectedTask, setSelectedTask] = useState(null);
+            const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+            const [currentDate, setCurrentDate] = useState(new Date(2024, 5, 1));
+            const [searchTerm, setSearchTerm] = useState("");
+
+            const daysRemaining = calculateDaysRemaining(event.dateRange);
+
+            const taskCategories = [
+                { id: 'planning', title: 'Planejamento & Produto', icon: <Box size={18}/>, color: 'text-blue-600 bg-blue-50 border-blue-200' },
+                { id: 'logistics', title: 'Logística & Estande', icon: <Truck size={18}/>, color: 'text-amber-600 bg-amber-50 border-amber-200' },
+                { id: 'staff', title: 'Staff & Viagem', icon: <Users size={18}/>, color: 'text-purple-600 bg-purple-50 border-purple-200' },
+                { id: 'post', title: 'Pós-Evento & Leads', icon: <TrendingUp size={18}/>, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' }
+            ];
+
+            useEffect(() => {
+                if (!user) return;
+                const q = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+                const unsubscribe = onSnapshot(q, (snapshot) => { setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); });
+                return () => unsubscribe();
+            }, [db, user]);
+
+            const handleAddTeamMember = (member) => { if (!eventTeam.find(m => m.id === member.id)) { setEventTeam([...eventTeam, member]); } setIsAddingMember(false); };
+            const handleRemoveTeamMember = (memberId) => { setEventTeam(eventTeam.filter(m => m.id !== memberId)); };
+            
+            const toggleTask = async (e, id) => { e.stopPropagation(); const task = tasks.find(t => t.id === id); if (task) { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { completed: !task.completed }); } };
+            const cyclePriority = async (id) => { const priorities = ["low", "medium", "high"]; const task = tasks.find(t => t.id === id); if(task) { const nextIndex = (priorities.indexOf(task.priority) + 1) % priorities.length; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { priority: priorities[nextIndex] }); } };
+            const handleAddTask = async (newTask) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { ...newTask, completed: false, messages: [], support: [], eventId: event.id }); };
+            const handleAssignResponsible = async (taskId, member) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { responsible: member }); if (selectedTask && selectedTask.id === taskId) setSelectedTask({ ...selectedTask, responsible: member }); };
+            const handleSendMessage = async (taskId, text, isImportant) => { const newMessage = { sender: "Eu", text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isImportant }; const task = tasks.find(t => t.id === taskId); if(task) { const updatedMessages = [...(task.messages || []), newMessage]; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { messages: updatedMessages }); setSelectedTask(prev => ({...prev, messages: updatedMessages})); } };
+            const handleAddSupport = async (taskId, member) => { const task = tasks.find(t => t.id === taskId); if(task) { const currentSupport = task.support || []; const exists = currentSupport.some(s => s.id === member.id); const newSupport = exists ? currentSupport.filter(s => s.id !== member.id) : [...currentSupport, member]; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { support: newSupport }); if (selectedTask && selectedTask.id === taskId) setSelectedTask(prev => ({...prev, support: newSupport})); } };
+
+            const renderCalendarGrid = (isSmall = false) => { const days = []; for(let i=1; i<=30; i++) { days.push(<div key={i} className={`p-1 text-center text-xs ${isSmall ? 'h-6' : 'h-16 border rounded'}`}>{i}</div>) } return days; };
+            const filteredTasks = tasks.filter(t => t.text.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            return (
+                <div className="animate-in slide-in-from-right-4 duration-500 pb-10">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center gap-6"><button onClick={onBack} className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors group"><ArrowLeft size={24} className="text-gray-500 group-hover:text-blue-600" /></button><div><h1 className="text-3xl font-extrabold text-gray-900 mb-1">{event.title}</h1><p className="text-gray-500 flex items-center gap-3 text-sm font-medium"><span className="flex items-center gap-1"><Truck size={16} className="text-blue-900"/> {event.location}</span><span className="h-4 w-px bg-gray-300"></span><span className="flex items-center gap-1"><CalendarIcon size={16} className="text-blue-900"/> {event.dateRange}</span></p></div></div>
+                        <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white px-8 py-4 rounded-2xl shadow-xl flex items-center gap-4"><Clock size={32} className="text-blue-200" /><div><p className="text-xs font-bold text-blue-200 uppercase tracking-widest mb-1">Contagem Regressiva</p><p className="text-3xl font-black leading-none">{daysRemaining} dias</p></div></div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300">
+                                <div className="flex items-center justify-between mb-2"><h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><Users size={18} className="text-blue-900"/> Equipe</h2><div className="flex items-center gap-2"><button onClick={() => setIsAddingMember(true)} className="p-1 hover:bg-gray-100 rounded text-blue-900"><Plus size={16}/></button><button onClick={() => setIsTeamExpanded(!isTeamExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400">{isTeamExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</button></div></div>
+                                {isTeamExpanded && (
+                                    <div className="space-y-2 mt-4 animate-in fade-in slide-in-from-top-1">
+                                        <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3 relative overflow-hidden"><div className="absolute top-0 right-0 bg-blue-200 text-blue-800 text-[9px] px-2 py-0.5 rounded-bl-lg font-bold uppercase tracking-wide">Responsável</div><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center overflow-hidden">{eventTeam[0]?.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === eventTeam[0].avatarContent)?.svg : <span>{eventTeam[0]?.avatar}</span>}</div><div><p className="font-bold text-xs text-blue-900">{eventTeam[0]?.name}</p><p className="text-[10px] text-blue-600">Líder do Evento</p></div></div></div>
+                                        {eventTeam.slice(1).map(member => (<div key={member.id} className="flex items-center justify-between group p-2 hover:bg-gray-50 rounded-lg transition-colors"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-blue-900 font-bold text-xs overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span>{member.avatar}</span>}</div><div className="leading-tight"><p className="font-semibold text-xs text-gray-900">{member.name}</p><p className="text-[10px] text-gray-500">{member.role}</p></div></div><button onClick={() => handleRemoveTeamMember(member.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button></div>))}
+                                        {isAddingMember && (<div className="mt-3 p-2 bg-gray-50 rounded-lg border border-gray-200"><p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Banco de Talentos:</p><div className="max-h-32 overflow-y-auto space-y-1">{globalMembers.filter(gm => !eventTeam.find(et => et.id === gm.id)).map(gm => (<button key={gm.id} onClick={() => handleAddTeamMember(gm)} className="w-full text-left flex items-center gap-2 p-1.5 hover:bg-white rounded text-xs text-gray-700"><div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-[8px] font-bold overflow-hidden">{gm.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === gm.avatarContent)?.svg : gm.avatar}</div>{gm.name}</button>))}</div><button onClick={() => setIsAddingMember(false)} className="mt-2 w-full py-1 text-[10px] text-gray-500 hover:bg-gray-200 rounded">Cancelar</button></div>)}
+                                    </div>
+                                )}
+                            </section>
+                            <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300"><div className="flex items-center justify-between mb-2"><h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><CalendarIcon size={18} className="text-blue-900"/> Agenda</h2><button onClick={() => setIsAgendaExpanded(!isAgendaExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400">{isAgendaExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</button></div>{isAgendaExpanded && (<div onClick={() => setIsCalendarOpen(true)} className="bg-white rounded-lg border border-gray-100 p-2 opacity-60 cursor-pointer hover:opacity-100 transition-opacity mt-2"><div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 font-medium">{['D','S','T','Q','Q','S','S'].map((d, i) => <span key={i}>{d}</span>)}{renderCalendarGrid(true)}</div></div>)}</section>
+                        </div>
+                        <div className="lg:col-span-3">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6"><h2 className="text-lg font-bold flex items-center gap-2 text-gray-800"><CheckSquare size={20} className="text-blue-900"/> Tarefas do Projeto</h2><div className="relative w-full sm:w-auto flex-1 max-w-md"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input type="text" placeholder="Pesquisar tarefa..." className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/></div><div className="flex gap-2"><button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-blue-900 transition-colors"><Filter size={18}/></button><button onClick={() => setIsAddTaskOpen(true)} className="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-800 transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"><Plus size={16}/> Nova Tarefa</button></div></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+                                {taskCategories.map(cat => { const catTasks = filteredTasks.filter(t => t.category === cat.id); return (<div key={cat.id} className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex flex-col h-full min-h-[300px]"><div className={`flex items-center gap-2 p-2 rounded-lg mb-3 border ${cat.color} bg-white shadow-sm`}><div className={`p-1 rounded ${cat.color.split(' ')[1]} ${cat.color.split(' ')[0]}`}>{cat.icon}</div><span className="text-xs font-bold text-gray-700">{cat.title}</span><span className="ml-auto text-[10px] font-bold bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{catTasks.length}</span></div><div className="space-y-2 flex-1">{catTasks.map(task => (<div key={task.id} onClick={() => setSelectedTask(task)} className={`bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-all group relative ${task.completed ? 'opacity-60' : 'hover:border-blue-300'}`}><div className="flex items-start gap-2 mb-2"><button onClick={(e) => toggleTask(e, task.id)} className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 text-transparent hover:border-blue-400'}`}><CheckSquare size={10} fill="currentColor" /></button><p className={`text-xs font-medium leading-tight ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.text}</p></div><div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50"><div className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden" title={task.responsible?.name}>{task.responsible?.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === task.responsible.avatarContent)?.svg : task.responsible?.avatar}</div><PriorityBadge level={task.priority} onClick={() => cyclePriority(task.id)} /></div></div>))}{catTasks.length === 0 && <div className="text-center py-8 text-gray-300 border-2 border-dashed border-gray-200 rounded-lg"><p className="text-[10px]">Vazio</p></div>}</div></div>); })}
+                            </div>
                         </div>
                     </div>
-                    <button onClick={() => setIsCalendarOpen(false)} className="p-2 bg-white hover:bg-red-50 hover:text-red-500 rounded-full transition-colors border border-transparent hover:border-red-100"><X size={24}/></button>
+                    <TaskDetailModal task={selectedTask} isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} members={eventTeam} onAddSupport={handleAddSupport} onSendMessage={handleSendMessage} onAssignResponsible={handleAssignResponsible}/>
+                    <AddTaskModal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} onAdd={handleAddTask} members={eventTeam} categories={taskCategories}/>
+                    {isCalendarOpen && (<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in zoom-in duration-200"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden"><div className="flex items-center justify-between p-6 border-b bg-gray-50"><div className="flex items-center gap-4"><h2 className="text-2xl font-bold text-gray-800">Agenda: {event.title}</h2><div className="flex items-center bg-white rounded-lg border shadow-sm px-2 py-1"><button onClick={(e) => { e.stopPropagation(); setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)); }} className="p-1 hover:bg-gray-100 rounded"><ChevronLeft size={20}/></button><span className="w-32 text-center font-bold text-sm text-gray-700">{MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}</span><button onClick={(e) => { e.stopPropagation(); setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)); }} className="p-1 hover:bg-gray-100 rounded"><ChevronRight size={20}/></button></div></div><button onClick={() => setIsCalendarOpen(false)} className="p-2 bg-white hover:bg-red-50 hover:text-red-500 rounded-full transition-colors border border-transparent hover:border-red-100"><X size={24}/></button></div><div className="flex flex-1 overflow-hidden"><div className="flex-1 p-6 overflow-y-auto"><div className="grid grid-cols-7 gap-2 mb-2 text-center text-sm font-bold text-gray-400 uppercase tracking-wider">{['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=><span key={d}>{d}</span>)}</div><div className="grid grid-cols-7 gap-2 auto-rows-fr">{renderCalendarGrid(false)}</div></div></div></div></div>)}
                 </div>
-                <div className="flex flex-1 overflow-hidden">
-                    <div className="flex-1 p-6 overflow-y-auto">
-                        <div className="grid grid-cols-7 gap-2 mb-2 text-center text-sm font-bold text-gray-400 uppercase tracking-wider">{['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d=><span key={d}>{d}</span>)}</div>
-                        <div className="grid grid-cols-7 gap-2 auto-rows-fr">{renderCalendarGrid(false)}</div>
-                    </div>
+            );
+        };
+
+        const App = () => {
+            const [currentView, setCurrentView] = useState('dashboard');
+            const [selectedEvent, setSelectedEvent] = useState(null);
+            const [logo, setLogo] = useState(<DefaultLogo />);
+            const [authError, setAuthError] = useState(null);
+            const [user, setUser] = useState(null);
+            const [members, setMembers] = useState([]);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
+            useEffect(() => {
+                const initAuth = async () => { try { await signInAnonymously(auth); } catch (error) { console.error("Erro no login:", error); setAuthError(error.message); } };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const q = collection(db, 'artifacts', appId, 'public', 'data', 'members');
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const loadedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    if(loadedMembers.length > 0) setMembers(loadedMembers);
+                    else { setMembers([{ id: '1', name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'ex5' }, { id: '2', name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'ex4' }]); }
+                });
+                return () => unsubscribe();
+            }, [user]);
+
+            const handleAddMember = async (newMember) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember); };
+            const handleUpdateMember = async (updatedMember) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember); };
+            const handleDeleteMember = async (id) => { if (confirm('Tem certeza?')) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); } };
+
+            return (
+                <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}>
+                    {authError && (<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 sticky top-0 z-[200]"><p className="font-bold flex items-center gap-2"><AlertTriangle size={20}/> Erro de Conexão</p><p>{authError}</p></div>)}
+                    <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-8 sticky top-0 z-40 shadow-sm"><div className="max-w-[1600px] mx-auto flex items-center justify-between"><div className="flex items-center gap-12"><div className="flex items-center gap-2 cursor-pointer" onClick={() => { setSelectedEvent(null); setCurrentView('dashboard'); }}><div className="h-10 w-auto flex items-center">{typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-full w-auto object-contain" /> : logo}</div><div className="flex flex-col border-l border-gray-300 pl-4 ml-4 h-10 justify-center"><span className="text-xl font-bold text-gray-900 tracking-tight leading-none">Event Hub</span><span className="text-xs text-gray-500 font-medium">Painel de Marketing</span></div></div></div><div className="flex items-center gap-6"><div className="hidden md:flex items-center gap-3 mr-4"><div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">{ExecutiveAvatars[4].svg}</div><div className="flex flex-col items-end"><span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Gestor</span><span className="text-sm font-bold text-gray-800">Paulo Mokarzel</span></div></div><div className="flex items-center gap-3 relative"><button onClick={(e) => { e.stopPropagation(); setIsNotificationsOpen(!isNotificationsOpen); }} className={`p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 hover:border-blue-100 transition-colors relative shadow-sm ${isNotificationsOpen ? 'ring-2 ring-blue-100' : ''}`}><Bell size={20}/>{!isNotificationsOpen && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>}</button>{isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} />}<button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 shadow-sm"><Settings size={20}/></button><button onClick={() => alert("Criar Novo Evento")} className="bg-blue-900 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"><Plus size={18}/> Novo Evento</button></div></div></div></nav>
+                    <main className="max-w-[1600px] mx-auto px-6">{currentView === 'dashboard' ? <DashboardView onSelectEvent={(e) => { setSelectedEvent(e); setCurrentView('detail'); }} members={members} logo={logo} /> : <EventDetailView event={selectedEvent} onBack={() => { setSelectedEvent(null); setCurrentView('dashboard'); }} globalMembers={members} db={db} user={user} />}</main>
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} setMembers={setMembers} logo={logo} setLogo={setLogo} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} />
                 </div>
-            </div>
-        </div>
-      )}
-    </div>
-  );
-};
+            );
+        };
 
-// --- COMPONENTE PRINCIPAL (App) ---
-export default function App() {
-  const [currentView, setCurrentView] = useState('dashboard');
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [logo, setLogo] = useState(<DefaultLogo />);
-  const [authError, setAuthError] = useState(null); // NOVO STATE PARA ERRO
-  
-  const [user, setUser] = useState(null);
-  const [members, setMembers] = useState([]);
-
-  // --- Auth & Data Fetching ---
-  useEffect(() => {
-    // Autenticação anônima direta para evitar erro de token
-    const initAuth = async () => {
-        try {
-            await signInAnonymously(auth);
-        } catch (error) {
-            console.error("Erro no login anônimo:", error);
-            setAuthError(error.message); // Captura o erro para exibir
-        }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user) return;
-    // Escutar Membros Globais
-    const q = collection(db, 'artifacts', appId, 'public', 'data', 'members');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const loadedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if(loadedMembers.length > 0) setMembers(loadedMembers);
-        else {
-            // Seed inicial se vazio (apenas para demo)
-            setMembers([
-                { id: '1', name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'e5' },
-                { id: '2', name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'e4' }
-            ]);
-        }
-    }, (error) => console.error("Erro membros:", error));
-    return () => unsubscribe();
-  }, [user]);
-
-  // --- Handlers de Ação (Persistentes) ---
-  const handleAddMember = async (newMember) => {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember);
-  };
-
-  const handleUpdateMember = async (updatedMember) => {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember);
-  };
-
-  const handleDeleteMember = async (id) => {
-      if (confirm('Tem certeza que deseja remover este membro?')) {
-          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id));
-      }
-  };
-
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false); 
-
-  const handleSelectEvent = (event) => {
-    setSelectedEvent(event);
-    setCurrentView('detail');
-  };
-
-  const handleBackToDashboard = () => {
-    setSelectedEvent(null);
-    setCurrentView('dashboard');
-  };
-
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}> 
-      
-      {/* Alerta de Erro de Conexão */}
-      {authError && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 sticky top-0 z-[200]" role="alert">
-            <p className="font-bold flex items-center gap-2"><AlertTriangle size={20}/> Erro de Conexão</p>
-            <p>Não foi possível conectar ao banco de dados. Verifique se o <strong>Login Anônimo</strong> está ativado no Firebase Console (Authentication &gt; Sign-in method).</p>
-            <p className="text-xs mt-1 text-red-500">{authError}</p>
-        </div>
-      )}
-
-      <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-8 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-12">
-                <div className="flex items-center gap-2 cursor-pointer" onClick={handleBackToDashboard}>
-                    <div className="h-10 w-auto flex items-center">
-                        {typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-full w-auto object-contain" /> : logo}
-                    </div>
-                    <div className="flex flex-col border-l border-gray-300 pl-4 ml-4 h-10 justify-center">
-                        <span className="text-xl font-bold text-gray-900 tracking-tight leading-none">Event Hub</span>
-                        <span className="text-xs text-gray-500 font-medium">Painel de Marketing</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div className="flex items-center gap-6">
-                 <div className="hidden md:flex items-center gap-3 mr-4">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">
-                        {ExecutiveAvatars[4].svg}
-                    </div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Gestor da Equipe</span>
-                        <span className="text-sm font-bold text-gray-800">Paulo Mokarzel</span>
-                    </div>
-                 </div>
-                 <div className="flex items-center gap-3 relative">
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); setIsNotificationsOpen(!isNotificationsOpen); }} 
-                        className={`p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 hover:border-blue-100 transition-colors relative shadow-sm ${isNotificationsOpen ? 'ring-2 ring-blue-100' : ''}`}
-                    >
-                        <Bell size={20}/>
-                        {!isNotificationsOpen && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>}
-                    </button>
-                    
-                    {isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} />}
-
-                    <button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 hover:border-blue-100 transition-colors shadow-sm" title="Configurações">
-                        <Settings size={20}/>
-                    </button>
-                    <button onClick={() => alert("Criar Novo Evento")} className="bg-blue-900 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-800 transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2">
-                        <Plus size={18} strokeWidth={3}/> Novo Evento
-                    </button>
-                 </div>
-            </div>
-        </div>
-      </nav>
-
-      <main className="max-w-[1600px] mx-auto px-6">
-        {currentView === 'dashboard' ? (
-          <DashboardView onSelectEvent={handleSelectEvent} members={members} logo={logo} />
-        ) : (
-          <EventDetailView 
-            event={selectedEvent} 
-            onBack={handleBackToDashboard} 
-            globalMembers={members} 
-            db={db}
-            user={user}
-          />
-        )}
-      </main>
-
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)}
-        members={members}
-        setMembers={setMembers}
-        logo={logo}
-        setLogo={setLogo}
-        onAddMember={handleAddMember}
-        onUpdateMember={handleUpdateMember}
-        onDeleteMember={handleDeleteMember}
-      />
-      
-      {/* Modais de Tarefa e Adição (Inclusos na view de detalhe, mas declarados se necessário globalmente) */}
-      <TaskDetailModal task={null} isOpen={false} onClose={() => {}} members={[]} onAddSupport={()=>{}} onSendMessage={()=>{}} onAssignResponsible={()=>{}} />
-    </div>
-  );
-}
-
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
 
 
 
