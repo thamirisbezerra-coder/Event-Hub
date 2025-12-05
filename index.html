@@ -86,7 +86,7 @@ const DefaultLogo = () => (
   </svg>
 );
 
-// --- Avatares "Executivos Fofos P&B" (Minimalista) ---
+// --- Avatares "Executivos Doodle P&B" (Estilo Notion/Hand-drawn) ---
 const ExecutiveAvatars = [
   { 
     id: 'e1', 
@@ -940,7 +940,9 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [members, setMembers] = useState([]);
 
+  // --- Auth & Data Fetching ---
   useEffect(() => {
+    // Autenticação anônima direta para evitar erro de token
     const initAuth = async () => {
         try {
             await signInAnonymously(auth);
@@ -956,11 +958,13 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
+    // Escutar Membros Globais
     const q = collection(db, 'artifacts', appId, 'public', 'data', 'members');
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const loadedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(loadedMembers.length > 0) setMembers(loadedMembers);
         else {
+            // Seed inicial se vazio (apenas para demo)
             setMembers([
                 { id: '1', name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'e5' },
                 { id: '2', name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'e4' }
@@ -970,15 +974,33 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleAddMember = async (newMember) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember); };
-  const handleUpdateMember = async (updatedMember) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember); };
-  const handleDeleteMember = async (id) => { if (confirm('Tem certeza que deseja remover este membro?')) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); } };
+  // --- Handlers de Ação (Persistentes) ---
+  const handleAddMember = async (newMember) => {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember);
+  };
+
+  const handleUpdateMember = async (updatedMember) => {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember);
+  };
+
+  const handleDeleteMember = async (id) => {
+      if (confirm('Tem certeza que deseja remover este membro?')) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id));
+      }
+  };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false); 
 
-  const handleSelectEvent = (event) => { setSelectedEvent(event); setCurrentView('detail'); };
-  const handleBackToDashboard = () => { setSelectedEvent(null); setCurrentView('dashboard'); };
+  const handleSelectEvent = (event) => {
+    setSelectedEvent(event);
+    setCurrentView('detail');
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedEvent(null);
+    setCurrentView('dashboard');
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}> 
