@@ -35,7 +35,8 @@ import {
   Check,
   Image as ImageIcon,
   Upload,
-  Info
+  Info,
+  AlertTriangle
 } from 'lucide-react';
 
 // --- Firebase Imports ---
@@ -65,8 +66,8 @@ const firebaseConfig = {
   projectId: "bolsas-termicas",
   storageBucket: "bolsas-termicas.firebasestorage.app",
   messagingSenderId: "372188665466",
-  appId: "1:372188665466:web:104cdf5b4db6dabe920dc3",
-  measurementId: "G-M9J3J6GGH5"
+  appId: "1:372188665466:web:2a343ec375462f56920dc3",
+  measurementId: "G-THXNWD3M6D"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -85,7 +86,7 @@ const DefaultLogo = () => (
   </svg>
 );
 
-// --- Avatares "Executivos Doodle P&B" (Estilo Notion/Hand-drawn) ---
+// --- Avatares "Executivos Fofos P&B" (Minimalista) ---
 const ExecutiveAvatars = [
   { 
     id: 'e1', 
@@ -231,6 +232,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }) => {
 
 // --- COMPONENTE DE NOTIFICAÇÕES (Dropdown) ---
 const NotificationsDropdown = ({ onClose }) => {
+    // Mock de notificações
     const notifications = [
         { id: 1, text: "Bem-vindo ao Event Hub! Configure sua equipe.", time: "Agora", isNew: true },
     ];
@@ -933,19 +935,18 @@ export default function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [logo, setLogo] = useState(<DefaultLogo />);
+  const [authError, setAuthError] = useState(null); // NOVO STATE PARA ERRO
   
-  // -- ESTADOS GLOBAIS (Sincronizados com Firebase) --
   const [user, setUser] = useState(null);
   const [members, setMembers] = useState([]);
 
-  // --- Auth & Data Fetching ---
   useEffect(() => {
-    // Autenticação anônima direta para evitar erro de token
     const initAuth = async () => {
         try {
             await signInAnonymously(auth);
         } catch (error) {
             console.error("Erro no login anônimo:", error);
+            setAuthError(error.message); // Captura o erro para exibir
         }
     };
     initAuth();
@@ -955,13 +956,11 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    // Escutar Membros Globais
     const q = collection(db, 'artifacts', appId, 'public', 'data', 'members');
     const unsubscribe = onSnapshot(q, (snapshot) => {
         const loadedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if(loadedMembers.length > 0) setMembers(loadedMembers);
         else {
-            // Seed inicial se vazio (apenas para demo)
             setMembers([
                 { id: '1', name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'e5' },
                 { id: '2', name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'e4' }
@@ -971,36 +970,28 @@ export default function App() {
     return () => unsubscribe();
   }, [user]);
 
-  // --- Handlers de Ação (Persistentes) ---
-  const handleAddMember = async (newMember) => {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember);
-  };
-
-  const handleUpdateMember = async (updatedMember) => {
-      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember);
-  };
-
-  const handleDeleteMember = async (id) => {
-      if (confirm('Tem certeza que deseja remover este membro?')) {
-          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id));
-      }
-  };
+  const handleAddMember = async (newMember) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember); };
+  const handleUpdateMember = async (updatedMember) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember); };
+  const handleDeleteMember = async (id) => { if (confirm('Tem certeza que deseja remover este membro?')) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); } };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false); 
 
-  const handleSelectEvent = (event) => {
-    setSelectedEvent(event);
-    setCurrentView('detail');
-  };
-
-  const handleBackToDashboard = () => {
-    setSelectedEvent(null);
-    setCurrentView('dashboard');
-  };
+  const handleSelectEvent = (event) => { setSelectedEvent(event); setCurrentView('detail'); };
+  const handleBackToDashboard = () => { setSelectedEvent(null); setCurrentView('dashboard'); };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}> 
+      
+      {/* Alerta de Erro de Conexão */}
+      {authError && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 sticky top-0 z-[200]" role="alert">
+            <p className="font-bold flex items-center gap-2"><AlertTriangle size={20}/> Erro de Conexão</p>
+            <p>Não foi possível conectar ao banco de dados. Verifique se o <strong>Login Anônimo</strong> está ativado no Firebase Console (Authentication &gt; Sign-in method).</p>
+            <p className="text-xs mt-1 text-red-500">{authError}</p>
+        </div>
+      )}
+
       <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-8 sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-12">
@@ -1072,9 +1063,13 @@ export default function App() {
         onUpdateMember={handleUpdateMember}
         onDeleteMember={handleDeleteMember}
       />
+      
+      {/* Modais de Tarefa e Adição (Inclusos na view de detalhe, mas declarados se necessário globalmente) */}
+      <TaskDetailModal task={null} isOpen={false} onClose={() => {}} members={[]} onAddSupport={()=>{}} onSendMessage={()=>{}} onAssignResponsible={()=>{}} />
     </div>
   );
 }
+
 
 
 
