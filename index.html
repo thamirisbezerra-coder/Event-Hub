@@ -129,7 +129,6 @@
         const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const calculateDaysRemaining = (dateString) => {
             if (!dateString) return 0;
-            // Tenta extrair a primeira data
             const match = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
             if (match) {
                 const targetDate = new Date(`${match[3]}-${match[2]}-${match[1]}`);
@@ -174,26 +173,16 @@
             const containerClasses = fullScreen 
                 ? "fixed inset-0 z-[200] bg-white flex flex-col animate-in fade-in duration-200"
                 : `bg-white rounded-2xl shadow-2xl w-full ${maxWidth} overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]`;
-            
-            const wrapperClasses = fullScreen
-                ? ""
-                : "fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200";
-
+            const wrapperClasses = fullScreen ? "" : "fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200";
             const content = (
                 <div className={containerClasses}>
                     <div className="flex items-center justify-between p-4 border-b bg-[#1e1b4b] text-white flex-shrink-0">
-                        <div className="flex items-center gap-2">
-                            {title === "Configurações" && <Settings size={20}/>}
-                            <h3 className="text-lg font-bold">{title}</h3>
-                        </div>
-                        <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white">
-                            <X size={20} />
-                        </button>
+                        <div className="flex items-center gap-2">{title === "Configurações" && <Settings size={20}/>}<h3 className="text-lg font-bold">{title}</h3></div>
+                        <button onClick={onClose} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white"><X size={20} /></button>
                     </div>
                     <div className="p-0 overflow-y-auto flex-1 bg-white relative">{children}</div>
                 </div>
             );
-
             if (fullScreen) return content;
             return <div className={wrapperClasses}>{content}</div>;
         };
@@ -201,20 +190,15 @@
         const ManageCategoriesModal = ({ isOpen, onClose, categories, onAdd, onUpdate, onDelete }) => {
             const [editingId, setEditingId] = useState(null);
             const [formData, setFormData] = useState({ title: '', icon: 'box', color: 'blue' });
-
             const handleSubmit = (e) => {
                 e.preventDefault();
                 if (!formData.title) return;
-                if (editingId) { onUpdate({ id: editingId, ...formData }); setEditingId(null); } 
-                else { onAdd(formData); }
+                if (editingId) { onUpdate({ id: editingId, ...formData }); setEditingId(null); } else { onAdd(formData); }
                 setFormData({ title: '', icon: 'box', color: 'blue' });
             };
-
             const handleEdit = (cat) => { setEditingId(cat.id); setFormData({ title: cat.title, icon: cat.icon || 'box', color: cat.color || 'blue' }); };
             const handleCancelEdit = () => { setEditingId(null); setFormData({ title: '', icon: 'box', color: 'blue' }); };
-
             if (!isOpen) return null;
-
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Gerenciar Categorias" maxWidth="max-w-xl">
                     <div className="p-6 space-y-6">
@@ -266,19 +250,8 @@
             const [category, setCategory] = useState(preSelectedCategory || (categories[0]?.id || ""));
             const [responsibleId, setResponsibleId] = useState(members[0]?.id || "");
             const [priority, setPriority] = useState("medium");
-            
-            useEffect(() => {
-                if (preSelectedCategory) setCategory(preSelectedCategory);
-                else if (categories.length > 0 && !category) setCategory(categories[0].id);
-            }, [preSelectedCategory, categories]);
-
-            const handleSubmit = (e) => { 
-                e.preventDefault(); 
-                if(!text) return; 
-                const responsible = members.find(m => m.id === responsibleId) || members[0] || { name: 'Desconhecido', role: 'N/A' }; 
-                onAdd({ text, category, responsible, priority }); 
-                setText(""); onClose(); 
-            };
+            useEffect(() => { if (preSelectedCategory) setCategory(preSelectedCategory); else if (categories.length > 0 && !category) setCategory(categories[0].id); }, [preSelectedCategory, categories]);
+            const handleSubmit = (e) => { e.preventDefault(); if(!text) return; const responsible = members.find(m => m.id === responsibleId) || members[0] || { name: 'Desconhecido', role: 'N/A' }; onAdd({ text, category, responsible, priority }); setText(""); onClose(); };
             if(!isOpen) return null;
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Nova Tarefa">
@@ -300,30 +273,34 @@
             const [newMemberRole, setNewMemberRole] = useState('');
             const fileInputRef = useRef(null);
             const memberPhotoInputRef = useRef(null);
+            const editPhotoInputRef = useRef(null); // Ref para editar foto
+            
             const [editingId, setEditingId] = useState(null);
             const [editName, setEditName] = useState('');
             const [editRole, setEditRole] = useState('');
+            const [editPhoto, setEditPhoto] = useState(null); // Estado para foto em edição
+            
             const [newMemberPhoto, setNewMemberPhoto] = useState(null);
             
             const handleLogoUpload = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onloadend = () => { setLogo(reader.result); }; reader.readAsDataURL(file); } };
             
-            const handleMemberPhotoUpload = (e) => {
-                const file = e.target.files[0];
-                if(file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => { setNewMemberPhoto(reader.result); };
-                    reader.readAsDataURL(file);
-                }
-            };
+            const handleMemberPhotoUpload = (e) => { const file = e.target.files[0]; if(file) { const reader = new FileReader(); reader.onloadend = () => { setNewMemberPhoto(reader.result); }; reader.readAsDataURL(file); } };
+            
+            const handleEditPhotoUpload = (e) => { const file = e.target.files[0]; if(file) { const reader = new FileReader(); reader.onloadend = () => { setEditPhoto(reader.result); }; reader.readAsDataURL(file); } };
 
-            const handleAdd = (e) => { 
-                e.preventDefault(); 
-                if (!newMemberName || !newMemberRole) return; 
-                onAddMember({ name: newMemberName, role: newMemberRole, avatarType: 'executive', avatarContent: 'ex1', photoUrl: newMemberPhoto }); 
-                setNewMemberName(''); setNewMemberRole(''); setNewMemberPhoto(null);
+            const handleAdd = (e) => { e.preventDefault(); if (!newMemberName || !newMemberRole) return; onAddMember({ name: newMemberName, role: newMemberRole, avatarType: 'executive', avatarContent: 'ex1', photoUrl: newMemberPhoto }); setNewMemberName(''); setNewMemberRole(''); setNewMemberPhoto(null); };
+            
+            const startEdit = (member) => { 
+                setEditingId(member.id); 
+                setEditName(member.name); 
+                setEditRole(member.role); 
+                setEditPhoto(member.photoUrl || null); // Carregar foto atual
             };
-            const startEdit = (member) => { setEditingId(member.id); setEditName(member.name); setEditRole(member.role); };
-            const saveEdit = (id) => { onUpdateMember({ id, name: editName, role: editRole }); setEditingId(null); };
+            
+            const saveEdit = (id) => { 
+                onUpdateMember({ id, name: editName, role: editRole, photoUrl: editPhoto }); 
+                setEditingId(null); 
+            };
 
             if (!isOpen) return null;
             return (
@@ -341,11 +318,41 @@
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 {members.map(member => (
                                     <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:shadow-sm transition-shadow">
-                                        <div className="flex items-center gap-3">
-                                            <Avatar member={member} />
-                                            <div className="flex-1">{editingId === member.id ? (<div className="flex flex-col gap-1"><input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" /><input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" /></div>) : (<><p className="font-bold text-gray-800 text-sm">{member.name}</p><p className="text-xs text-gray-500">{member.role}</p></>)}</div>
+                                        <div className="flex items-center gap-3 w-full">
+                                            {editingId === member.id ? (
+                                                <div className="relative group cursor-pointer" onClick={() => editPhotoInputRef.current?.click()}>
+                                                    <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
+                                                        {editPhoto ? <img src={editPhoto} className="w-full h-full object-cover"/> : <Camera size={16} className="text-gray-400"/>}
+                                                    </div>
+                                                    <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12} className="text-white"/></div>
+                                                    <input type="file" ref={editPhotoInputRef} onChange={handleEditPhotoUpload} className="hidden" accept="image/*" />
+                                                </div>
+                                            ) : (
+                                                <Avatar member={member} />
+                                            )}
+                                            
+                                            <div className="flex-1 min-w-0">
+                                                {editingId === member.id ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        <input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" placeholder="Nome" />
+                                                        <input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" placeholder="Cargo" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <p className="font-bold text-gray-800 text-sm truncate">{member.name}</p>
+                                                        <p className="text-xs text-gray-500 truncate">{member.role}</p>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex gap-1">{editingId === member.id ? (<button onClick={() => saveEdit(member.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16}/></button>) : (<button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>)}<button onClick={() => onDeleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></div>
+                                        <div className="flex gap-1 ml-2">
+                                            {editingId === member.id ? (
+                                                <button onClick={() => saveEdit(member.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16}/></button>
+                                            ) : (
+                                                <button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
+                                            )}
+                                            <button onClick={() => onDeleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -681,9 +688,16 @@
                 // Members
                 const qm = collection(db, 'artifacts', appId, 'public', 'data', 'members');
                 const unsubM = onSnapshot(qm, (snapshot) => {
-                    const loadedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    if(loadedMembers.length > 0) setMembers(loadedMembers);
-                    else { setMembers([{ id: '1', name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'ex5' }, { id: '2', name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'ex4' }]); }
+                    if (snapshot.empty) {
+                        const defaults = [
+                            { name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'ex5' },
+                            { name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'ex4' }
+                        ];
+                        defaults.forEach(m => addDoc(qm, m));
+                    } else {
+                        const loadedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        setMembers(loadedMembers);
+                    }
                 });
 
                 // Events
@@ -711,7 +725,7 @@
             return (
                 <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}>
                     {authError && (<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 sticky top-0 z-[200]"><p className="font-bold flex items-center gap-2"><AlertTriangle size={20}/> Erro de Conexão</p><p>{authError}</p></div>)}
-                    <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-8 sticky top-0 z-40 shadow-sm"><div className="max-w-[1600px] mx-auto flex items-center justify-between"><div className="flex items-center gap-12"><div className="flex items-center gap-2 cursor-pointer" onClick={() => { setSelectedEvent(null); setCurrentView('dashboard'); }}><div className="h-10 w-auto flex items-center">{typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-full w-auto object-contain" /> : logo}</div><div className="flex flex-col border-l border-gray-300 pl-4 ml-4 h-10 justify-center"><span className="text-xl font-bold text-gray-900 tracking-tight leading-none">Event Hub</span><span className="text-xs text-gray-500 font-medium">Painel de Marketing</span></div></div></div><div className="flex items-center gap-6"><div className="hidden md:flex items-center gap-3 mr-4"><div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">{ExecutiveAvatars[4].svg}</div><div className="flex flex-col items-end"><span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Gestor <Crown size={12} className="inline text-yellow-500 fill-yellow-500"/></span><span className="text-sm font-bold text-gray-800">Paulo Mokarzel</span></div></div><div className="flex items-center gap-3 relative"><button onClick={(e) => { e.stopPropagation(); setIsNotificationsOpen(!isNotificationsOpen); }} className={`p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 hover:border-blue-100 transition-colors relative shadow-sm ${isNotificationsOpen ? 'ring-2 ring-blue-100' : ''}`}><Bell size={20}/>{!isNotificationsOpen && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>}</button>{isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} />}<button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 shadow-sm"><Settings size={20}/></button><button onClick={() => alert("Criar Novo Evento")} className="bg-blue-900 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"><Plus size={18}/> Novo Evento</button></div></div></div></nav>
+                    <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-8 sticky top-0 z-40 shadow-sm"><div className="max-w-[1600px] mx-auto flex items-center justify-between"><div className="flex items-center gap-12"><div className="flex items-center gap-2 cursor-pointer" onClick={() => { setSelectedEvent(null); setCurrentView('dashboard'); }}><div className="h-10 w-auto flex items-center">{typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-full w-auto object-contain" /> : logo}</div><div className="flex flex-col border-l border-gray-300 pl-4 ml-4 h-10 justify-center"><span className="text-xl font-bold text-gray-900 tracking-tight leading-none">Event Hub</span><span className="text-xs text-gray-500 font-medium">Painel de Marketing</span></div></div></div><div className="flex items-center gap-6"><div className="hidden md:flex items-center gap-3 mr-4"><div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200">{ExecutiveAvatars[4].svg}</div><div className="flex flex-col items-end"><span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Gestor <Crown size={12} className="inline text-yellow-500 fill-yellow-500"/></span><span className="text-sm font-bold text-gray-800">Paulo Mokarzel</span></div></div><div className="flex items-center gap-3 relative"><button onClick={() => { e.stopPropagation(); setIsNotificationsOpen(!isNotificationsOpen); }} className={`p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 hover:border-blue-100 transition-colors relative shadow-sm ${isNotificationsOpen ? 'ring-2 ring-blue-100' : ''}`}><Bell size={20}/>{!isNotificationsOpen && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>}</button>{isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} />}<button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 shadow-sm"><Settings size={20}/></button><button onClick={() => alert("Criar Novo Evento")} className="bg-blue-900 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"><Plus size={18}/> Novo Evento</button></div></div></div></nav>
                     <main className="max-w-[1600px] mx-auto px-6">{currentView === 'dashboard' ? <DashboardView onSelectEvent={(e) => { setSelectedEvent(e); setCurrentView('detail'); }} events={events} members={members} logo={logo} /> : <EventDetailView event={selectedEvent} onBack={() => { setSelectedEvent(null); setCurrentView('dashboard'); }} globalMembers={members} db={db} user={user} />}</main>
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} setMembers={setMembers} logo={logo} setLogo={setLogo} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} />
                 </div>
@@ -723,6 +737,7 @@
     </script>
 </body>
 </html>
+
 
 
 
