@@ -38,6 +38,33 @@ import {
   Info
 } from 'lucide-react';
 
+// --- Firebase Imports ---
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  onSnapshot, 
+  query, 
+  where 
+} from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  onAuthStateChanged,
+  signInWithCustomToken
+} from 'firebase/auth';
+
+// --- Configuração Firebase ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
 // --- Assets Iniciais (SVGs Inline) ---
 const DefaultLogo = () => (
   <svg viewBox="0 0 200 60" className="h-full w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -56,10 +83,10 @@ const ExecutiveAvatars = [
         <path d="M50 95V70" strokeWidth="10" stroke="#1a1a1a"/>
         <circle cx="50" cy="40" r="22" fill="white"/>
         <path d="M25 95C25 80 35 70 50 70C65 70 75 80 75 95" fill="white"/>
-        <path d="M50 70L50 85" strokeWidth="6"/> {/* Gravata */}
-        <path d="M40 45C40 45 45 48 50 48C55 48 60 45 60 45"/> {/* Sorriso */}
-        <path d="M38 35L38 38 M62 35L62 38" strokeWidth="5"/> {/* Olhos */}
-        <path d="M30 35C30 20 40 15 50 15C60 15 70 20 70 35" fill="white"/> {/* Cabelo */}
+        <path d="M50 70L50 85" strokeWidth="6"/>
+        <path d="M40 45C40 45 45 48 50 48C55 48 60 45 60 45"/>
+        <path d="M38 35L38 38 M62 35L62 38" strokeWidth="5"/>
+        <path d="M30 35C30 20 40 15 50 15C60 15 70 20 70 35" fill="white"/>
       </svg>
     ) 
   },
@@ -70,10 +97,10 @@ const ExecutiveAvatars = [
       <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="50" cy="40" r="22" fill="white"/>
         <path d="M25 95C25 75 30 65 50 65C70 65 75 75 75 95" fill="white"/>
-        <circle cx="50" cy="18" r="8" fill="white"/> {/* Coque */}
+        <circle cx="50" cy="18" r="8" fill="white"/>
         <path d="M40 45C40 45 45 48 50 48C55 48 60 45 60 45"/>
         <path d="M38 35L38 38 M62 35L62 38" strokeWidth="5"/>
-        <path d="M28 40C28 25 35 20 50 20C65 20 72 25 72 40" /> {/* Cabelo */}
+        <path d="M28 40C28 25 35 20 50 20C65 20 72 25 72 40" />
       </svg>
     ) 
   },
@@ -84,12 +111,12 @@ const ExecutiveAvatars = [
       <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="50" cy="40" r="22" fill="white"/>
         <path d="M25 95C25 80 35 70 50 70C65 70 75 80 75 95" fill="white"/>
-        <path d="M50 70V95" /> {/* Camisa */}
-        <circle cx="42" cy="38" r="6" fill="white"/> {/* Oculos E */}
-        <circle cx="58" cy="38" r="6" fill="white"/> {/* Oculos D */}
-        <path d="M48 38H52"/> {/* Ponte Oculos */}
-        <path d="M45 50H55"/> {/* Boca seria */}
-        <path d="M30 30C35 20 65 20 70 30" fill="white"/> {/* Cabelo */}
+        <path d="M50 70V95" />
+        <circle cx="42" cy="38" r="6" fill="white"/>
+        <circle cx="58" cy="38" r="6" fill="white"/>
+        <path d="M48 38H52"/>
+        <path d="M45 50H55"/>
+        <path d="M30 30C35 20 65 20 70 30" fill="white"/>
       </svg>
     ) 
   },
@@ -102,7 +129,7 @@ const ExecutiveAvatars = [
         <circle cx="50" cy="40" r="22" fill="white"/>
         <path d="M42 45C42 45 46 48 50 48C54 48 58 45 58 45"/>
         <path d="M40 36L40 38 M60 36L60 38" strokeWidth="5"/>
-        <path d="M28 45C28 20 35 15 50 15C65 15 72 20 72 45V55" /> {/* Cabelo Longo */}
+        <path d="M28 45C28 20 35 15 50 15C65 15 72 20 72 45V55" />
       </svg>
     ) 
   },
@@ -113,7 +140,7 @@ const ExecutiveAvatars = [
       <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="50" cy="40" r="22" fill="white"/>
         <path d="M22 95C22 75 30 68 50 68C70 68 78 75 78 95" fill="white"/>
-        <path d="M35 45Q50 60 65 45" fill="white"/> {/* Barba */}
+        <path d="M35 45Q50 60 65 45" fill="white"/>
         <path d="M38 35L38 38 M62 35L62 38" strokeWidth="5"/>
         <path d="M30 32C35 22 65 22 70 32" fill="white"/>
       </svg>
@@ -126,7 +153,7 @@ const ExecutiveAvatars = [
       <svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1a1a1a" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="50" cy="40" r="22" fill="white"/>
         <path d="M25 95C25 75 30 65 50 65C70 65 75 75 75 95" fill="white"/>
-        <rect x="36" y="34" width="28" height="10" rx="3" fill="white"/> {/* Oculos */}
+        <rect x="36" y="34" width="28" height="10" rx="3" fill="white"/>
         <path d="M42 50H58"/>
         <path d="M28 35C28 20 35 15 50 15C65 15 72 20 72 35" fill="white"/>
       </svg>
@@ -189,11 +216,9 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-lg" }) => {
 
 // --- COMPONENTE DE NOTIFICAÇÕES (Dropdown) ---
 const NotificationsDropdown = ({ onClose }) => {
+    // Mock de notificações
     const notifications = [
-        { id: 1, text: "Nova tarefa atribuída a você: 'Revisar Banner'", time: "2 min atrás", isNew: true },
-        { id: 2, text: "Fispal Sorvetes: Prazo de 'Montadora' vence amanhã", time: "1 hora atrás", isNew: true },
-        { id: 3, text: "Ana Silva completou 'Enviar Convites VIP'", time: "3 horas atrás", isNew: false },
-        { id: 4, text: "Novo comentário em 'Logística'", time: "Ontem", isNew: false },
+        { id: 1, text: "Bem-vindo ao Event Hub! Configure sua equipe.", time: "Agora", isNew: true },
     ];
 
     return (
@@ -232,13 +257,13 @@ const NotificationsDropdown = ({ onClose }) => {
 const AddTaskModal = ({ isOpen, onClose, onAdd, members, categories }) => {
     const [text, setText] = useState("");
     const [category, setCategory] = useState(categories[0].id);
-    const [responsibleId, setResponsibleId] = useState(members[0]?.id);
+    const [responsibleId, setResponsibleId] = useState(members[0]?.id || "");
     const [priority, setPriority] = useState("medium");
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if(!text) return;
-        const responsible = members.find(m => m.id === parseInt(responsibleId)) || members[0];
+        const responsible = members.find(m => m.id === responsibleId) || members[0] || { name: 'Desconhecido', role: 'N/A' };
         onAdd({ text, category, responsible, priority });
         setText("");
         onClose();
@@ -262,51 +287,32 @@ const AddTaskModal = ({ isOpen, onClose, onAdd, members, categories }) => {
 };
 
 // --- MODAL DE CONFIGURAÇÕES ---
-const SettingsModal = ({ isOpen, onClose, members, setMembers, logo, setLogo }) => {
+const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onAddMember, onUpdateMember, onDeleteMember }) => {
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('');
   const fileInputRef = useRef(null);
 
-  // Estados para edição inline
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState('');
-
-  // Estados para Gestor
-  const [managerId, setManagerId] = useState(members[0]?.id);
 
   const handleLogoUpload = (e) => {
       const file = e.target.files[0];
       if (file) {
           const reader = new FileReader();
           reader.onloadend = () => {
-              setLogo(reader.result); // Armazena como base64
+              setLogo(reader.result); 
           };
           reader.readAsDataURL(file);
       }
   };
 
-  const handleAddMember = (e) => {
+  const handleAdd = (e) => {
       e.preventDefault();
       if (!newMemberName || !newMemberRole) return;
-      
-      const newMember = {
-          id: Date.now(),
-          name: newMemberName,
-          role: newMemberRole,
-          avatar: newMemberName.substring(0,2).toUpperCase(),
-          avatarType: 'executive',
-          avatarContent: 'e1' // Default
-      };
-      setMembers([...members, newMember]);
+      onAddMember({ name: newMemberName, role: newMemberRole, avatarType: 'executive', avatarContent: 'e1' });
       setNewMemberName('');
       setNewMemberRole('');
-  };
-
-  const handleDeleteMember = (id) => {
-      if (confirm('Remover membro da equipe global?')) {
-          setMembers(members.filter(m => m.id !== id));
-      }
   };
 
   const startEdit = (member) => {
@@ -316,17 +322,8 @@ const SettingsModal = ({ isOpen, onClose, members, setMembers, logo, setLogo }) 
   };
 
   const saveEdit = (id) => {
-      setMembers(members.map(m => m.id === id ? { ...m, name: editName, role: editRole } : m));
+      onUpdateMember({ id, name: editName, role: editRole });
       setEditingId(null);
-  };
-
-  const handleManagerChange = (e) => {
-      const newManagerId = parseInt(e.target.value);
-      setManagerId(newManagerId);
-      // Opcional: Reordenar array para colocar gestor em primeiro
-      const manager = members.find(m => m.id === newManagerId);
-      const others = members.filter(m => m.id !== newManagerId);
-      if (manager) setMembers([manager, ...others]);
   };
 
   if (!isOpen) return null;
@@ -334,54 +331,24 @@ const SettingsModal = ({ isOpen, onClose, members, setMembers, logo, setLogo }) 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-2xl">
       <div className="p-6 space-y-8">
-        
-        {/* Seção Identidade */}
         <section>
-            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4">
-                <ImageIcon size={18} /> Identidade
-            </h4>
+            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><ImageIcon size={18} /> Identidade</h4>
             <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
                 <div className="h-16 flex items-center justify-center px-4 bg-gray-50 rounded-lg border border-gray-100 min-w-[150px]">
-                    {typeof logo === 'string' ? (
-                        <img src={logo} alt="Logo" className="h-10 w-auto object-contain" />
-                    ) : (
-                        logo
-                    )}
+                    {typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-10 w-auto object-contain" /> : logo}
                 </div>
                 <div className="flex-1">
                     <p className="font-bold text-gray-800 text-sm mb-1">Carregar logo</p>
                     <div className="flex gap-2">
-                        <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 bg-white">
-                            Escolher arquivo
-                        </button>
-                        <span className="text-xs text-gray-400 flex items-center">
-                            {typeof logo === 'string' ? 'Arquivo carregado' : 'Nenhum arquivo escolhido'}
-                        </span>
+                        <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 bg-white">Escolher arquivo</button>
                         <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" />
                     </div>
                 </div>
             </div>
         </section>
 
-        {/* Seção Gestor */}
         <section>
-            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-2">
-                Gestor da Equipe (Aparece no Topo)
-            </h4>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <select value={managerId} onChange={handleManagerChange} className="w-full p-2 bg-transparent outline-none text-gray-700">
-                    {members.map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                </select>
-            </div>
-        </section>
-
-        {/* Seção Equipe */}
-        <section>
-            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4">
-                <Users size={18} /> Equipe
-            </h4>
+            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><Users size={18} /> Equipe</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {members.map(member => (
                     <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:shadow-sm transition-shadow">
@@ -409,33 +376,21 @@ const SettingsModal = ({ isOpen, onClose, members, setMembers, logo, setLogo }) 
                             ) : (
                                 <button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
                             )}
-                            <button onClick={() => handleDeleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                            <button onClick={() => onDeleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Novo Membro Form */}
             <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
                 <h5 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><UserPlus size={16}/> Novo Membro</h5>
-                <form onSubmit={handleAddMember} className="flex flex-col md:flex-row gap-3">
-                    <input 
-                        placeholder="Nome" 
-                        value={newMemberName}
-                        onChange={e => setNewMemberName(e.target.value)}
-                        className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"
-                    />
-                    <input 
-                        placeholder="Cargo" 
-                        value={newMemberRole}
-                        onChange={e => setNewMemberRole(e.target.value)}
-                        className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"
-                    />
+                <form onSubmit={handleAdd} className="flex flex-col md:flex-row gap-3">
+                    <input placeholder="Nome" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/>
+                    <input placeholder="Cargo" value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/>
                     <button type="submit" disabled={!newMemberName} className="bg-blue-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 disabled:opacity-50">Adicionar</button>
                 </form>
             </div>
         </section>
-
       </div>
     </Modal>
   );
@@ -643,7 +598,7 @@ const TaskDetailModal = ({ task, isOpen, onClose, members, onAddSupport, onSendM
 };
 
 // --- TELA 2: DETALHES DO EVENTO ---
-const EventDetailView = ({ event, onBack, globalMembers }) => {
+const EventDetailView = ({ event, onBack, globalMembers, db, user }) => {
   const [eventTeam, setEventTeam] = useState(globalMembers.slice(0, 3)); 
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [isTeamExpanded, setIsTeamExpanded] = useState(true);
@@ -657,12 +612,18 @@ const EventDetailView = ({ event, onBack, globalMembers }) => {
     { id: 'post', title: 'Pós-Evento & Leads', icon: <TrendingUp size={18}/>, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' }
   ];
 
-  const [tasks, setTasks] = useState([
-    { id: 1, category: 'planning', text: "Definir produtos do estande", completed: false, priority: "high", support: [], messages: [], responsible: eventTeam[0] },
-    { id: 2, category: 'staff', text: "Enviar convites para VIPs", completed: true, priority: "medium", support: [], messages: [], responsible: eventTeam[1] },
-    { id: 3, category: 'logistics', text: "Contratar montadora", completed: false, priority: "high", support: [], messages: [], responsible: eventTeam[2] },
-    { id: 4, category: 'post', text: "Relatório de Leads", completed: false, priority: "low", support: [], messages: [], responsible: eventTeam[0] },
-  ]);
+  const [tasks, setTasks] = useState([]);
+  
+  useEffect(() => {
+    if (!user) return;
+    const q = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const loadedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Filtrar por evento se houvesse ID, aqui vamos assumir global para o demo ou filtrar em memória
+        setTasks(loadedTasks);
+    }, (error) => console.error("Erro tasks:", error));
+    return () => unsubscribe();
+  }, [db, user]);
 
   const [calendarEvents, setCalendarEvents] = useState([
     { id: 1, date: "2024-06-10", title: "Abertura Stand", type: "meeting" },
@@ -691,49 +652,60 @@ const EventDetailView = ({ event, onBack, globalMembers }) => {
     setEventTeam(eventTeam.filter(m => m.id !== memberId));
   };
 
-  const toggleTask = (e, id) => {
+  const toggleTask = async (e, id) => {
     e.stopPropagation();
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+    const task = tasks.find(t => t.id === id);
+    if (task) {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { completed: !task.completed });
+    }
   };
   
-  const cyclePriority = (id) => {
+  const cyclePriority = async (id) => {
     const priorities = ["low", "medium", "high"];
-    setTasks(tasks.map(t => {
-      if (t.id === id) {
-        const nextIndex = (priorities.indexOf(t.priority) + 1) % priorities.length;
-        return { ...t, priority: priorities[nextIndex] };
-      }
-      return t;
-    }));
+    const task = tasks.find(t => t.id === id);
+    if(task) {
+        const nextIndex = (priorities.indexOf(task.priority) + 1) % priorities.length;
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { priority: priorities[nextIndex] });
+    }
   };
 
-  const handleAddTask = (newTask) => {
-      setTasks([...tasks, { ...newTask, id: Date.now(), completed: false, messages: [], support: [] }]);
+  const handleAddTask = async (newTask) => {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), {
+          ...newTask,
+          completed: false,
+          messages: [],
+          support: [],
+          eventId: event.id // Associar task ao evento
+      });
   };
 
-  const handleAssignResponsible = (taskId, member) => {
-    setTasks(tasks.map(t => t.id === taskId ? { ...t, responsible: member } : t));
+  const handleAssignResponsible = async (taskId, member) => {
+    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { responsible: member });
     if (selectedTask && selectedTask.id === taskId) setSelectedTask({ ...selectedTask, responsible: member });
   };
-  const handleSendMessage = (taskId, text, isImportant) => {
+  
+  const handleSendMessage = async (taskId, text, isImportant) => {
       const newMessage = { sender: "Eu", text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isImportant };
-      setTasks(tasks.map(t => t.id === taskId ? { ...t, messages: [...t.messages, newMessage] } : t));
-      setSelectedTask(prev => ({...prev, messages: [...prev.messages, newMessage]}));
+      const task = tasks.find(t => t.id === taskId);
+      if(task) {
+          const updatedMessages = [...(task.messages || []), newMessage];
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { messages: updatedMessages });
+          setSelectedTask(prev => ({...prev, messages: updatedMessages}));
+      }
   };
   
-  const handleAddSupport = (taskId, member) => {
-      setTasks(tasks.map(t => {
-          if (t.id === taskId) {
-              const currentSupport = t.support || [];
-              const exists = currentSupport.some(s => s.id === member.id);
-              let newSupport;
-              if (exists) newSupport = currentSupport.filter(s => s.id !== member.id); 
-              else newSupport = [...currentSupport, member];
-              if (selectedTask && selectedTask.id === taskId) setSelectedTask(prev => ({...prev, support: newSupport}));
-              return { ...t, support: newSupport };
-          }
-          return t;
-      }));
+  const handleAddSupport = async (taskId, member) => {
+      const task = tasks.find(t => t.id === taskId);
+      if(task) {
+          const currentSupport = task.support || [];
+          const exists = currentSupport.some(s => s.id === member.id);
+          let newSupport;
+          if (exists) newSupport = currentSupport.filter(s => s.id !== member.id); 
+          else newSupport = [...currentSupport, member];
+          
+          await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { support: newSupport });
+          if (selectedTask && selectedTask.id === taskId) setSelectedTask(prev => ({...prev, support: newSupport}));
+      }
   };
 
   const renderCalendarGrid = (isSmall = false) => {
@@ -948,18 +920,59 @@ export default function App() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [logo, setLogo] = useState(<DefaultLogo />);
   
-  // Banco Global de Talentos
-  const [members, setMembers] = useState([
-    { id: 1, name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'e5' },
-    { id: 2, name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'e4' },
-    { id: 3, name: "Carlos Oliveira", role: "Logística", avatar: "CO", avatarType: 'executive', avatarContent: 'e1' },
-    { id: 4, name: "Mariana Souza", role: "Marketing", avatar: "MS", avatarType: 'executive', avatarContent: 'e6' },
-    { id: 5, name: "João Neto", role: "Financeiro", avatar: "JN", avatarType: 'initials', avatarContent: 'JN' },
-    { id: 6, name: "Fernanda Lima", role: "Redatora", avatar: "FL", avatarType: 'executive', avatarContent: 'e2' },
-  ]);
+  // -- ESTADOS GLOBAIS (Sincronizados com Firebase) --
+  const [user, setUser] = useState(null);
+  const [members, setMembers] = useState([]);
+
+  // --- Auth & Data Fetching ---
+  useEffect(() => {
+    const initAuth = async () => {
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    // Escutar Membros Globais
+    const q = collection(db, 'artifacts', appId, 'public', 'data', 'members');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const loadedMembers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if(loadedMembers.length > 0) setMembers(loadedMembers);
+        else {
+            // Seed inicial se vazio (apenas para demo)
+            setMembers([
+                { id: '1', name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'e5' },
+                { id: '2', name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'e4' }
+            ]);
+        }
+    }, (error) => console.error("Erro membros:", error));
+    return () => unsubscribe();
+  }, [user]);
+
+  // --- Handlers de Ação (Persistentes) ---
+  const handleAddMember = async (newMember) => {
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember);
+  };
+
+  const handleUpdateMember = async (updatedMember) => {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember);
+  };
+
+  const handleDeleteMember = async (id) => {
+      if (confirm('Tem certeza que deseja remover este membro?')) {
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id));
+      }
+  };
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false); // NOVO STATE
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false); 
 
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
@@ -972,7 +985,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}> {/* Fechar ao clicar fora */}
+    <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}> 
       <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-8 sticky top-0 z-40 shadow-sm">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
             <div className="flex items-center gap-12">
@@ -1023,7 +1036,13 @@ export default function App() {
         {currentView === 'dashboard' ? (
           <DashboardView onSelectEvent={handleSelectEvent} members={members} logo={logo} />
         ) : (
-          <EventDetailView event={selectedEvent} onBack={handleBackToDashboard} globalMembers={members} />
+          <EventDetailView 
+            event={selectedEvent} 
+            onBack={handleBackToDashboard} 
+            globalMembers={members} 
+            db={db}
+            user={user}
+          />
         )}
       </main>
 
@@ -1034,11 +1053,13 @@ export default function App() {
         setMembers={setMembers}
         logo={logo}
         setLogo={setLogo}
+        onAddMember={handleAddMember}
+        onUpdateMember={handleUpdateMember}
+        onDeleteMember={handleDeleteMember}
       />
     </div>
   );
 }
-
 
 
 
