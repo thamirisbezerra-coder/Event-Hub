@@ -44,15 +44,15 @@
             Edit2, Trash2, ChevronLeft, ChevronRight, Truck, ArrowLeft, 
             Search, Bell, MessageSquare, Send, AlertCircle, ChevronDown, 
             ChevronUp, Settings, UserPlus, Box, TrendingUp, Filter, Check, 
-            Image as ImageIcon, AlertTriangle, Crown
+            Image as ImageIcon, AlertTriangle, Crown, Plane, Target, Camera
         } from 'lucide-react';
 
         // --- Firebase Imports ---
         import { initializeApp, getApps, getApp } from 'firebase/app';
         import { getAnalytics } from "firebase/analytics";
         import { 
-            getFirestore, collection, addDoc, updateDoc, deleteDoc, 
-            doc, onSnapshot, query, where 
+            getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc,
+            doc, onSnapshot, query, where, getDocs 
         } from 'firebase/firestore';
         import { 
             getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken 
@@ -92,6 +92,32 @@
             { id: 'ex4', svg: (<svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="50" cy="50" r="48" fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1"/><path d="M25 95C25 80 35 75 50 75C65 75 75 80 75 95" fill="#f3f4f6"/><circle cx="50" cy="42" r="20" fill="white"/><circle cx="50" cy="18" r="8" fill="white"/><path d="M42 48C42 48 45 50 50 50C55 50 58 48 58 48"/><path d="M40 40V40.5 M60 40V40.5" strokeWidth="4"/><path d="M30 42C30 25 35 25 50 25C65 25 70 30 70 42"/></svg>) },
             { id: 'ex5', svg: (<svg viewBox="0 0 100 100" className="w-full h-full" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="50" cy="50" r="48" fill="#f9fafb" stroke="#e5e7eb" strokeWidth="1"/><path d="M25 95C25 80 35 75 50 75C65 75 75 80 75 95" fill="#f3f4f6"/><circle cx="50" cy="40" r="20" fill="white"/><path d="M35 45Q50 60 65 45" fill="white"/><path d="M40 35V35.5 M60 35V35.5" strokeWidth="4"/><path d="M32 35C32 20 40 18 50 18C60 18 68 20 68 35" fill="white"/></svg>) }
         ];
+
+        // --- Configuração de Ícones e Cores para Categorias ---
+        const ICON_MAP = {
+            box: Box, truck: Truck, users: Users, trending: TrendingUp,
+            alert: AlertCircle, check: CheckSquare, message: MessageSquare,
+            camera: Camera, plane: Plane, target: Target
+        };
+
+        const COLOR_PRESETS = {
+            blue: 'text-blue-600 bg-blue-50 border-blue-200',
+            amber: 'text-amber-600 bg-amber-50 border-amber-200',
+            purple: 'text-purple-600 bg-purple-50 border-purple-200',
+            emerald: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+            red: 'text-red-600 bg-red-50 border-red-200',
+            pink: 'text-pink-600 bg-pink-50 border-pink-200',
+            cyan: 'text-cyan-600 bg-cyan-50 border-cyan-200'
+        };
+
+        const getCategoryIcon = (iconName) => {
+            const Icon = ICON_MAP[iconName] || Box;
+            return <Icon size={18} />;
+        };
+
+        const getCategoryStyles = (colorName) => {
+            return COLOR_PRESETS[colorName] || COLOR_PRESETS.blue;
+        };
 
         // --- Utilitários ---
         const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -147,6 +173,89 @@
             return <div className={wrapperClasses}>{content}</div>;
         };
 
+        const ManageCategoriesModal = ({ isOpen, onClose, categories, onAdd, onUpdate, onDelete }) => {
+            const [editingId, setEditingId] = useState(null);
+            const [formData, setFormData] = useState({ title: '', icon: 'box', color: 'blue' });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.title) return;
+                if (editingId) {
+                    onUpdate({ id: editingId, ...formData });
+                    setEditingId(null);
+                } else {
+                    onAdd(formData);
+                }
+                setFormData({ title: '', icon: 'box', color: 'blue' });
+            };
+
+            const handleEdit = (cat) => {
+                setEditingId(cat.id);
+                setFormData({ title: cat.title, icon: cat.icon || 'box', color: cat.color || 'blue' });
+            };
+
+            const handleCancelEdit = () => {
+                setEditingId(null);
+                setFormData({ title: '', icon: 'box', color: 'blue' });
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Gerenciar Categorias" maxWidth="max-w-xl">
+                    <div className="p-6 space-y-6">
+                        <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
+                            <div className="flex items-center justify-between"><h4 className="text-sm font-bold text-gray-700">{editingId ? 'Editar Categoria' : 'Nova Categoria'}</h4>{editingId && <button type="button" onClick={handleCancelEdit} className="text-xs text-red-500 hover:underline">Cancelar Edição</button>}</div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome</label>
+                                <input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-2 border rounded-lg outline-none focus:border-blue-500" placeholder="Ex: Financeiro"/>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cor</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {Object.keys(COLOR_PRESETS).map(color => (
+                                            <button key={color} type="button" onClick={() => setFormData({...formData, color})} className={`w-6 h-6 rounded-full border-2 ${formData.color === color ? 'border-gray-600 scale-110' : 'border-transparent hover:border-gray-300'}`} style={{backgroundColor: color === 'white' ? '#eee' : `var(--color-${color})`}}>
+                                                <div className={`w-full h-full rounded-full ${COLOR_PRESETS[color].split(' ')[1]}`}></div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Ícone</label>
+                                    <div className="grid grid-cols-5 gap-2">
+                                        {Object.keys(ICON_MAP).map(icon => (
+                                            <button key={icon} type="button" onClick={() => setFormData({...formData, icon})} className={`p-1.5 rounded-lg flex items-center justify-center transition-colors ${formData.icon === icon ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500' : 'bg-white border hover:bg-gray-50 text-gray-500'}`}>
+                                                {getCategoryIcon(icon)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold hover:bg-blue-800 transition-colors">{editingId ? 'Salvar Alterações' : 'Adicionar Categoria'}</button>
+                        </form>
+
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {categories.map(cat => (
+                                <div key={cat.id} className="flex items-center justify-between p-3 bg-white border rounded-lg shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${getCategoryStyles(cat.color).split(' ')[1]} ${getCategoryStyles(cat.color).split(' ')[0]}`}>
+                                            {getCategoryIcon(cat.icon)}
+                                        </div>
+                                        <span className="font-medium text-gray-700">{cat.title}</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <button onClick={() => handleEdit(cat)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>
+                                        <button onClick={() => onDelete(cat.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
         const NotificationsDropdown = ({ onClose }) => {
             const notifications = [{ id: 1, text: "Bem-vindo ao Event Hub! Configure sua equipe.", time: "Agora", isNew: true }];
             return (
@@ -166,13 +275,14 @@
 
         const AddTaskModal = ({ isOpen, onClose, onAdd, members, categories, preSelectedCategory }) => {
             const [text, setText] = useState("");
-            const [category, setCategory] = useState(preSelectedCategory || categories[0].id);
+            const [category, setCategory] = useState(preSelectedCategory || (categories[0]?.id || ""));
             const [responsibleId, setResponsibleId] = useState(members[0]?.id || "");
             const [priority, setPriority] = useState("medium");
             
             useEffect(() => {
                 if (preSelectedCategory) setCategory(preSelectedCategory);
-            }, [preSelectedCategory]);
+                else if (categories.length > 0 && !category) setCategory(categories[0].id);
+            }, [preSelectedCategory, categories]);
 
             const handleSubmit = (e) => { 
                 e.preventDefault(); 
@@ -341,35 +451,48 @@
             const [isAgendaExpanded, setIsAgendaExpanded] = useState(true);
             const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
             const [preSelectedCategory, setPreSelectedCategory] = useState(null);
+            const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
             
             const [tasks, setTasks] = useState([]);
+            const [categories, setCategories] = useState([]);
             const [selectedTask, setSelectedTask] = useState(null);
             const [isCalendarOpen, setIsCalendarOpen] = useState(false);
             const [currentDate, setCurrentDate] = useState(new Date(2024, 5, 1));
             const [searchTerm, setSearchTerm] = useState("");
             
-            // Estado para lembretes do calendário
             const [calendarReminders, setCalendarReminders] = useState([]);
             const [selectedDateForReminder, setSelectedDateForReminder] = useState(null);
             const [reminderText, setReminderText] = useState("");
 
             const daysRemaining = calculateDaysRemaining(event.dateRange);
 
-            const taskCategories = [
-                { id: 'planning', title: 'Planejamento & Produto', icon: <Box size={18}/>, color: 'text-blue-600 bg-blue-50 border-blue-200' },
-                { id: 'logistics', title: 'Logística & Estande', icon: <Truck size={18}/>, color: 'text-amber-600 bg-amber-50 border-amber-200' },
-                { id: 'staff', title: 'Staff & Viagem', icon: <Users size={18}/>, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-                { id: 'post', title: 'Pós-Evento & Leads', icon: <TrendingUp size={18}/>, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' }
-            ];
-
             useEffect(() => {
                 if (!user) return;
                 const q = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
                 const unsubscribe = onSnapshot(q, (snapshot) => { setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); });
-                // Carregar lembretes
                 const qr = collection(db, 'artifacts', appId, 'public', 'data', 'reminders');
                 const unsubR = onSnapshot(qr, (snapshot) => { setCalendarReminders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); });
-                return () => { unsubscribe(); unsubR(); };
+                
+                // Fetch Categories
+                const qc = query(collection(db, 'artifacts', appId, 'public', 'data', 'categories'));
+                const unsubC = onSnapshot(qc, (snapshot) => {
+                    if (snapshot.empty) {
+                        // Seed Defaults
+                        const defaults = [
+                            { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue' },
+                            { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber' },
+                            { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple' },
+                            { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald' }
+                        ];
+                        defaults.forEach(d => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', d.id), d));
+                    } else {
+                        const cats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        // Ordenar por ordem de criação ou alfabética, aqui vamos manter simples
+                        setCategories(cats);
+                    }
+                });
+
+                return () => { unsubscribe(); unsubR(); unsubC(); };
             }, [db, user]);
 
             const handleAddTeamMember = (member) => { if (!eventTeam.find(m => m.id === member.id)) { setEventTeam([...eventTeam, member]); } setIsAddingMember(false); };
@@ -393,46 +516,26 @@
 
             const handleAddReminder = async () => {
                 if(!reminderText || !selectedDateForReminder) return;
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reminders'), {
-                    date: selectedDateForReminder.toISOString().split('T')[0],
-                    text: reminderText,
-                    eventId: event.id
-                });
-                setReminderText("");
-                setSelectedDateForReminder(null);
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reminders'), { date: selectedDateForReminder.toISOString().split('T')[0], text: reminderText, eventId: event.id });
+                setReminderText(""); setSelectedDateForReminder(null);
             };
+
+            // Category Management Handlers
+            const handleAddCategory = async (catData) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catData); };
+            const handleUpdateCategory = async (catData) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catData.id), catData); };
+            const handleDeleteCategory = async (id) => { if(confirm('Tem certeza? As tarefas dessa categoria ficarão órfãs.')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', id)); };
 
             const renderCalendarGrid = (isSmall = false) => { 
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const firstDay = new Date(year, month, 1).getDay();
-                
                 const days = []; 
-                // Dias vazios do inicio
                 for(let i=0; i<firstDay; i++) { days.push(<div key={`empty-${i}`} className={`p-1 ${isSmall ? 'h-6' : 'h-24 md:h-32 bg-gray-50/50'}`}></div>); }
-                
-                // Dias do mês
                 for(let i=1; i<=daysInMonth; i++) {
                     const dateStr = new Date(year, month, i).toISOString().split('T')[0];
                     const dayReminders = calendarReminders.filter(r => r.date === dateStr);
-                    
-                    days.push(
-                        <div key={i} onClick={() => !isSmall && setSelectedDateForReminder(new Date(year, month, i))} 
-                             className={`relative border border-gray-100 transition-colors ${isSmall ? 'h-6 text-center text-xs p-1' : 'h-24 md:h-32 p-2 hover:bg-blue-50 cursor-pointer flex flex-col items-start justify-start bg-white'}`}>
-                            <span className={`font-bold ${isSmall ? '' : 'text-lg text-gray-700'}`}>{i}</span>
-                            {!isSmall && dayReminders.map((rem, idx) => (
-                                <div key={idx} className="w-full text-[10px] bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded mt-1 truncate border border-yellow-200">
-                                    {rem.text}
-                                </div>
-                            ))}
-                            {!isSmall && dayReminders.length === 0 && (
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100">
-                                    <Plus size={20} className="text-gray-300" />
-                                </div>
-                            )}
-                        </div>
-                    ) 
+                    days.push(<div key={i} onClick={() => !isSmall && setSelectedDateForReminder(new Date(year, month, i))} className={`relative border border-gray-100 transition-colors ${isSmall ? 'h-6 text-center text-xs p-1' : 'h-24 md:h-32 p-2 hover:bg-blue-50 cursor-pointer flex flex-col items-start justify-start bg-white'}`}><span className={`font-bold ${isSmall ? '' : 'text-lg text-gray-700'}`}>{i}</span>{!isSmall && dayReminders.map((rem, idx) => (<div key={idx} className="w-full text-[10px] bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded mt-1 truncate border border-yellow-200">{rem.text}</div>))}{!isSmall && dayReminders.length === 0 && (<div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100"><Plus size={20} className="text-gray-300" /></div>)}</div>);
                 } 
                 return days; 
             };
@@ -452,12 +555,7 @@
                                 {isTeamExpanded && (
                                     <div className="space-y-2 mt-4 animate-in fade-in slide-in-from-top-1">
                                         <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 mb-3 relative overflow-hidden"><div className="absolute top-0 right-0 bg-blue-200 text-blue-800 text-[9px] px-2 py-0.5 rounded-bl-lg font-bold uppercase tracking-wide">Responsável</div><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center overflow-hidden">{eventTeam[0]?.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === eventTeam[0].avatarContent)?.svg : <span>{eventTeam[0]?.avatar}</span>}</div><div><p className="font-bold text-xs text-blue-900 flex items-center gap-1">{eventTeam[0]?.name} <Crown size={10} className="text-yellow-500 fill-yellow-500"/></p><p className="text-[10px] text-blue-600">Líder do Evento</p></div></div></div>
-                                        {eventTeam.slice(1).map(member => (<div key={member.id} className="flex items-center justify-between group p-2 hover:bg-gray-50 rounded-lg transition-colors"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-blue-900 font-bold text-xs overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span>{member.avatar}</span>}</div><div className="leading-tight"><p className="font-semibold text-xs text-gray-900">{member.name}</p><p className="text-[10px] text-gray-500">{member.role}</p></div></div>
-                                        <div className="flex gap-1">
-                                            <button onClick={() => handlePromoteToLeader(member.id)} className="p-1.5 text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors" title="Promover a Líder"><Crown size={16} /></button>
-                                            <button onClick={() => handleRemoveTeamMember(member.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button>
-                                        </div>
-                                        </div>))}
+                                        {eventTeam.slice(1).map(member => (<div key={member.id} className="flex items-center justify-between group p-2 hover:bg-gray-50 rounded-lg transition-colors"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-blue-900 font-bold text-xs overflow-hidden">{member.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === member.avatarContent)?.svg : <span>{member.avatar}</span>}</div><div className="leading-tight"><p className="font-semibold text-xs text-gray-900">{member.name}</p><p className="text-[10px] text-gray-500">{member.role}</p></div></div><div className="flex gap-1"><button onClick={() => handlePromoteToLeader(member.id)} className="p-1.5 text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors" title="Promover a Líder"><Crown size={16} /></button><button onClick={() => handleRemoveTeamMember(member.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button></div></div>))}
                                         {isAddingMember && (<div className="mt-3 p-2 bg-gray-50 rounded-lg border border-gray-200"><p className="text-[10px] font-bold text-gray-500 uppercase mb-2">Banco de Talentos:</p><div className="max-h-32 overflow-y-auto space-y-1">{globalMembers.filter(gm => !eventTeam.find(et => et.id === gm.id)).map(gm => (<button key={gm.id} onClick={() => handleAddTeamMember(gm)} className="w-full text-left flex items-center gap-2 p-1.5 hover:bg-white rounded text-xs text-gray-700"><div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-[8px] font-bold overflow-hidden">{gm.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === gm.avatarContent)?.svg : gm.avatar}</div>{gm.name}</button>))}</div><button onClick={() => setIsAddingMember(false)} className="mt-2 w-full py-1 text-[10px] text-gray-500 hover:bg-gray-200 rounded">Cancelar</button></div>)}
                                     </div>
                                 )}
@@ -465,16 +563,44 @@
                             <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300"><div className="flex items-center justify-between mb-2"><h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><CalendarIcon size={18} className="text-blue-900"/> Agenda</h2><button onClick={() => setIsAgendaExpanded(!isAgendaExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400">{isAgendaExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</button></div>{isAgendaExpanded && (<div onClick={() => setIsCalendarOpen(true)} className="bg-white rounded-lg border border-gray-100 p-2 opacity-60 cursor-pointer hover:opacity-100 transition-opacity mt-2"><div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 font-medium">{['D','S','T','Q','Q','S','S'].map((d, i) => <span key={i}>{d}</span>)}{renderCalendarGrid(true)}</div></div>)}</section>
                         </div>
                         <div className="lg:col-span-3">
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6"><h2 className="text-lg font-bold flex items-center gap-2 text-gray-800"><CheckSquare size={20} className="text-blue-900"/> Tarefas do Projeto</h2><div className="relative w-full sm:w-auto flex-1 max-w-md"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input type="text" placeholder="Pesquisar tarefa..." className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/></div><div className="flex gap-2"><button className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-blue-900 transition-colors"><Filter size={18}/></button><button onClick={() => { setPreSelectedCategory(null); setIsAddTaskOpen(true); }} className="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-800 transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"><Plus size={16}/> Nova Tarefa</button></div></div>
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6"><h2 className="text-lg font-bold flex items-center gap-2 text-gray-800"><CheckSquare size={20} className="text-blue-900"/> Tarefas do Projeto</h2><div className="relative w-full sm:w-auto flex-1 max-w-md"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" /><input type="text" placeholder="Pesquisar tarefa..." className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/></div><div className="flex gap-2"><button onClick={() => setIsManageCategoriesOpen(true)} className="p-2 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-blue-900 transition-colors" title="Gerenciar Categorias"><Settings size={18}/></button><button onClick={() => { setPreSelectedCategory(null); setIsAddTaskOpen(true); }} className="bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-800 transition-colors flex items-center gap-2 shadow-lg shadow-blue-900/20"><Plus size={16}/> Nova Tarefa</button></div></div>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
-                                {taskCategories.map(cat => { const catTasks = filteredTasks.filter(t => t.category === cat.id); return (<div key={cat.id} className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex flex-col h-full min-h-[300px]"><div className={`flex items-center gap-2 p-2 rounded-lg mb-3 border ${cat.color} bg-white shadow-sm`}><div className={`p-1 rounded ${cat.color.split(' ')[1]} ${cat.color.split(' ')[0]}`}>{cat.icon}</div><span className="text-xs font-bold text-gray-700">{cat.title}</span><div className="ml-auto flex items-center gap-1"><span className="text-[10px] font-bold bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{catTasks.length}</span><button onClick={() => { setPreSelectedCategory(cat.id); setIsAddTaskOpen(true); }} className="hover:bg-blue-100 p-0.5 rounded text-blue-600"><Plus size={14}/></button></div></div><div className="space-y-2 flex-1">{catTasks.map(task => (<div key={task.id} onClick={() => setSelectedTask(task)} className={`bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-all group relative ${task.completed ? 'opacity-60' : 'hover:border-blue-300'}`}><div className="flex items-start gap-2 mb-2"><button onClick={(e) => toggleTask(e, task.id)} className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 text-transparent hover:border-blue-400'}`}><CheckSquare size={10} fill="currentColor" /></button><p className={`text-xs font-medium leading-tight flex-1 ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.text}</p><button onClick={(e) => deleteTask(e, task.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12}/></button></div><div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50"><div className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden" title={task.responsible?.name}>{task.responsible?.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === task.responsible.avatarContent)?.svg : task.responsible?.avatar}</div><PriorityBadge level={task.priority} onClick={() => cyclePriority(task.id)} /></div></div>))}{catTasks.length === 0 && <div className="text-center py-8 text-gray-300 border-2 border-dashed border-gray-200 rounded-lg"><p className="text-[10px]">Vazio</p></div>}</div></div>); })}
+                                {categories.map(cat => { 
+                                    const catTasks = filteredTasks.filter(t => t.category === cat.id); 
+                                    const styleClass = getCategoryStyles(cat.color);
+                                    return (
+                                        <div key={cat.id} className="bg-gray-50 rounded-xl p-3 border border-gray-200 flex flex-col h-full min-h-[300px]">
+                                            <div className={`flex items-center gap-2 p-2 rounded-lg mb-3 border ${styleClass} bg-white shadow-sm`}>
+                                                <div className={`p-1 rounded ${styleClass.split(' ')[1]} ${styleClass.split(' ')[0]}`}>{getCategoryIcon(cat.icon)}</div>
+                                                <span className="text-xs font-bold text-gray-700">{cat.title}</span>
+                                                <div className="ml-auto flex items-center gap-1"><span className="text-[10px] font-bold bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{catTasks.length}</span><button onClick={() => { setPreSelectedCategory(cat.id); setIsAddTaskOpen(true); }} className="hover:bg-blue-100 p-0.5 rounded text-blue-600"><Plus size={14}/></button></div>
+                                            </div>
+                                            <div className="space-y-2 flex-1">
+                                                {catTasks.map(task => (
+                                                    <div key={task.id} onClick={() => setSelectedTask(task)} className={`bg-white p-3 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-all group relative ${task.completed ? 'opacity-60' : 'hover:border-blue-300'}`}>
+                                                        <div className="flex items-start gap-2 mb-2">
+                                                            <button onClick={(e) => toggleTask(e, task.id)} className={`mt-0.5 flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center transition-colors ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300 text-transparent hover:border-blue-400'}`}><CheckSquare size={10} fill="currentColor" /></button>
+                                                            <p className={`text-xs font-medium leading-tight flex-1 ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.text}</p>
+                                                            <button onClick={(e) => deleteTask(e, task.id)} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12}/></button>
+                                                        </div>
+                                                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                                                            <div className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden" title={task.responsible?.name}>{task.responsible?.avatarType === 'executive' ? ExecutiveAvatars.find(d => d.id === task.responsible.avatarContent)?.svg : task.responsible?.avatar}</div>
+                                                            <PriorityBadge level={task.priority} onClick={() => cyclePriority(task.id)} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {catTasks.length === 0 && <div className="text-center py-8 text-gray-300 border-2 border-dashed border-gray-200 rounded-lg"><p className="text-[10px]">Vazio</p></div>}
+                                            </div>
+                                        </div>
+                                    ); 
+                                })}
                             </div>
                         </div>
                     </div>
                     <TaskDetailModal task={selectedTask} isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} members={eventTeam} onAddSupport={handleAddSupport} onSendMessage={handleSendMessage} onAssignResponsible={handleAssignResponsible}/>
-                    <AddTaskModal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} onAdd={handleAddTask} members={eventTeam} categories={taskCategories} preSelectedCategory={preSelectedCategory} />
+                    <AddTaskModal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} onAdd={handleAddTask} members={eventTeam} categories={categories} preSelectedCategory={preSelectedCategory} />
+                    <ManageCategoriesModal isOpen={isManageCategoriesOpen} onClose={() => setIsManageCategoriesOpen(false)} categories={categories} onAdd={handleAddCategory} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />
                     
-                    {/* MODAL DE CALENDARIO FULLSCREEN */}
                     <Modal isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} title={`Agenda: ${event.title}`} fullScreen={true}>
                          <div className="flex flex-col h-full bg-gray-50">
                              <div className="flex items-center justify-center py-4 bg-white border-b shadow-sm sticky top-0 z-10 gap-8">
@@ -491,7 +617,6 @@
                          </div>
                     </Modal>
 
-                    {/* MODAL PEQUENO DE LEMBRETE DO CALENDARIO */}
                     {selectedDateForReminder && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                             <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm animate-in zoom-in-95">
