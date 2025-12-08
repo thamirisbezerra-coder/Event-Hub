@@ -1060,7 +1060,9 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
     useEffect(() => { if (!isFirebaseAvailable) localStorage.setItem('eh_categories', JSON.stringify(categories)); }, [categories]);
     useEffect(() => { if (!isFirebaseAvailable) localStorage.setItem('eh_reminders', JSON.stringify(calendarReminders)); }, [calendarReminders]);
 
-    const handleUpdateEvent = async (id: string, data: any) => { if (db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); };
+    const handleUpdateEvent = async (id: string, data: any) => { 
+        if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data, { merge: true }); 
+    };
     const handleAddTeamMember = (member: any) => { if (!eventTeam.find((m: any) => m.id === member.id)) { setEventTeam([...eventTeam, member]); } setIsAddingMember(false); };
     const handleRemoveTeamMember = (memberId: string) => { setEventTeam(eventTeam.filter((m: any) => m.id !== memberId)); };
     const handlePromoteToLeader = (memberId: string) => { const memberIndex = eventTeam.findIndex((m: any) => m.id === memberId); if (memberIndex < 0) return; const newTeam = [...eventTeam]; const [member] = newTeam.splice(memberIndex, 1); newTeam.unshift(member); setEventTeam(newTeam); };
@@ -1443,12 +1445,34 @@ const App = () => {
         if (isFirebaseAvailable && db && user) {
             const qm = collection(db, 'artifacts', appId, 'public', 'data', 'members');
             const um = onSnapshot(qm, (snap) => {
-                if (!snap.empty) setMembers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                if (snap.empty) {
+                    // Seed default members if empty
+                    const defaultMembers = [
+                        { id: '1', name: 'Paulo Mokarzel', role: 'Gestor da Equipe', avatarType: 'executive', avatarContent: 'ex1' },
+                        { id: '2', name: 'Ana Silva', role: 'Gerente de Mkt', avatarType: 'executive', avatarContent: 'ex2' },
+                        { id: '3', name: 'Beatriz Costa', role: 'Coordenadora', avatarType: 'executive', avatarContent: 'ex3' },
+                        { id: '4', name: 'João Mendes', role: 'Logística', avatarType: 'executive', avatarContent: 'ex4' },
+                        { id: '5', name: 'Fernanda Lima', role: 'Social Media', avatarType: 'executive', avatarContent: 'ex5' },
+                    ];
+                    defaultMembers.forEach(m => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', m.id), m));
+                } else {
+                    setMembers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                }
             });
             
             const qe = collection(db, 'artifacts', appId, 'public', 'data', 'events');
             const ue = onSnapshot(qe, (snap) => {
-                if (!snap.empty) setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                if (snap.empty) {
+                    // Seed default events
+                    const defaultEvents = [
+                        { id: 'ev1', title: 'Convenção de Vendas', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026', pending: 22 },
+                        { id: 'ev2', title: 'Nis Nutri', location: 'Transamerica Expo Center', dateRange: '31/03/2026 - 01/04/2026', pending: 22 },
+                        { id: 'ev3', title: 'Jornada Técnica', location: 'Hotel', dateRange: '01/05/2026', pending: 22 },
+                    ];
+                    defaultEvents.forEach(e => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', e.id), e));
+                } else {
+                    setEvents(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                }
             });
 
             return () => { um(); ue(); };
@@ -1463,7 +1487,7 @@ const App = () => {
     };
     
     const handleUpdateMember = async (member: any) => {
-        if (db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', member.id), member);
+        if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', member.id), member, { merge: true });
         else setMembers(members.map(m => m.id === member.id ? { ...m, ...member } : m));
     };
     
