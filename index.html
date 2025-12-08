@@ -257,6 +257,16 @@
         const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onUpdateLogo, onAddMember, onUpdateMember, onDeleteMember }) => {
             const [activeTab, setActiveTab] = useState('team');
             const fileInputRef = useRef(null);
+            
+            // Estados para edição
+            const [editingId, setEditingId] = useState(null);
+            const [editName, setEditName] = useState('');
+            const [editRole, setEditRole] = useState('');
+            
+            // Estados para novo membro
+            const [newMemberName, setNewMemberName] = useState('');
+            const [newMemberRole, setNewMemberRole] = useState('');
+
             const manager = members.find(m => m.role.includes('Gestor')) || members[0];
             
             const handleLogoUpload = (e) => {
@@ -264,10 +274,30 @@
                 if(file) compressImage(file, 200).then(onUpdateLogo);
             };
 
+            const handleStartEdit = (member) => {
+                setEditingId(member.id);
+                setEditName(member.name);
+                setEditRole(member.role);
+            };
+
+            const handleSaveEdit = (id) => {
+                onUpdateMember({ id, name: editName, role: editRole });
+                setEditingId(null);
+            };
+
+            const handleAddNew = (e) => {
+                e.preventDefault();
+                if(!newMemberName || !newMemberRole) return;
+                onAddMember({ name: newMemberName, role: newMemberRole });
+                setNewMemberName('');
+                setNewMemberRole('');
+            };
+
             if (!isOpen) return null;
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-4xl">
                     <div className="p-8 bg-gray-50 min-h-[500px] space-y-8">
+                        {/* Seção Identidade */}
                         <div className="space-y-3">
                             <h4 className="text-blue-900 font-bold flex items-center gap-2"><ImageIcon size={18} /> Identidade</h4>
                             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-8">
@@ -285,6 +315,7 @@
                             </div>
                         </div>
 
+                        {/* Seção Gestor */}
                         <div className="space-y-3">
                             <label className="text-sm font-bold text-gray-700 block">Gestor da Equipe (Aparece no Topo)</label>
                             <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
@@ -296,23 +327,53 @@
                             </div>
                         </div>
 
+                        {/* Seção Equipe */}
                         <div className="space-y-3">
                             <h4 className="text-blue-900 font-bold flex items-center gap-2"><Users size={18} /> Equipe</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {members.map(member => (
                                     <div key={member.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group hover:border-blue-300 transition-colors">
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 w-full">
                                             <Avatar member={member} size="w-10 h-10"/>
-                                            <div><p className="font-bold text-gray-800 text-sm">{member.name}</p><p className="text-xs text-gray-500">{member.role}</p></div>
+                                            <div className="flex-1 min-w-0">
+                                                {editingId === member.id ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        <input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" placeholder="Nome" />
+                                                        <input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" placeholder="Cargo" />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <p className="font-bold text-gray-800 text-sm truncate">{member.name}</p>
+                                                        <p className="text-xs text-gray-500 truncate">{member.role}</p>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"><Edit2 size={16}/></button>
-                                            <button onClick={() => onDeleteMember(member.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"><Trash2 size={16}/></button>
+                                        <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity ml-2">
+                                            {editingId === member.id ? (
+                                                <button onClick={() => handleSaveEdit(member.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Salvar"><Check size={16}/></button>
+                                            ) : (
+                                                <button onClick={() => handleStartEdit(member)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50" title="Editar"><Edit2 size={16}/></button>
+                                            )}
+                                            <button onClick={() => onDeleteMember(member.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50" title="Excluir"><Trash2 size={16}/></button>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
+
+                        {/* Novo Membro */}
+                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mt-4">
+                            <h5 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><UserPlus size={18}/> Novo Membro</h5>
+                            <form onSubmit={handleAddNew} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nome" className="p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500" />
+                                <div className="flex gap-2">
+                                    <input value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)} placeholder="Cargo" className="flex-1 p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500" />
+                                    <button type="submit" className="bg-blue-900 text-white px-4 rounded-xl font-bold hover:bg-blue-800 transition-colors">Add</button>
+                                </div>
+                            </form>
+                        </div>
+
                     </div>
                 </Modal>
             );
@@ -714,18 +775,32 @@
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [logo, setLogo] = useState(null);
             
-            const members = [
+            const [members, setMembers] = useState([
                 { id: '1', name: 'Paulo Mokarzel', role: 'Gestor da Equipe', avatarType: 'executive', avatarContent: 'ex1' },
                 { id: '2', name: 'Ana Silva', role: 'Gerente de Mkt', avatarType: 'executive', avatarContent: 'ex2' },
                 { id: '3', name: 'Beatriz Costa', role: 'Coordenadora', avatarType: 'executive', avatarContent: 'ex3' },
                 { id: '4', name: 'João Mendes', role: 'Logística', avatarType: 'executive', avatarContent: 'ex4' },
                 { id: '5', name: 'Fernanda Lima', role: 'Social Media', avatarType: 'executive', avatarContent: 'ex5' }
-            ];
+            ]);
 
             const events = [{ id: 'ev1', title: 'Convenção de Vendas', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026' }];
             const notifications = [{ text: "Tarefa concluída", date: "Há 10 min" }];
 
             const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(setLogo); };
+
+            // Funções de Gerenciamento de Membros (CORRIGIDAS)
+            const handleAddMember = (member) => {
+                setMembers(prev => [...prev, { ...member, id: Date.now().toString() }]);
+            };
+
+            const handleUpdateMember = (updatedMember) => {
+                setMembers(prev => prev.map(m => m.id === updatedMember.id ? { ...m, ...updatedMember } : m));
+            };
+
+            const handleDeleteMember = (id) => {
+                // REMOVIDO: confirm() bloqueava a exclusão em alguns ambientes. Agora deleta direto.
+                setMembers(prev => prev.filter(m => m.id !== id));
+            };
 
             return (
                 <div className="min-h-screen pb-12">
@@ -750,7 +825,17 @@
                         {view === 'dashboard' ? (<DashboardView onSelectEvent={(evt) => { setSelectedEvent(evt); setView('event'); }} events={events} members={members} />) : (<EventDetailView event={selectedEvent} onBack={() => setView('dashboard')} globalMembers={members} />)}
                     </main>
                     <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} events={events} tasks={[]} />
-                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} logo={logo} setLogo={setLogo} onUpdateLogo={setLogo} onAddMember={() => {}} onUpdateMember={() => {}} onDeleteMember={() => {}} />
+                    <SettingsModal 
+                        isOpen={isSettingsOpen} 
+                        onClose={() => setIsSettingsOpen(false)} 
+                        members={members} 
+                        logo={logo} 
+                        setLogo={setLogo} 
+                        onUpdateLogo={setLogo} 
+                        onAddMember={handleAddMember} 
+                        onUpdateMember={handleUpdateMember} 
+                        onDeleteMember={handleDeleteMember} 
+                    />
                     <button onClick={() => setIsAIOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center group"><Bot size={28} className="group-hover:animate-bounce"/></button>
                 </div>
             );
