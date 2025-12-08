@@ -5,29 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Hub - Painel de Marketing</title>
     
-    <!-- Tailwind CSS (Estilos) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Fonte Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- React & ReactDOM (Motor do Site) -->
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel (Tradutor de Código) -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Animações Suaves */
+        
+        /* Drag and Drop Visuals */
+        .drag-over { background-color: #eff6ff !important; border-color: #3b82f6 !important; }
+        .dragging { opacity: 0.5; transform: scale(0.95); }
+
+        /* Animações */
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .animate-in { animation: fadeIn 0.4s ease-out forwards; }
+        .slide-in-from-right { animation: slideInRight 0.3s ease-out forwards; }
+        @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        /* Animação para setas da agenda */
+        @keyframes bounceXRight { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(3px); } }
+        @keyframes bounceXLeft { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-3px); } }
+        .animate-bounce-right { animation: bounceXRight 1s infinite; }
+        .animate-bounce-left { animation: bounceXLeft 1s infinite; }
+        
+        /* Shimmer para loading IA */
+        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+        .animate-shimmer { animation: shimmer 2s infinite linear; background: linear-gradient(to right, #eff6ff 4%, #dbeafe 25%, #eff6ff 36%); background-size: 1000px 100%; }
     </style>
 
-    <!-- Configuração de Cores -->
     <script>
         tailwind.config = {
             theme: {
@@ -43,7 +59,6 @@
 <body>
     <div id="root"></div>
 
-    <!-- CÓDIGO DA APLICAÇÃO -->
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
@@ -53,14 +68,18 @@
             Search, Bell, MessageSquare, Send, AlertCircle, ChevronDown, 
             ChevronUp, Settings, UserPlus, Box, TrendingUp, Filter, Check, 
             Image as ImageIcon, AlertTriangle, Crown, Plane, Target, Camera,
-            Sparkles, Bot, BarChart3, GripVertical, Flame
+            DollarSign, ClipboardList, Mic, Music, Coffee, Gift, Sparkles, Bot,
+            BarChart3, Layout, GripVertical, Flame, Info, Wifi, WifiOff,
+            ExternalLink, Lightbulb, BrainCircuit, MoreVertical, Paperclip, FileText,
+            Wand2, Copy, Share2
         } from 'https://esm.sh/lucide-react@0.294.0';
 
-        // --- Firebase Config (Simples para visualização) ---
+        // --- Firebase Imports ---
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, setDoc, doc, onSnapshot, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
+        // --- Configuração Firebase ---
         const firebaseConfig = {
             apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
             authDomain: "bolsas-termicas.firebaseapp.com",
@@ -70,224 +89,645 @@
             appId: "1:372188665466:web:2a343ec375462f56920dc3"
         };
 
-        // Tenta iniciar Firebase, se falhar usa modo local
+        const appId = 'event-hub-production';
         let db, auth;
         let isFirebaseAvailable = false;
+
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
             auth = getAuth(app);
             isFirebaseAvailable = true;
-        } catch (e) { console.log("Modo Offline/Demo"); }
+        } catch (error) {
+            console.log("Modo Offline/Demo (Firebase não configurado ou erro)");
+        }
 
-        // --- COMPONENTES VISUAIS ---
+        // --- GEMINI API HELPERS ---
+        const apiKey = ""; 
+        const callGeminiFlash = async (prompt, systemInstruction = "") => {
+            try {
+                if(!apiKey) return "Simulação: Configure a API Key para respostas reais da IA.";
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    })
+                });
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta.";
+            } catch (error) { return "Erro de conexão com IA."; }
+        };
 
-        // Avatar Component
+        // --- Utils & Constants ---
+        const compressImage = (file, maxWidth = 300) => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const scaleSize = maxWidth / img.width;
+                        canvas.width = maxWidth;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            // Mantém transparência PNG
+                            const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                            resolve(canvas.toDataURL(outputType, 0.9)); 
+                        } else resolve(img.src);
+                    };
+                };
+            });
+        };
+
+        const COLOR_PRESETS = {
+            blue: 'text-blue-600 bg-blue-50 border-blue-200',
+            amber: 'text-amber-600 bg-amber-50 border-amber-200',
+            purple: 'text-purple-600 bg-purple-50 border-purple-200',
+            emerald: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+            gray: 'text-gray-600 bg-gray-100 border-gray-200'
+        };
+
+        const REMINDER_COLORS = [
+            { id: 'blue', value: 'bg-blue-100 text-blue-800 border-blue-200', hex: '#dbeafe', label: 'Azul' },
+            { id: 'red', value: 'bg-red-100 text-red-800 border-red-200', hex: '#fee2e2', label: 'Vermelho' },
+            { id: 'green', value: 'bg-emerald-100 text-emerald-800 border-emerald-200', hex: '#d1fae5', label: 'Verde' },
+            { id: 'yellow', value: 'bg-amber-100 text-amber-800 border-amber-200', hex: '#fef3c7', label: 'Amarelo' },
+            { id: 'purple', value: 'bg-purple-100 text-purple-800 border-purple-200', hex: '#f3e8ff', label: 'Roxo' },
+        ];
+
+        const STATUS_COLUMNS = [
+            { id: 'todo', title: 'A Fazer', color: 'blue', icon: ClipboardList },
+            { id: 'in_progress', title: 'Em Andamento', color: 'amber', icon: Truck },
+            { id: 'review', title: 'Revisão', color: 'purple', icon: Search },
+            { id: 'done', title: 'Concluído', color: 'emerald', icon: CheckSquare }
+        ];
+
+        const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare };
+        const getCategoryStyles = (color) => COLOR_PRESETS[color] || COLOR_PRESETS.blue;
+        const getCategoryIcon = (iconName) => { const Icon = ICON_MAP[iconName] || Box; return <Icon size={18} />; };
+        
+        const SHORT_MONTHS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+        const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+        const calculateDaysRemaining = (dateString) => {
+            if (!dateString) return 0;
+            const match = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+            if (match) {
+                const targetDate = new Date(`${match[3]}-${match[2]}-${match[1]}`);
+                const today = new Date();
+                const diffTime = targetDate.getTime() - today.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                return diffDays > 0 ? diffDays : 0;
+            }
+            return 30;
+        };
+
+        const getEventStartDate = (dateString) => {
+            if (!dateString) return new Date();
+            const match = dateString.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+            if (match) {
+                return new Date(parseInt(match[3]), parseInt(match[2]) - 1, parseInt(match[1]));
+            }
+            return new Date();
+        };
+
+        // --- Componentes ---
         const Avatar = ({ member, size = "w-10 h-10", textSize = "text-xs" }) => {
-            if (!member) return <div className={`${size} rounded-full bg-gray-200`}></div>;
-            if (member.photoUrl) return <img src={member.photoUrl} className={`${size} rounded-full object-cover border border-gray-200`} />;
+            if (!member) return <div className={`${size} rounded-full bg-gray-200 border border-gray-300`}></div>;
             
-            // SVGs para avatares executivos (Placeholder)
-            const getSvg = (id) => {
-                if(id === 'ex1') return <svg viewBox="0 0 100 100" className="w-full h-full"><circle cx="50" cy="50" r="50" fill="#E5E7EB"/><path d="M50 25a20 20 0 1 0 0 40 20 20 0 0 0 0-40zM20 85a30 30 0 0 1 60 0v5H20v-5z" fill="#9CA3AF"/></svg>;
-                return <span className="font-bold text-blue-900">{member.name?.substring(0,2)}</span>;
-            };
+            // Verifica se é gestor (pela role)
+            const isManager = member.role && member.role.toLowerCase().includes('gestor');
+
+            const content = member.photoUrl ? (
+                <img src={member.photoUrl} className="w-full h-full object-cover" />
+            ) : (
+                <div className="w-full h-full flex items-center justify-center text-blue-900 font-bold">
+                    {member.name?.substring(0,2)}
+                </div>
+            );
 
             return (
-                <div className={`${size} rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden ${textSize}`}>
-                    {member.avatarType === 'executive' ? getSvg(member.avatarContent) : <span>{member.name?.substring(0,2)}</span>}
+                <div className={`${size} rounded-full bg-white border border-gray-200 relative`}>
+                    <div className="w-full h-full rounded-full overflow-hidden">{content}</div>
+                    {isManager && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center z-10 shadow-sm">
+                            <Crown size={8} className="text-yellow-900 fill-yellow-900"/>
+                        </div>
+                    )}
                 </div>
             );
         };
 
-        // Componente Principal
+        const PriorityBadge = ({ level, onClick }) => {
+            const styles = { high: "bg-red-100 text-red-700 hover:bg-red-200", medium: "bg-amber-100 text-amber-700 hover:bg-amber-200", low: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" };
+            const labels = { high: "Alta", medium: "Média", low: "Baixa" };
+            return (
+                <button onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-transparent transition-colors ${styles[level] || styles.low}`}>
+                    <Flag size={10} fill="currentColor" /> {labels[level] || "Baixa"}
+                </button>
+            );
+        };
+
+        const Modal = ({ isOpen, onClose, title, children, fullScreen, maxWidth = "max-w-lg" }) => {
+            if (!isOpen) return null;
+            const content = (
+                <div className={`bg-white ${fullScreen ? 'fixed inset-0 z-50' : `rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] overflow-hidden flex flex-col`}`}>
+                    <div className="p-4 border-b bg-[#1e1b4b] text-white flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                             {title === 'Configurações' && <Settings size={18}/>}
+                             {title.includes('✨') && <Sparkles size={18} className="text-yellow-300"/>}
+                             <h3 className="font-bold">{title}</h3>
+                        </div>
+                        <button onClick={onClose}><X size={20}/></button>
+                    </div>
+                    <div className="p-0 overflow-y-auto flex-1 bg-white relative">{children}</div>
+                </div>
+            );
+            if (fullScreen) return content;
+            return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in">{content}</div>;
+        };
+
+        // --- Configurações Modal ---
+        const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onUpdateLogo, onAddMember, onUpdateMember, onDeleteMember }) => {
+            const [activeTab, setActiveTab] = useState('team');
+            const fileInputRef = useRef(null);
+            const manager = members.find(m => m.role.includes('Gestor')) || members[0];
+            
+            const handleLogoUpload = (e) => {
+                const file = e.target.files[0];
+                if(file) compressImage(file, 200).then(onUpdateLogo);
+            };
+
+            if (!isOpen) return null;
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-4xl">
+                    <div className="p-8 bg-gray-50 min-h-[500px] space-y-8">
+                        <div className="space-y-3">
+                            <h4 className="text-blue-900 font-bold flex items-center gap-2"><ImageIcon size={18} /> Identidade</h4>
+                            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-8">
+                                <div className="w-40 h-24 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative group">
+                                    {logo ? <img src={logo} className="w-full h-full object-contain p-2"/> : <span className="text-gray-400 text-xs">Sem Logo</span>}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-gray-800 mb-1">Carregar logo</p>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => fileInputRef.current.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 bg-white shadow-sm">Escolher arquivo</button>
+                                        <span className="text-sm text-gray-400 self-center">Nenhum arquivo escolhido</span>
+                                    </div>
+                                    <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-sm font-bold text-gray-700 block">Gestor da Equipe (Aparece no Topo)</label>
+                            <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <Avatar member={manager} />
+                                    <span className="font-bold text-gray-800">{manager?.name || 'Selecione...'}</span>
+                                </div>
+                                <ChevronDown size={16} className="text-gray-400"/>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <h4 className="text-blue-900 font-bold flex items-center gap-2"><Users size={18} /> Equipe</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {members.map(member => (
+                                    <div key={member.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group hover:border-blue-300 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar member={member} size="w-10 h-10"/>
+                                            <div><p className="font-bold text-gray-800 text-sm">{member.name}</p><p className="text-xs text-gray-500">{member.role}</p></div>
+                                        </div>
+                                        <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                                            <button className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"><Edit2 size={16}/></button>
+                                            <button onClick={() => onDeleteMember(member.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"><Trash2 size={16}/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
+        // --- Detalhes da Tarefa ---
+        const TaskDetailModal = ({ task, isOpen, onClose, members, onAddSupport, onSendMessage, onAssignResponsible, onAddAttachment, onDeleteAttachment }) => {
+            const [messageText, setMessageText] = useState("");
+            const [isSelectingResponsible, setIsSelectingResponsible] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            const messages = task?.messages || [];
+            useEffect(() => { if (isOpen && task) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isOpen, task]);
+
+            if (!task) return null;
+            
+            const responsible = task.responsible || { name: "Não definido", role: "-", avatar: "?" };
+            const attachments = task.attachments || [];
+
+            const handleSend = () => { if (!messageText.trim()) return; onSendMessage(task.id, messageText); setMessageText(""); };
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) onAddAttachment(task.id, { id: Date.now(), name: file.name, type: file.type, size: (file.size/1024).toFixed(1) + 'KB' });
+            };
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Detalhes da Tarefa" maxWidth="max-w-4xl">
+                    <div className="flex flex-col md:flex-row h-[80vh]">
+                        <div className="flex-1 flex flex-col border-r border-gray-100 bg-gray-50/50">
+                            <div className="p-6 border-b bg-white">
+                                <div className="flex items-center gap-3 mb-2"><PriorityBadge level={task.priority} /><span className="text-xs font-mono text-gray-400">ID: #{task.id}</span></div>
+                                <h2 className="text-xl font-bold text-gray-900 leading-tight mb-4">{task.text}</h2>
+                                <div className="flex items-center justify-between">
+                                    <div className="relative">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Responsável</p>
+                                        <button onClick={() => setIsSelectingResponsible(!isSelectingResponsible)} className="flex items-center gap-2 p-1.5 -ml-1.5 rounded-lg hover:bg-gray-100 transition-colors text-left group">
+                                            <Avatar member={responsible} size="w-8 h-8"/>
+                                            <div><p className="text-xs font-bold text-gray-800 flex items-center gap-1">{responsible.name} <ChevronDown size={12}/></p></div>
+                                        </button>
+                                        {isSelectingResponsible && (<div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2"><div className="space-y-1">{members.map((member) => (<button key={member.id} onClick={() => { onAssignResponsible(task.id, member); setIsSelectingResponsible(false); }} className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 text-left ${responsible.name === member.name ? 'bg-blue-50' : ''}`}><Avatar member={member} size="w-6 h-6"/><span className="text-xs font-bold">{member.name}</span></button>))}</div></div>)}
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${task.status === 'done' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{task.status === 'done' ? 'Concluído' : 'Em Andamento'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 flex flex-col bg-slate-100">
+                                <div className="p-3 border-b bg-white flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider"><MessageSquare size={14}/> Comentários & Alinhamento</div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    {messages.length === 0 ? <p className="text-xs text-center text-gray-400 mt-10">Nenhuma mensagem. Inicie a conversa!</p> : 
+                                    messages.map((msg, i) => (
+                                        <div key={i} className={`flex gap-3 ${msg.sender === 'Eu' ? 'flex-row-reverse' : ''}`}>
+                                            <div className="w-8 h-8 rounded-full bg-blue-100 border border-blue-200 flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-blue-800">{msg.sender === 'Eu' ? 'EU' : msg.sender.substring(0,2)}</div>
+                                            <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${msg.sender === 'Eu' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-700 border border-gray-200 rounded-tl-none'}`}>
+                                                <p className="font-bold text-[10px] opacity-70 mb-1">{msg.sender}</p>{msg.text}<p className="text-[9px] opacity-50 text-right mt-1">{msg.time}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                                <div className="p-3 bg-white border-t border-gray-200">
+                                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-200 focus-within:ring-2 ring-blue-100 transition-all">
+                                        <input type="text" placeholder="Escreva uma mensagem..." className="flex-1 text-sm p-2 bg-transparent outline-none text-gray-700" value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()}/>
+                                        <button onClick={handleSend} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"><Send size={16} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="w-full md:w-80 bg-white border-l border-gray-100 flex flex-col h-full">
+                            <div className="p-4 border-b border-gray-100">
+                                <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2 mb-4"><Paperclip size={16}/> Arquivos & Anexos</h4>
+                                <div className="space-y-2 mb-4">
+                                    {attachments.map(att => (<div key={att.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 bg-gray-50 hover:bg-blue-50 transition-colors group"><div className="w-8 h-8 rounded bg-white border border-gray-200 flex items-center justify-center text-blue-600"><FileText size={16}/></div><div className="flex-1 min-w-0"><p className="text-xs font-bold text-gray-700 truncate">{att.name}</p><p className="text-[10px] text-gray-400">{att.size}</p></div><button onClick={() => onDeleteAttachment(task.id, att.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><X size={14}/></button></div>))}
+                                    {attachments.length === 0 && <p className="text-xs text-gray-400 italic">Nenhum anexo.</p>}
+                                </div>
+                                <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-blue-300 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors"><Plus size={14}/> Adicionar Arquivo<input type="file" className="hidden" onChange={handleFileUpload}/></label>
+                            </div>
+                            <div className="p-4 flex-1 overflow-y-auto">
+                                <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2 mb-4"><Users size={16}/> Apoio</h4>
+                                <div className="space-y-2">{members.map(member => { const isSupport = (task.support || []).some(s => s.id === member.id); return (<button key={member.id} onClick={() => onAddSupport(task.id, member)} className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left border ${isSupport ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:bg-gray-50'}`}><Avatar member={member} size="w-6 h-6"/><span className={`text-xs font-bold flex-1 ${isSupport ? 'text-blue-800' : 'text-gray-600'}`}>{member.name}</span>{isSupport && <Check size={14} className="text-blue-600"/>}</button>); })}</div>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
+        // --- Notifications Dropdown ---
+        const NotificationsDropdown = ({ onClose, notifications }) => {
+            return (
+                <div className="absolute top-14 right-0 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                    <div className="p-4 border-b bg-gray-50 flex justify-between items-center"><span className="font-bold text-gray-800 text-sm flex items-center gap-2"><Bell size={14} className="text-blue-600"/> Notificações</span><button onClick={onClose}><X size={16} className="text-gray-400 hover:text-gray-600"/></button></div>
+                    <div className="max-h-80 overflow-y-auto">
+                        {notifications.length === 0 ? <div className="p-8 text-center text-gray-400 text-xs">Tudo limpo por aqui! ✨</div> : 
+                        notifications.map((notif, idx) => (
+                            <div key={idx} className="p-4 border-b border-gray-50 hover:bg-blue-50/50 transition-colors cursor-pointer group">
+                                <div className="flex gap-3"><div className="mt-1 w-2 h-2 rounded-full flex-shrink-0 bg-blue-500 ring-4 ring-blue-100"></div><div><p className="text-sm font-semibold text-gray-800 group-hover:text-blue-700 transition-colors">{notif.text}</p><p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><Clock size={10}/> {notif.date}</p></div></div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="p-2 bg-gray-50 text-center border-t border-gray-100"><button className="text-xs font-bold text-blue-600 hover:text-blue-800">Marcar todas como lidas</button></div>
+                </div>
+            );
+        };
+
+        // --- AI Content Modal (Generated Copy) ---
+        const AIContentModal = ({ isOpen, onClose, content }) => {
+            if (!isOpen) return null;
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="✨ Conteúdo Gerado">
+                    <div className="p-6 space-y-4">
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm leading-relaxed whitespace-pre-wrap font-medium text-gray-700 relative">
+                            {content}
+                            <button onClick={() => { navigator.clipboard.writeText(content); alert('Copiado!'); }} className="absolute top-2 right-2 p-1.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-blue-600 shadow-sm" title="Copiar"><Copy size={14}/></button>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button onClick={onClose} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg text-sm font-bold">Fechar</button>
+                            <button className="px-4 py-2 bg-blue-900 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-800"><Share2 size={16}/> Compartilhar</button>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
+        // --- AI Assistant ---
+        const AIAssistant = ({ isOpen, onClose, members, events, tasks }) => {
+            const [input, setInput] = useState("");
+            const [messages, setMessages] = useState([{ id: 1, sender: 'ai', text: "Olá! Sou sua **Assistente de Marketing**. Conheço todo o seu painel. Pergunte sobre tarefas, eventos, prazos ou membros!" }]);
+            const [isLoading, setIsLoading] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            const handleSend = async (e) => {
+                e.preventDefault();
+                if (!input.trim()) return;
+                const userText = input;
+                setInput("");
+                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userText }]);
+                setIsLoading(true);
+
+                const context = { team: members.map(m => m.name), events: events.map(e => ({ title: e.title, date: e.dateRange, location: e.location, pending: e.pending })), tasks: tasks.map(t => ({ text: t.text, status: t.status, responsible: t.responsible?.name })), currentDate: new Date().toLocaleDateString() };
+                const systemPrompt = `Você é o cérebro do Event Hub. Aqui estão os dados atuais do painel em JSON: ${JSON.stringify(context)}. Responda perguntas sobre esses dados de forma amigável e direta em PT-BR.`;
+
+                try {
+                    const response = await callGeminiFlash(userText, systemPrompt);
+                    setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: response }]);
+                } catch (error) {
+                    setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: "Tive um problema de conexão. Tente novamente." }]);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+            if (!isOpen) return null;
+            return (
+                <div className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[150] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10">
+                    <div className="bg-gradient-to-r from-blue-900 to-blue-800 p-4 flex items-center justify-between text-white shadow-md"><div className="flex items-center gap-2"><Bot size={20} className="text-blue-200"/><div><h3 className="font-bold text-sm">Assistente Event Hub</h3><div className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span><span className="text-[10px] text-blue-200">Online & Conectada</span></div></div></div><button onClick={onClose}><X size={18} className="text-white/80 hover:text-white"/></button></div>
+                    <div className="flex-1 bg-slate-50 p-4 overflow-y-auto space-y-4">{messages.map((msg) => (<div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${msg.sender === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-gray-700 border border-gray-200 rounded-bl-none'}`}>{msg.text}</div></div>))}{isLoading && <div className="flex gap-1 p-2"><div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div></div>}<div ref={messagesEndRef} /></div>
+                    <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-100"><div className="relative"><input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Pergunte..." className="w-full pl-4 pr-12 py-3 bg-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"/><button type="submit" className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"><Send size={16}/></button></div></form>
+                </div>
+            );
+        };
+
+        const ManageCategoriesModal = ({ isOpen, onClose, categories, onAdd, onUpdate, onDelete }) => {
+            const [editingId, setEditingId] = useState(null);
+            const [formData, setFormData] = useState({ title: '', icon: 'box', color: 'blue' });
+            const handleSubmit = (e) => { e.preventDefault(); if (!formData.title) return; if (editingId) { onUpdate({ id: editingId, ...formData }); setEditingId(null); } else { onAdd(formData); } setFormData({ title: '', icon: 'box', color: 'blue' }); };
+            const handleEdit = (cat) => { setEditingId(cat.id); setFormData({ title: cat.title, icon: cat.icon || 'box', color: cat.color || 'blue' }); };
+            if (!isOpen) return null;
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Gerenciar Categorias">
+                    <div className="p-6 space-y-6">
+                        <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
+                            <div className="flex items-center justify-between"><h4 className="text-sm font-bold text-gray-700">{editingId ? 'Editar Categoria' : 'Nova Categoria'}</h4></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome</label><input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-2 border rounded-lg outline-none focus:border-blue-500"/></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cor</label><div className="flex flex-wrap gap-2">{Object.keys(COLOR_PRESETS).map(color => (<button key={color} type="button" onClick={() => setFormData({...formData, color})} className={`w-6 h-6 rounded-full border-2 ${formData.color === color ? 'border-gray-600 scale-110' : 'border-transparent'}`} style={{backgroundColor: `var(--color-${color})`, backgroundImage: `linear-gradient(to bottom right, ${color === 'white' ? '#eee' : color}, white)`}}></button>))}</div></div>
+                            <button type="submit" className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">{editingId ? 'Salvar' : 'Adicionar'}</button>
+                        </form>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">{categories.map(cat => (<div key={cat.id} className="flex items-center justify-between p-3 bg-white border rounded-lg"><span className="font-medium text-gray-700">{cat.title}</span><div className="flex gap-1"><button onClick={() => handleEdit(cat)} className="p-2 text-blue-600"><Edit2 size={16}/></button><button onClick={() => onDelete(cat.id)} className="p-2 text-red-600"><Trash2 size={16}/></button></div></div>))}</div>
+                    </div>
+                </Modal>
+            );
+        };
+
+        const DashboardView = ({ onSelectEvent, events, members }) => {
+            const updates = [
+                { id: 1, user: 'Felipe', action: 'comentou em', target: 'Fispal Sorvetes', text: 'Produtos definidos e aprovados.', date: '04/12/2025' },
+                { id: 2, user: 'Matheus', action: 'comentou em', target: 'Fispal Sorvetes', text: 'Gráfica colocou a previsão para entrega dos rótulos para o dia 23/05.', date: '27/11/2025' },
+                { id: 3, user: 'Larissa', action: 'comentou em', target: 'Fispal Sorvetes', text: 'Produtos definidos e produzidos.', date: '27/11/2025' }
+            ];
+
+            return (
+                <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8 animate-in slide-in-from-right-4 duration-500">
+                    <div className="xl:col-span-3 space-y-8">
+                        <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex items-center justify-between">
+                                <div className="relative w-32 h-32 flex-shrink-0"><svg className="w-full h-full transform -rotate-90"><circle cx="64" cy="64" r="56" stroke="#F3F4F6" strokeWidth="12" fill="transparent" /><circle cx="64" cy="64" r="56" stroke="#002060" strokeWidth="12" fill="transparent" strokeDasharray="351.86" strokeDashoffset="351.86" strokeLinecap="round" /></svg><div className="absolute inset-0 flex flex-col items-center justify-center text-gray-800"><span className="text-3xl font-extrabold text-[#002060]">0%</span></div></div>
+                                <div className="flex-1 ml-8"><h3 className="text-lg font-bold text-gray-900 mb-4">Status Global</h3><div className="flex items-center gap-6 text-sm font-semibold"><span className="text-emerald-600 flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> 0 Feitas</span><span className="text-amber-600 flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> 176 Pend.</span></div></div>
+                            </div>
+                            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex flex-col justify-center"><h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2"><Users size={18} /> Carga de Trabalho</h3><div className="flex items-end gap-6 overflow-x-auto pb-2 hide-scrollbar">{members.map(m => (<div key={m.id} className="flex flex-col items-center gap-2 min-w-[50px]"><div className="w-10 h-1 bg-gray-100 rounded-full overflow-hidden mb-1"><div className="h-full bg-blue-600 rounded-full" style={{width: '60%'}}></div></div><Avatar member={m}/><span className="text-xs font-bold text-blue-600">3</span></div>))}</div></div>
+                        </section>
+                        <section><h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><Clock size={20} /> Próximos Eventos</h2><div className="space-y-4">{events.map(event => (<div key={event.id} onClick={() => onSelectEvent(event)} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col md:flex-row items-center gap-6"><div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100 group-hover:bg-blue-50 transition-colors"><span className="text-[10px] font-bold text-gray-500 uppercase">DEZ</span><span className="text-3xl font-extrabold text-gray-800">02</span></div><div className="flex-1"><h3 className="text-xl font-bold text-blue-700 group-hover:text-blue-900">{event.title}</h3><p className="text-sm text-gray-500 mt-1 flex items-center gap-2"><Truck size={14}/> {event.location}</p></div></div>))}</div></section>
+                    </div>
+                    <div className="xl:col-span-1"><section className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-full"><h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><MessageSquare size={20} /> Atualizações</h2><div className="space-y-6 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">{updates.map((u, i) => (<div key={i} className="relative pl-10"><div className="absolute left-0 top-0 w-8 h-8 rounded-full border-2 border-white shadow-sm z-10 bg-gray-200"><Avatar member={members.find(m => m.name.includes(u.user))}/></div><div className="flex flex-col gap-1"><p className="text-xs text-gray-500"><span className="font-bold text-gray-800">{u.user}</span> <span className="text-gray-400">{u.date}</span></p><div className="p-3 bg-gray-50 rounded-xl rounded-tl-none text-xs text-gray-600 border border-gray-100">{u.text}</div></div></div>))}</div></section></div>
+                </div>
+            );
+        };
+
+        // --- Event Detail View (Com colunas arrastáveis e ícones corrigidos) ---
+        const EventDetailView = ({ event, onBack, globalMembers }) => {
+            const [eventTeam, setEventTeam] = useState(globalMembers.slice(0, 3));
+            const [isTeamExpanded, setIsTeamExpanded] = useState(true);
+            const [tasks, setTasks] = useState([]);
+            const [viewMode, setViewMode] = useState('categories');
+            const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+            const [selectedTask, setSelectedTask] = useState(null);
+            const [categories, setCategories] = useState([
+                { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue' },
+                { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber' },
+                { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple' },
+                { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald' }
+            ]);
+            const [draggedTask, setDraggedTask] = useState(null);
+            const [dragOverColumn, setDragOverColumn] = useState(null);
+            const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
+            const [isAIOptionsOpen, setIsAIOptionsOpen] = useState(false);
+            const [aiActionLoading, setAiActionLoading] = useState(false);
+            const [aiGeneratedContent, setAiGeneratedContent] = useState("");
+            const [isAIContentModalOpen, setIsAIContentModalOpen] = useState(false);
+
+            useEffect(() => {
+                const saved = localStorage.getItem(`tasks_${event.id}`);
+                if (saved) setTasks(JSON.parse(saved));
+                else setTasks([
+                    { id: '1', text: 'Definir orçamento', category: 'planning', status: 'done', priority: 'high', responsible: globalMembers[0], messages: [] },
+                    { id: '2', text: 'Contratar buffet', category: 'logistics', status: 'in_progress', priority: 'medium', responsible: globalMembers[1], messages: [] }
+                ]);
+            }, [event]);
+
+            useEffect(() => { localStorage.setItem(`tasks_${event.id}`, JSON.stringify(tasks)); }, [tasks]);
+
+            const handleTaskDragStart = (e, task) => { setDraggedTask(task); e.dataTransfer.effectAllowed = 'move'; };
+            const handleDragOver = (e, colId) => { e.preventDefault(); setDragOverColumn(colId); };
+            const handleDrop = (e, targetId) => {
+                e.preventDefault();
+                if (!draggedTask) return;
+                if (viewMode === 'categories') {
+                    if (draggedTask.category !== targetId) setTasks(tasks.map(t => t.id === draggedTask.id ? { ...t, category: targetId } : t));
+                } else {
+                    if (draggedTask.status !== targetId) {
+                        const completed = targetId === 'done';
+                        const newStatus = targetId === 'done' ? 'done' : targetId === 'todo' ? 'todo' : targetId === 'in_progress' ? 'in_progress' : targetId;
+                        setTasks(tasks.map(t => t.id === draggedTask.id ? { ...t, status: newStatus, completed } : t));
+                    }
+                }
+                setDraggedTask(null); setDragOverColumn(null);
+            };
+
+            const columns = viewMode === 'categories' ? categories : STATUS_COLUMNS;
+
+            // Handlers para modal de tarefa
+            const handleSendMessage = (taskId, text) => setTasks(tasks.map(t => t.id === taskId ? { ...t, messages: [...(t.messages||[]), { sender: 'Eu', text, time: 'Agora' }] } : t));
+            const handleAssignResponsible = (taskId, member) => setTasks(tasks.map(t => t.id === taskId ? { ...t, responsible: member } : t));
+            const handleAddSupport = (taskId, member) => setTasks(tasks.map(t => t.id === taskId ? { ...t, support: [...(t.support||[]), member] } : t));
+            const handleAddAttachment = (taskId, att) => setTasks(tasks.map(t => t.id === taskId ? { ...t, attachments: [...(t.attachments||[]), att] } : t));
+            const handleDeleteAttachment = (taskId, attId) => setTasks(tasks.map(t => t.id === taskId ? { ...t, attachments: (t.attachments||[]).filter(a => a.id !== attId) } : t));
+
+            // Novas Funcionalidades IA
+            const handleGenerateTasks = async () => {
+                setAiActionLoading(true);
+                setIsAIOptionsOpen(false);
+                const prompt = `Você é um gerente de eventos experiente. Para o evento "${event.title}" (${event.location}, ${event.dateRange}), liste 3 tarefas essenciais de marketing e logística que não podem faltar e sejam curtas (max 5 palavras). Responda APENAS com uma lista JSON de strings, exemplo: ["Reservar hotel", "Criar banner"]. Sem markdown.`;
+                try {
+                    const text = await callGeminiFlash(prompt);
+                    const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                    const newTasksTexts = JSON.parse(jsonStr);
+                    const newTasks = newTasksTexts.map(t => ({ id: Date.now().toString() + Math.random(), text: t, category: 'planning', status: 'todo', priority: 'medium', responsible: globalMembers[0], messages: [] }));
+                    setTasks(prev => [...prev, ...newTasks]);
+                } catch (e) { console.error(e); } finally { setAiActionLoading(false); }
+            };
+
+            const handleGenerateCopy = async () => {
+                setAiActionLoading(true);
+                setIsAIOptionsOpen(false);
+                const prompt = `Crie um post curto e empolgante para o LinkedIn anunciando o evento "${event.title}" que acontecerá em ${event.location}. Use emojis.`;
+                try {
+                    const text = await callGeminiFlash(prompt);
+                    setAiGeneratedContent(text);
+                    setIsAIContentModalOpen(true);
+                } catch (e) { console.error(e); } finally { setAiActionLoading(false); }
+            };
+
+            return (
+                <div className="animate-in slide-in-from-right-4 duration-500 pb-10">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10 bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+                        {aiActionLoading && <div className="absolute inset-0 animate-shimmer opacity-50 pointer-events-none z-10"></div>}
+                        <div className="flex items-center gap-6">
+                            <button onClick={onBack} className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"><ArrowLeft size={24}/></button>
+                            <div><h1 className="text-3xl font-extrabold text-gray-900 mb-1">{event.title}</h1><p className="text-gray-500 flex items-center gap-3 text-sm font-medium"><span className="flex items-center gap-1"><Truck size={16}/> {event.location}</span><span className="h-4 w-px bg-gray-300"></span><span className="flex items-center gap-1"><CalendarIcon size={16}/> {event.dateRange}</span></p></div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                                <div className="flex items-center justify-between mb-2"><h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><Users size={18} className="text-blue-900"/> Equipe</h2><button onClick={() => setIsTeamExpanded(!isTeamExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400"><ChevronDown size={16}/></button></div>
+                                {isTeamExpanded && (<div className="space-y-2 mt-4">{eventTeam.map(member => (<div key={member.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"><Avatar member={member}/><div className="leading-tight"><p className="font-semibold text-xs text-gray-900">{member.name}</p><p className="text-[10px] text-gray-500">{member.role}</p></div></div>))}</div>)}
+                            </section>
+                        </div>
+                        <div className="lg:col-span-3">
+                            <div className="flex justify-between items-center mb-6">
+                                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg"><button onClick={() => setViewMode('categories')} className={`px-3 py-1.5 text-xs font-bold rounded-md ${viewMode === 'categories' ? 'bg-white text-blue-900 shadow-sm' : 'text-gray-500'}`}>Categorias</button><button onClick={() => setViewMode('status')} className={`px-3 py-1.5 text-xs font-bold rounded-md ${viewMode === 'status' ? 'bg-white text-blue-900 shadow-sm' : 'text-gray-500'}`}>Status</button></div>
+                                <div className="flex gap-2 relative">
+                                    <div className="relative">
+                                        <button onClick={() => setIsAIOptionsOpen(!isAIOptionsOpen)} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all"><Sparkles size={16}/> IA</button>
+                                        {isAIOptionsOpen && (
+                                            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95">
+                                                <button onClick={handleGenerateTasks} className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 hover:bg-blue-50 flex items-center gap-2"><Wand2 size={14} className="text-blue-500"/> Sugerir Tarefas</button>
+                                                <button onClick={handleGenerateCopy} className="w-full text-left px-4 py-3 text-xs font-bold text-gray-700 hover:bg-blue-50 flex items-center gap-2"><FileText size={14} className="text-purple-500"/> Criar Copy Social</button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={() => setIsManageCategoriesOpen(true)} className="p-2 border rounded-lg text-gray-500 hover:text-blue-900"><Settings size={18}/></button>
+                                    <button onClick={() => setIsAddTaskOpen(true)} className="bg-blue-900 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2"><Plus size={16}/> Nova</button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 h-full items-start">
+                                {columns.map(col => {
+                                    const colTasks = tasks.filter(t => viewMode === 'categories' ? t.category === col.id : (col.id === 'done' ? t.completed : (!t.completed && (col.id === 'todo' ? t.status === 'todo' || !t.status : t.status === col.id))));
+                                    const style = getCategoryStyles(col.color);
+                                    return (
+                                        <div key={col.id} onDragOver={(e) => handleDragOver(e, col.id)} onDrop={(e) => handleDrop(e, col.id)} className={`bg-gray-50 rounded-xl p-3 border border-gray-200 flex flex-col h-full min-h-[300px] transition-colors ${dragOverColumn === col.id ? 'drag-over' : ''}`}>
+                                            <div className={`flex items-center gap-2 p-2 rounded-lg mb-3 border bg-white shadow-sm ${style}`}>
+                                                <div className={`p-1 rounded ${style.split(' ')[1]}`}>
+                                                    {viewMode === 'categories' ? getCategoryIcon(col.icon) : (col.id === 'todo' ? <ClipboardList size={16}/> : col.id === 'in_progress' ? <Truck size={16}/> : col.id === 'review' ? <Search size={16}/> : <CheckSquare size={16}/>)}
+                                                </div>
+                                                <span className="text-xs font-bold text-gray-700">{col.title}</span><span className="ml-auto bg-gray-100 text-gray-600 text-[10px] px-2 rounded-full">{colTasks.length}</span>
+                                            </div>
+                                            <div className="space-y-2 flex-1">
+                                                {colTasks.map(task => {
+                                                    const cat = categories.find(c => c.id === task.category) || categories[0];
+                                                    const catColor = getCategoryStyles(cat.color).split(' ')[1].replace('text-', 'bg-');
+                                                    return (
+                                                        <div key={task.id} draggable onDragStart={(e) => handleTaskDragStart(e, task)} onClick={() => setSelectedTask(task)} className={`bg-white p-3 rounded-lg border shadow-sm cursor-grab hover:shadow-md transition-all group relative border-l-4 ${task.completed ? 'border-l-emerald-400 opacity-60' : 'hover:border-blue-300'} ${draggedTask?.id === task.id ? 'dragging' : ''}`} style={{ borderLeftColor: task.completed ? undefined : `var(--color-${cat.color})` }}>
+                                                            {!task.completed && <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg ${catColor}`}></div>}
+                                                            <div className="flex items-start gap-2 mb-2"><p className={`text-xs font-medium leading-tight flex-1 ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.text}</p></div>
+                                                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50"><Avatar member={task.responsible} size="w-5 h-5" textSize="text-[8px]"/><PriorityBadge level={task.priority}/></div>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {colTasks.length === 0 && <div className="text-center py-8 text-gray-300 border-2 border-dashed border-gray-200 rounded-lg"><p className="text-[10px]">Arraste aqui</p></div>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                    {/* Modais aqui... */}
+                    <TaskDetailModal task={selectedTask} isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} members={eventTeam} onSendMessage={handleSendMessage} onAssignResponsible={handleAssignResponsible} onAddSupport={handleAddSupport} onAddAttachment={handleAddAttachment} onDeleteAttachment={handleDeleteAttachment}/>
+                    <ManageCategoriesModal isOpen={isManageCategoriesOpen} onClose={() => setIsManageCategoriesOpen(false)} categories={categories} onAdd={(c) => setCategories([...categories, {...c, id: Date.now().toString()}])} onUpdate={(c) => setCategories(categories.map(cat => cat.id === c.id ? c : cat))} onDelete={(id) => setCategories(categories.filter(c => c.id !== id))} />
+                    <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} title="Nova Tarefa"><div className="p-6"><button onClick={() => { setTasks([...tasks, { id: Date.now().toString(), text: 'Nova Tarefa', category: categories[0].id, status: 'todo', priority: 'medium', responsible: eventTeam[0], messages: [] }]); setIsAddTaskOpen(false); }} className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">Criar</button></div></Modal>
+                    <AIContentModal isOpen={isAIContentModalOpen} onClose={() => setIsAIContentModalOpen(false)} content={aiGeneratedContent} />
+                </div>
+            );
+        };
+
+        // --- App Principal ---
         const App = () => {
             const [view, setView] = useState('dashboard');
             const [selectedEvent, setSelectedEvent] = useState(null);
+            const [isAIOpen, setIsAIOpen] = useState(false);
+            const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [logo, setLogo] = useState(null);
             
-            // Dados Mockados para restaurar o layout imediatamente
-            const [members] = useState([
+            const members = [
                 { id: '1', name: 'Paulo Mokarzel', role: 'Gestor da Equipe', avatarType: 'executive', avatarContent: 'ex1' },
                 { id: '2', name: 'Ana Silva', role: 'Gerente de Mkt', avatarType: 'executive', avatarContent: 'ex2' },
                 { id: '3', name: 'Beatriz Costa', role: 'Coordenadora', avatarType: 'executive', avatarContent: 'ex3' },
                 { id: '4', name: 'João Mendes', role: 'Logística', avatarType: 'executive', avatarContent: 'ex4' },
-                { id: '5', name: 'Fernanda Lima', role: 'Social Media', avatarType: 'executive', avatarContent: 'ex5' },
-            ]);
-
-            const [events] = useState([
-                { id: 'ev1', title: 'Convenção de Vendas', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026', pending: 22, daysLeft: 56 },
-                { id: 'ev2', title: 'Nis Nutri', location: 'Transamerica Expo Center', dateRange: '31/03/2026 - 01/04/2026', pending: 15, daysLeft: 113 },
-                { id: 'ev3', title: 'Jornada Técnica', location: 'Hotel', dateRange: '01/05/2026', pending: 10, daysLeft: 144 },
-            ]);
-
-            const updates = [
-                { user: 'Felipe', action: 'comentou em', target: 'Fispal Sorvetes', text: 'sijda', date: '04/12/2025' },
-                { user: 'Matheus', action: 'alterou status', target: 'Fispal Sorvetes', text: 'Gráfica colocou a previsão para dia 23/05.', date: '27/11/2025' },
-                { user: 'Larissa', action: 'concluiu', target: 'Fispal Sorvetes', text: 'Produtos definidos e produzidos.', date: '27/11/2025' }
+                { id: '5', name: 'Fernanda Lima', role: 'Social Media', avatarType: 'executive', avatarContent: 'ex5' }
             ];
 
-            const [logo, setLogo] = useState(null);
+            const events = [{ id: 'ev1', title: 'Convenção de Vendas', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026' }];
+            const notifications = [{ text: "Tarefa concluída", date: "Há 10 min" }];
 
-            // Auth Anônima para Firebase (se disponível)
-            useEffect(() => {
-                if (isFirebaseAvailable) signInAnonymously(auth).catch(() => {});
-            }, []);
+            const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(setLogo); };
 
-            // --- VIEW: DASHBOARD (A tela que você quer) ---
-            const Dashboard = () => (
-                <div className="max-w-[1600px] mx-auto animate-fade-in">
-                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                        {/* Coluna Principal */}
-                        <div className="xl:col-span-3 space-y-8">
-                            
-                            {/* Cards Topo */}
-                            <section className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Status Global */}
-                                <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex items-center justify-between relative overflow-hidden">
-                                    <div className="relative w-32 h-32 flex-shrink-0">
-                                        <svg className="w-full h-full transform -rotate-90">
-                                            <circle cx="64" cy="64" r="56" stroke="#F3F4F6" strokeWidth="12" fill="transparent" />
-                                            <circle cx="64" cy="64" r="56" stroke="#002060" strokeWidth="12" fill="transparent" strokeDasharray="351.86" strokeDashoffset="351.86" strokeLinecap="round" />
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-800">
-                                            <span className="text-3xl font-extrabold text-[#002060]">0%</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 ml-8 z-10">
-                                        <h3 className="text-lg font-bold text-gray-900 mb-4">Status Global</h3>
-                                        <div className="flex items-center gap-6 text-sm font-semibold">
-                                            <span className="text-emerald-600 flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div> 0 Feitas</span>
-                                            <span className="text-amber-600 flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div> 176 Pend.</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Carga de Trabalho */}
-                                <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex flex-col justify-center">
-                                    <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
-                                        <Users size={18} /> Carga de Trabalho
-                                    </h3>
-                                    <div className="flex items-end gap-6 overflow-x-auto pb-2 hide-scrollbar">
-                                        {members.map((m, i) => (
-                                            <div key={m.id} className="flex flex-col items-center gap-2 min-w-[50px]">
-                                                <div className="w-10 h-1 bg-gray-100 rounded-full overflow-hidden mb-1">
-                                                    <div className="h-full bg-blue-600 rounded-full" style={{ width: i < 3 ? '60%' : '0%' }}></div>
-                                                </div>
-                                                <Avatar member={m} />
-                                                <span className={`text-xs font-bold ${i < 3 ? 'text-blue-600' : 'text-blue-900'}`}>{i < 3 ? 1 : 0}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-
-                            {/* Lista de Eventos */}
-                            <section>
-                                <h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2">
-                                    <Clock size={20} /> Próximos Eventos
-                                </h2>
-                                <div className="space-y-4">
-                                    {events.map(event => (
-                                        <div key={event.id} onClick={() => { setSelectedEvent(event); setView('event'); }} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer flex flex-col md:flex-row items-center gap-6 group">
-                                            <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100 group-hover:bg-blue-50 transition-colors">
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase">DEZ</span>
-                                                <span className="text-3xl font-extrabold text-gray-800 group-hover:text-blue-900">02</span>
-                                            </div>
-                                            <div className="flex-1 w-full">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <h3 className="text-xl font-bold text-blue-900 group-hover:text-blue-700">{event.title}</h3>
-                                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full flex gap-1 items-center">
-                                                        <AlertTriangle size={10} /> faltam {event.pending} tarefas
-                                                    </span>
-                                                </div>
-                                                <div className="text-sm text-gray-500 space-y-1">
-                                                    <p className="flex items-center gap-2 text-xs"><div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div> {event.location}</p>
-                                                    <div className="flex items-center gap-3 mt-2">
-                                                        <span className="text-blue-600 font-bold text-xs bg-blue-50 px-2 py-0.5 rounded">{event.dateRange}</span>
-                                                        <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold">Faltam {event.daysLeft} dias</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        </div>
-
-                        {/* Sidebar Direita - Atualizações */}
-                        <div className="xl:col-span-1">
-                            <section className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-full">
-                                <h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><MessageSquare size={20} /> Atualizações</h2>
-                                <div className="space-y-6 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
-                                    {updates.map((u, i) => (
-                                        <div key={i} className="relative pl-10">
-                                            <div className="absolute left-0 top-0 w-8 h-8 rounded-full border-2 border-white shadow-sm z-10 bg-gray-200 overflow-hidden">
-                                                <span className="flex w-full h-full items-center justify-center text-[10px] font-bold">{u.user[0]}</span>
-                                            </div>
-                                            <div className="flex flex-col gap-1">
-                                                <p className="text-xs text-gray-500"><span className="font-bold text-gray-800">{u.user}</span> <span className="text-gray-400">{u.date}</span></p>
-                                                <p className="text-[10px] text-blue-500 font-medium">{u.target}</p>
-                                                <div className="p-3 bg-gray-50 rounded-xl rounded-tl-none text-xs text-gray-600 border border-gray-100">{u.text}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            // --- RENDERIZAÇÃO PRINCIPAL ---
             return (
-                <div className="min-h-screen bg-[#F8FAFC] pb-12">
-                    {/* Header Fixo */}
-                    <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-100 z-50 h-20 px-8 flex items-center justify-between shadow-sm">
+                <div className="min-h-screen pb-12">
+                    <header className="fixed top-0 left-0 right-0 bg-white h-24 border-b border-gray-100 z-40 px-8 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-6 cursor-pointer" onClick={() => setView('dashboard')}>
-                            <div className="h-10 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-xs text-gray-400 font-medium hover:border-blue-400 hover:text-blue-500 transition-colors">
-                                {logo ? <img src={logo} className="h-full object-contain"/> : "Sua Logo"}
-                                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if(file) {
-                                        const reader = new FileReader();
-                                        reader.onload = (ev) => setLogo(ev.target.result);
-                                        reader.readAsDataURL(file);
-                                    }
-                                }}/>
-                            </div>
-                            <div className="h-8 w-px bg-gray-200"></div>
-                            <div>
-                                <h1 className="text-xl font-extrabold text-[#002060]">Event Hub</h1>
-                                <p className="text-xs text-gray-500 font-medium">Painel de Marketing</p>
-                            </div>
+                            <div className={`h-12 w-32 rounded-lg flex items-center justify-center text-xs text-gray-400 font-medium relative transition-colors ${!logo ? 'border-2 border-dashed border-gray-300 hover:border-blue-400' : ''}`}>{logo ? <img src={logo} className="h-full w-full object-contain"/> : "Sua Logo"}<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleLogoUpload} accept="image/*"/></div>
+                            <div className="h-10 w-px bg-gray-200"></div><div><h1 className="text-2xl font-extrabold text-[#002060]">Event Hub</h1><p className="text-sm text-gray-500 font-medium">Painel de Marketing</p></div>
                         </div>
-
-                        <div className="flex items-center gap-4">
-                            <div className="hidden md:flex items-center gap-3 pr-6 border-r border-gray-100">
-                                <Avatar member={members[0]} />
-                                <div className="text-right">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Gestor</p>
-                                    <p className="text-sm font-bold text-gray-800">{members[0].name}</p>
-                                </div>
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3 pr-6 border-r border-gray-100 hidden md:flex">
+                                <div className="w-10 h-10 rounded-full bg-gray-200 border border-gray-300 overflow-hidden relative"><Avatar member={members[0]} size="w-full h-full" textSize="text-xs"/></div>
+                                <div className="text-right"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">Gestor da Equipe</p><p className="text-sm font-bold text-gray-800 leading-tight">{members[0].name}</p></div>
                             </div>
-                            <button className="p-2 hover:bg-gray-100 rounded-xl text-gray-500"><Bell size={20}/></button>
-                            <button className="p-2 hover:bg-gray-100 rounded-xl text-gray-500"><Settings size={20}/></button>
-                            <button className="bg-[#1e1b4b] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-900 transition-colors shadow-lg shadow-blue-900/20">
-                                <Plus size={18} /> Novo Evento
-                            </button>
+                            <div className="flex items-center gap-3 relative">
+                                <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-xl transition-colors relative border border-gray-200 shadow-sm"><Bell size={20}/><span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span></button>
+                                {isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} notifications={notifications} />}
+                                <button onClick={() => setIsSettingsOpen(true)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 shadow-sm"><Settings size={20}/></button>
+                            </div>
                         </div>
                     </header>
-
-                    {/* Conteúdo */}
-                    <main className="pt-28 px-8">
-                        {view === 'dashboard' ? <Dashboard /> : (
-                            <div className="text-center py-20 animate-fade-in">
-                                <button onClick={() => setView('dashboard')} className="mb-4 text-blue-600 hover:underline flex items-center justify-center gap-2 mx-auto"><ArrowLeft size={16}/> Voltar</button>
-                                <h2 className="text-2xl font-bold text-gray-800">Detalhes do Evento: {selectedEvent?.title}</h2>
-                                <p className="text-gray-500">Funcionalidade completa disponível no modo detalhado.</p>
-                            </div>
-                        )}
+                    <main className="pt-32 px-8 max-w-[1600px] mx-auto">
+                        {view === 'dashboard' ? (<DashboardView onSelectEvent={(evt) => { setSelectedEvent(evt); setView('event'); }} events={events} members={members} />) : (<EventDetailView event={selectedEvent} onBack={() => setView('dashboard')} globalMembers={members} />)}
                     </main>
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} events={events} tasks={[]} />
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} logo={logo} setLogo={setLogo} onUpdateLogo={setLogo} onAddMember={() => {}} onUpdateMember={() => {}} onDeleteMember={() => {}} />
+                    <button onClick={() => setIsAIOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center group"><Bot size={28} className="group-hover:animate-bounce"/></button>
                 </div>
             );
         };
@@ -297,7 +737,6 @@
     </script>
 </body>
 </html>
-
 
 
 
