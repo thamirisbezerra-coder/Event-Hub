@@ -22,8 +22,7 @@ import {
     getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken 
 } from 'firebase/auth';
 
-// --- Configuração Firebase (Corrigida para usar Variável de Ambiente) ---
-// Prioriza a configuração injetada pelo ambiente para evitar mismatch de token
+// --- Configuração Firebase ---
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
   apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
   authDomain: "bolsas-termicas.firebaseapp.com",
@@ -37,11 +36,10 @@ const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__f
 let app, auth, db, analytics;
 let isFirebaseAvailable = false;
 
-// Mantemos um ID de app padrão para estruturar os dados dentro do banco
+// ID do app para estruturar os dados
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-hub-production';
 
 try {
-    // Inicializa com a configuração correta
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
@@ -81,7 +79,7 @@ const callGeminiFlash = async (prompt: string, systemInstruction: string = ""): 
     }
 };
 
-// --- Utils: Compressão de Imagem ---
+// --- Utils: Compressão de Imagem (CORRIGIDO PARA PNG) ---
 const compressImage = (file: File, maxWidth = 300): Promise<string> => {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -95,9 +93,15 @@ const compressImage = (file: File, maxWidth = 300): Promise<string> => {
                 canvas.width = maxWidth;
                 canvas.height = img.height * scaleSize;
                 const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-                // Use PNG para arquivos PNG para preservar a transparência. JPEG para outros.
-                resolve(canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.7)); 
+                if (ctx) {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    // CORREÇÃO AQUI: Verifica se é PNG para manter transparência
+                    // Se for PNG, usa 'image/png'. Caso contrário, 'image/jpeg' (que pode ficar com fundo preto se tiver transparência)
+                    const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                    resolve(canvas.toDataURL(outputType, 0.9)); 
+                } else {
+                    resolve(img.src); // Fallback
+                }
             };
         };
     });
@@ -534,11 +538,6 @@ const AddTaskModal = ({ isOpen, onClose, onAdd, members, categories, preSelected
         if(!text) return; 
         const responsible = members.find((m: any) => m.id === responsibleId) || members[0] || { name: 'Desconhecido', role: 'N/A' }; 
         onAdd({ text, category, responsible, priority, status: 'todo' }); 
-        
-        // Add suggestions that were not selected if any? For now we only add the main text.
-        // If the user clicked a suggestion, 'text' is already updated.
-        // If we want to add MULTIPLE tasks from suggestions:
-        
         setText(""); 
         setSuggestions([]);
         onClose(); 
@@ -560,10 +559,8 @@ const AddTaskModal = ({ isOpen, onClose, onAdd, members, categories, preSelected
     };
 
     const addSuggestionAsTask = (suggestion: string) => {
-        // Adds suggestion immediately as a new task
         const responsible = members.find((m: any) => m.id === responsibleId) || members[0];
         onAdd({ text: suggestion, category, responsible, priority, status: 'todo' });
-        // Remove from list
         setSuggestions(suggestions.filter(s => s !== suggestion));
     };
 
@@ -961,11 +958,6 @@ const DashboardView = ({ onSelectEvent, events, members }: any) => {
 };
 
 const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
-    // ... [existing EventDetailView code - unchanged for brevity, reusing previous implementation logic]
-    // Since the user asked specifically about the dashboard screen, I'm keeping this collapsed in thought but 
-    // will include the full functional code in the output to ensure the file works.
-    
-    // (Reusing the full implementation from the previous file to avoid breaking the detail view)
     const [eventTeam, setEventTeam] = useState(globalMembers.slice(0, 3));
     const [isAddingMember, setIsAddingMember] = useState(false);
     const [isTeamExpanded, setIsTeamExpanded] = useState(true);
@@ -1408,7 +1400,7 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
     );
 };
 
-// --- COMPONENTE PRINCIPAL (ATUALIZADO PARA CORRESPONDER AO HEADER SOLICITADO) ---
+// --- COMPONENTE PRINCIPAL ---
 const App = () => {
     const [view, setView] = useState<'dashboard' | 'event'>('dashboard');
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -1425,7 +1417,6 @@ const App = () => {
         { id: 'ev2', title: 'Nis Nutri', location: 'Transamerica Expo Center', dateRange: '31/03/2026 - 01/04/2026', pending: 22 },
         { id: 'ev3', title: 'Jornada Técnica', location: 'Hotel', dateRange: '01/05/2026', pending: 22 },
     ]);
-    // Logo Inicial Nulo/Vazio conforme pedido ("Remova essa logo generica")
     const [logo, setLogo] = useState<any>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAIOpen, setIsAIOpen] = useState(false);
@@ -1442,13 +1433,8 @@ const App = () => {
                         await signInAnonymously(auth);
                     }
                 } catch (e) {
-                    console.error("Auth Error with custom token, falling back to anonymous:", e);
-                    // Fallback to anonymous auth if custom token fails
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (anonErr) {
-                         console.error("Fallback Auth Error:", anonErr);
-                    }
+                    console.error("Auth Error:", e);
+                    try { await signInAnonymously(auth); } catch (anonErr) { console.error("Fallback Auth Error:", anonErr); }
                 }
             };
             initAuth();
@@ -1463,7 +1449,6 @@ const App = () => {
             const qm = collection(db, 'artifacts', appId, 'public', 'data', 'members');
             const um = onSnapshot(qm, (snap) => {
                 if (snap.empty) {
-                    // Seed default members if empty
                     const defaultMembers = [
                         { id: '1', name: 'Paulo Mokarzel', role: 'Gestor da Equipe', avatarType: 'executive', avatarContent: 'ex1' },
                         { id: '2', name: 'Ana Silva', role: 'Gerente de Mkt', avatarType: 'executive', avatarContent: 'ex2' },
@@ -1480,7 +1465,6 @@ const App = () => {
             const qe = collection(db, 'artifacts', appId, 'public', 'data', 'events');
             const ue = onSnapshot(qe, (snap) => {
                 if (snap.empty) {
-                    // Seed default events
                     const defaultEvents = [
                         { id: 'ev1', title: 'Convenção de Vendas', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026', pending: 22 },
                         { id: 'ev2', title: 'Nis Nutri', location: 'Transamerica Expo Center', dateRange: '31/03/2026 - 01/04/2026', pending: 22 },
@@ -1517,10 +1501,8 @@ const App = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-800 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
-            {/* Header Redesenhado conforme a imagem */}
             <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-100 z-50 h-20 flex items-center justify-between px-8 shadow-sm">
                 <div className="flex items-center gap-6 h-full py-2 cursor-pointer" onClick={() => setView('dashboard')}>
-                    {/* Placeholder para Logo ou a Logo Carregada */}
                     <div className="h-full flex items-center justify-center">
                         {typeof logo === 'string' && logo ? (
                             <img src={logo} className="h-10 w-auto object-contain" />
@@ -1540,7 +1522,6 @@ const App = () => {
                 </div>
 
                 <div className="flex items-center gap-6">
-                     {/* User Profile - Centralizado/Direita como na imagem */}
                     <div className="flex items-center gap-3 pr-6 border-r border-gray-100 hidden md:flex">
                         <div className="w-10 h-10 rounded-full bg-gray-200 border border-gray-300 overflow-hidden relative">
                              <Avatar member={members[0]} size="w-full h-full" textSize="text-xs"/>
@@ -1557,7 +1538,6 @@ const App = () => {
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-xl transition-colors relative border border-gray-200 shadow-sm">
                             <Bell size={20}/>
-                            {/* <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span> */}
                         </button>
                         {isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} notifications={[{ text: 'Novo lead adicionado', date: '5 min atrás' }, { text: 'Tarefa concluída por Ana', date: '1 hora atrás' }]} />}
                         
@@ -1610,7 +1590,6 @@ const App = () => {
                 user={user}
             />
             
-            {/* Floating AI Button (Restored for easy access) */}
              <button onClick={() => setIsAIOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center group">
                 <Sparkles size={24} className="group-hover:animate-spin-slow"/>
             </button>
