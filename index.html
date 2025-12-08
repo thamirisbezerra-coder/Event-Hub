@@ -136,6 +136,7 @@
                         const ctx = canvas.getContext('2d');
                         if (ctx) {
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            // Mantém transparência PNG
                             const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
                             resolve(canvas.toDataURL(outputType, 0.9)); 
                         } else resolve(img.src);
@@ -199,7 +200,10 @@
         // --- Componentes ---
         const Avatar = ({ member, size = "w-10 h-10", textSize = "text-xs" }) => {
             if (!member) return <div className={`${size} rounded-full bg-gray-200 border border-gray-300`}></div>;
+            
+            // Verifica se é gestor (pela role)
             const isManager = member.role && member.role.toLowerCase().includes('gestor');
+
             const content = member.photoUrl ? (
                 <img src={member.photoUrl} className="w-full h-full object-cover" />
             ) : (
@@ -207,6 +211,7 @@
                     {member.name?.substring(0,2)}
                 </div>
             );
+
             return (
                 <div className={`${size} rounded-full bg-white border border-gray-200 relative`}>
                     <div className="w-full h-full rounded-full overflow-hidden">{content}</div>
@@ -266,14 +271,36 @@
             const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(onUpdateLogo); };
             const handleMemberPhotoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 100).then(setNewMemberPhoto); };
             const handleEditPhotoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 100).then(setEditPhoto); };
-            const handleAdd = (e) => { e.preventDefault(); if (!newMemberName || !newMemberRole) return; onAddMember({ name: newMemberName, role: newMemberRole, photoUrl: newMemberPhoto }); setNewMemberName(''); setNewMemberRole(''); setNewMemberPhoto(null); };
-            const startEdit = (member) => { setEditingId(member.id); setEditName(member.name); setEditRole(member.role); setEditPhoto(member.photoUrl || null); };
-            const saveEdit = (id) => { onUpdateMember({ id, name: editName, role: editRole, photoUrl: editPhoto }); setEditingId(null); };
+            
+            const handleAdd = (e) => { 
+                e.preventDefault(); 
+                if (!newMemberName || !newMemberRole) return; 
+                onAddMember({ name: newMemberName, role: newMemberRole, photoUrl: newMemberPhoto }); 
+                setNewMemberName(''); 
+                setNewMemberRole(''); 
+                setNewMemberPhoto(null); 
+            };
+            
+            const startEdit = (member) => { 
+                setEditingId(member.id); 
+                setEditName(member.name); 
+                setEditRole(member.role); 
+                setEditPhoto(member.photoUrl || null); 
+            };
+            
+            const saveEdit = (id) => { 
+                onUpdateMember({ id, name: editName, role: editRole, photoUrl: editPhoto }); 
+                setEditingId(null); 
+            };
+
+            // Encontra o gestor
+            const manager = members.find(m => m.role.toLowerCase().includes('gestor')) || members[0];
 
             if (!isOpen) return null;
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-2xl">
                     <div className="p-6 space-y-8">
+                        {/* Seção Identidade */}
                         <section>
                             <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><ImageIcon size={18} /> Identidade</h4>
                             <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
@@ -281,6 +308,8 @@
                                 <div className="flex-1"><p className="font-bold text-gray-800 text-sm mb-1">Carregar logo</p><div className="flex gap-2"><button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 bg-white">Escolher arquivo</button><input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" /></div></div>
                             </div>
                         </section>
+                        
+                        {/* Seção Equipe */}
                         <section>
                             <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><Users size={18} /> Equipe</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -294,6 +323,8 @@
                                     </div>
                                 ))}
                             </div>
+                            
+                            {/* Formulário Novo Membro */}
                             <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
                                 <h5 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><UserPlus size={16}/> Novo Membro</h5>
                                 <form onSubmit={handleAdd} className="flex flex-col gap-3">
@@ -343,7 +374,7 @@
                                             <Avatar member={responsible} size="w-8 h-8"/>
                                             <div><p className="text-xs font-bold text-gray-800 flex items-center gap-1">{responsible.name} <ChevronDown size={12}/></p></div>
                                         </button>
-                                        {isSelectingResponsible && (<div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2"><div className="space-y-1">{members.map((member) => (<button key={member.id} onClick={() => { onAssignResponsible(task.id, member); setIsSelectingResponsible(false); }} className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 text-left ${responsible.name === member.name ? 'bg-blue-50' : ''}`}><Avatar member={member} size="w-6 h-6"/><span className="text-xs font-bold">{member.name}</span></button>))}</div></div>)}
+                                        {isSelectingResponsible && (<div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2"><div className="space-y-1">{members.map((member) => (<button key={member.id} onClick={() => { onAssignResponsible(task.id, member); setIsSelectingResponsible(false); }} className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors text-left ${responsible.name === member.name ? 'bg-blue-50' : ''}`}><Avatar member={member} size="w-6 h-6"/><span className="text-xs font-bold">{member.name}</span></button>))}</div></div>)}
                                     </div>
                                     <div className="text-right">
                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</p>
@@ -819,6 +850,23 @@
                 // REMOVIDO: confirm() bloqueava a exclusão em alguns ambientes. Agora deleta direto.
                 setMembers(prev => prev.filter(m => m.id !== id));
             };
+
+            // PERSISTÊNCIA MANUAL
+            useEffect(() => {
+                const savedMembers = localStorage.getItem('eh_members');
+                if (savedMembers) setMembers(JSON.parse(savedMembers));
+                const savedLogo = localStorage.getItem('eh_logo');
+                if (savedLogo) setLogo(savedLogo);
+            }, []);
+
+            useEffect(() => {
+                localStorage.setItem('eh_members', JSON.stringify(members));
+            }, [members]);
+
+            useEffect(() => {
+                if (logo) localStorage.setItem('eh_logo', logo);
+                else localStorage.removeItem('eh_logo');
+            }, [logo]);
 
             return (
                 <div className="min-h-screen pb-12">
