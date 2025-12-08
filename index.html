@@ -136,7 +136,6 @@
                         const ctx = canvas.getContext('2d');
                         if (ctx) {
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            // Mantém transparência PNG
                             const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
                             resolve(canvas.toDataURL(outputType, 0.9)); 
                         } else resolve(img.src);
@@ -200,10 +199,7 @@
         // --- Componentes ---
         const Avatar = ({ member, size = "w-10 h-10", textSize = "text-xs" }) => {
             if (!member) return <div className={`${size} rounded-full bg-gray-200 border border-gray-300`}></div>;
-            
-            // Verifica se é gestor (pela role)
             const isManager = member.role && member.role.toLowerCase().includes('gestor');
-
             const content = member.photoUrl ? (
                 <img src={member.photoUrl} className="w-full h-full object-cover" />
             ) : (
@@ -211,7 +207,6 @@
                     {member.name?.substring(0,2)}
                 </div>
             );
-
             return (
                 <div className={`${size} rounded-full bg-white border border-gray-200 relative`}>
                     <div className="w-full h-full rounded-full overflow-hidden">{content}</div>
@@ -227,9 +222,10 @@
         const PriorityBadge = ({ level, onClick }) => {
             const styles = { high: "bg-red-100 text-red-700 hover:bg-red-200", medium: "bg-amber-100 text-amber-700 hover:bg-amber-200", low: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" };
             const labels = { high: "Alta", medium: "Média", low: "Baixa" };
+            const safeLevel = styles[level] ? level : 'low';
             return (
-                <button onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-transparent transition-colors ${styles[level] || styles.low}`}>
-                    <Flag size={10} fill="currentColor" /> {labels[level] || "Baixa"}
+                <button onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-transparent transition-colors ${styles[safeLevel]}`}>
+                    <Flag size={10} fill="currentColor" /> {labels[safeLevel]}
                 </button>
             );
         };
@@ -255,125 +251,58 @@
 
         // --- Configurações Modal ---
         const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onUpdateLogo, onAddMember, onUpdateMember, onDeleteMember }) => {
-            const [activeTab, setActiveTab] = useState('team');
+            const [newMemberName, setNewMemberName] = useState('');
+            const [newMemberRole, setNewMemberRole] = useState('');
             const fileInputRef = useRef(null);
+            const memberPhotoInputRef = useRef(null);
+            const editPhotoInputRef = useRef(null);
             
-            // Estados para edição
             const [editingId, setEditingId] = useState(null);
             const [editName, setEditName] = useState('');
             const [editRole, setEditRole] = useState('');
+            const [editPhoto, setEditPhoto] = useState(null);
+            const [newMemberPhoto, setNewMemberPhoto] = useState(null);
             
-            // Estados para novo membro
-            const [newMemberName, setNewMemberName] = useState('');
-            const [newMemberRole, setNewMemberRole] = useState('');
-
-            const manager = members.find(m => m.role.includes('Gestor')) || members[0];
-            
-            const handleLogoUpload = (e) => {
-                const file = e.target.files[0];
-                if(file) compressImage(file, 200).then(onUpdateLogo);
-            };
-
-            const handleStartEdit = (member) => {
-                setEditingId(member.id);
-                setEditName(member.name);
-                setEditRole(member.role);
-            };
-
-            const handleSaveEdit = (id) => {
-                onUpdateMember({ id, name: editName, role: editRole });
-                setEditingId(null);
-            };
-
-            const handleAddNew = (e) => {
-                e.preventDefault();
-                if(!newMemberName || !newMemberRole) return;
-                onAddMember({ name: newMemberName, role: newMemberRole });
-                setNewMemberName('');
-                setNewMemberRole('');
-            };
+            const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(onUpdateLogo); };
+            const handleMemberPhotoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 100).then(setNewMemberPhoto); };
+            const handleEditPhotoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 100).then(setEditPhoto); };
+            const handleAdd = (e) => { e.preventDefault(); if (!newMemberName || !newMemberRole) return; onAddMember({ name: newMemberName, role: newMemberRole, photoUrl: newMemberPhoto }); setNewMemberName(''); setNewMemberRole(''); setNewMemberPhoto(null); };
+            const startEdit = (member) => { setEditingId(member.id); setEditName(member.name); setEditRole(member.role); setEditPhoto(member.photoUrl || null); };
+            const saveEdit = (id) => { onUpdateMember({ id, name: editName, role: editRole, photoUrl: editPhoto }); setEditingId(null); };
 
             if (!isOpen) return null;
             return (
-                <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-4xl">
-                    <div className="p-8 bg-gray-50 min-h-[500px] space-y-8">
-                        {/* Seção Identidade */}
-                        <div className="space-y-3">
-                            <h4 className="text-blue-900 font-bold flex items-center gap-2"><ImageIcon size={18} /> Identidade</h4>
-                            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-8">
-                                <div className="w-40 h-24 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden relative group">
-                                    {logo ? <img src={logo} className="w-full h-full object-contain p-2"/> : <span className="text-gray-400 text-xs">Sem Logo</span>}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-gray-800 mb-1">Carregar logo</p>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => fileInputRef.current.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 bg-white shadow-sm">Escolher arquivo</button>
-                                        <span className="text-sm text-gray-400 self-center">Nenhum arquivo escolhido</span>
-                                    </div>
-                                    <input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*"/>
-                                </div>
+                <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-2xl">
+                    <div className="p-6 space-y-8">
+                        <section>
+                            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><ImageIcon size={18} /> Identidade</h4>
+                            <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
+                                <div className="h-16 flex items-center justify-center px-4 bg-gray-50 rounded-lg border border-gray-100 min-w-[150px]">{logo ? <img src={logo} className="h-10 w-auto object-contain" /> : <span className="text-sm text-gray-400">Sem Logo</span>}</div>
+                                <div className="flex-1"><p className="font-bold text-gray-800 text-sm mb-1">Carregar logo</p><div className="flex gap-2"><button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 bg-white">Escolher arquivo</button><input type="file" ref={fileInputRef} onChange={handleLogoUpload} className="hidden" accept="image/*" /></div></div>
                             </div>
-                        </div>
-
-                        {/* Seção Gestor */}
-                        <div className="space-y-3">
-                            <label className="text-sm font-bold text-gray-700 block">Gestor da Equipe (Aparece no Topo)</label>
-                            <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <Avatar member={manager} />
-                                    <span className="font-bold text-gray-800">{manager?.name || 'Selecione...'}</span>
-                                </div>
-                                <ChevronDown size={16} className="text-gray-400"/>
-                            </div>
-                        </div>
-
-                        {/* Seção Equipe */}
-                        <div className="space-y-3">
-                            <h4 className="text-blue-900 font-bold flex items-center gap-2"><Users size={18} /> Equipe</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {members.map(member => (
-                                    <div key={member.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between group hover:border-blue-300 transition-colors">
+                        </section>
+                        <section>
+                            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><Users size={18} /> Equipe</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                {members.map((member) => (
+                                    <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:shadow-sm transition-shadow">
                                         <div className="flex items-center gap-3 w-full">
-                                            <Avatar member={member} size="w-10 h-10"/>
-                                            <div className="flex-1 min-w-0">
-                                                {editingId === member.id ? (
-                                                    <div className="flex flex-col gap-1">
-                                                        <input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" placeholder="Nome" />
-                                                        <input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" placeholder="Cargo" />
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <p className="font-bold text-gray-800 text-sm truncate">{member.name}</p>
-                                                        <p className="text-xs text-gray-500 truncate">{member.role}</p>
-                                                    </>
-                                                )}
-                                            </div>
+                                            {editingId === member.id ? (<div className="relative group cursor-pointer" onClick={() => editPhotoInputRef.current?.click()}><div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">{editPhoto ? <img src={editPhoto} className="w-full h-full object-cover"/> : <Camera size={16} className="text-gray-400"/>}</div><input type="file" ref={editPhotoInputRef} onChange={handleEditPhotoUpload} className="hidden" accept="image/*" /></div>) : (<Avatar member={member} />)}
+                                            <div className="flex-1 min-w-0">{editingId === member.id ? (<div className="flex flex-col gap-1"><input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" placeholder="Nome" /><input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" placeholder="Cargo" /></div>) : (<><p className="font-bold text-gray-800 text-sm truncate">{member.name}</p><p className="text-xs text-gray-500 truncate">{member.role}</p></>)}</div>
                                         </div>
-                                        <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity ml-2">
-                                            {editingId === member.id ? (
-                                                <button onClick={() => handleSaveEdit(member.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Salvar"><Check size={16}/></button>
-                                            ) : (
-                                                <button onClick={() => handleStartEdit(member)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50" title="Editar"><Edit2 size={16}/></button>
-                                            )}
-                                            <button onClick={() => onDeleteMember(member.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50" title="Excluir"><Trash2 size={16}/></button>
-                                        </div>
+                                        <div className="flex gap-1 ml-2">{editingId === member.id ? (<button onClick={() => saveEdit(member.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16}/></button>) : (<button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>)}<button onClick={() => onDeleteMember(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></div>
                                     </div>
                                 ))}
                             </div>
-                        </div>
-
-                        {/* Novo Membro */}
-                        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mt-4">
-                            <h5 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><UserPlus size={18}/> Novo Membro</h5>
-                            <form onSubmit={handleAddNew} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nome" className="p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500" />
-                                <div className="flex gap-2">
-                                    <input value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)} placeholder="Cargo" className="flex-1 p-3 border border-gray-200 rounded-xl outline-none focus:border-blue-500" />
-                                    <button type="submit" className="bg-blue-900 text-white px-4 rounded-xl font-bold hover:bg-blue-800 transition-colors">Add</button>
-                                </div>
-                            </form>
-                        </div>
-
+                            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                                <h5 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><UserPlus size={16}/> Novo Membro</h5>
+                                <form onSubmit={handleAdd} className="flex flex-col gap-3">
+                                    <div className="flex gap-3"><input placeholder="Nome" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/><input placeholder="Cargo" value={newMemberRole} onChange={e => setNewMemberRole(e.target.value)} className="flex-1 p-2 border border-gray-300 rounded-lg outline-none focus:border-blue-500"/></div>
+                                    <div className="flex items-center gap-2"><button type="button" onClick={() => memberPhotoInputRef.current?.click()} className="text-xs flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"><Camera size={14}/> {newMemberPhoto ? 'Foto Selecionada' : 'Carregar Foto'}</button><input type="file" ref={memberPhotoInputRef} onChange={handleMemberPhotoUpload} className="hidden" accept="image/*" />{newMemberPhoto && <img src={newMemberPhoto} className="w-8 h-8 rounded-full object-cover border" />}</div>
+                                    <button type="submit" disabled={!newMemberName} className="bg-blue-900 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-800 disabled:opacity-50 mt-2">Adicionar Membro</button>
+                                </form>
+                            </div>
+                        </section>
                     </div>
                 </Modal>
             );
@@ -392,6 +321,7 @@
             
             const responsible = task.responsible || { name: "Não definido", role: "-", avatar: "?" };
             const attachments = task.attachments || [];
+            const supportList = task.support || [];
 
             const handleSend = () => { if (!messageText.trim()) return; onSendMessage(task.id, messageText); setMessageText(""); };
             const handleFileUpload = (e) => {
@@ -454,7 +384,7 @@
                             </div>
                             <div className="p-4 flex-1 overflow-y-auto">
                                 <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2 mb-4"><Users size={16}/> Apoio</h4>
-                                <div className="space-y-2">{members.map(member => { const isSupport = (task.support || []).some(s => s.id === member.id); return (<button key={member.id} onClick={() => onAddSupport(task.id, member)} className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left border ${isSupport ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:bg-gray-50'}`}><Avatar member={member} size="w-6 h-6"/><span className={`text-xs font-bold flex-1 ${isSupport ? 'text-blue-800' : 'text-gray-600'}`}>{member.name}</span>{isSupport && <Check size={14} className="text-blue-600"/>}</button>); })}</div>
+                                <div className="space-y-2">{members.map(member => { const isSupport = (supportList).some(s => s.id === member.id); return (<button key={member.id} onClick={() => onAddSupport(task.id, member)} className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left border ${isSupport ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:bg-gray-50'}`}><Avatar member={member} size="w-6 h-6"/><span className={`text-xs font-bold flex-1 ${isSupport ? 'text-blue-800' : 'text-gray-600'}`}>{member.name}</span>{isSupport && <Check size={14} className="text-blue-600"/>}</button>); })}</div>
                             </div>
                         </div>
                     </div>
@@ -484,18 +414,15 @@
         const AIContentModal = ({ isOpen, onClose, content }) => {
             if (!isOpen) return null;
             
-            // Função de cópia segura para iframes/ambientes restritos
             const handleCopy = () => {
                 const textArea = document.createElement("textarea");
                 textArea.value = content;
-                // Torna o elemento invisível mas selecionável
                 textArea.style.position = "fixed";
                 textArea.style.left = "-9999px";
                 textArea.style.top = "0";
                 document.body.appendChild(textArea);
                 textArea.focus();
                 textArea.select();
-                
                 try {
                     document.execCommand('copy');
                     alert('Copiado para a área de transferência!');
@@ -503,7 +430,6 @@
                     console.error('Erro ao copiar', err);
                     alert('Erro ao copiar. Por favor, selecione e copie manualmente.');
                 }
-                
                 document.body.removeChild(textArea);
             };
 
@@ -629,6 +555,31 @@
             const [aiActionLoading, setAiActionLoading] = useState(false);
             const [aiGeneratedContent, setAiGeneratedContent] = useState("");
             const [isAIContentModalOpen, setIsAIContentModalOpen] = useState(false);
+            
+            // Agenda Logic (Restaurada)
+            const [isAgendaExpanded, setIsAgendaExpanded] = useState(true);
+            const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+            const [currentDate, setCurrentDate] = useState(new Date());
+            
+            const renderCalendarGrid = (isSmall = false) => {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const firstDay = new Date(year, month, 1).getDay();
+                const days = [];
+                for(let i=0; i<firstDay; i++) { days.push(<div key={`empty-${i}`} className={`p-1 ${isSmall ? 'h-6' : 'h-24 md:h-32 bg-gray-50/50'}`}></div>); }
+                for(let i=1; i<=daysInMonth; i++) {
+                    if (isSmall) {
+                         days.push(<div key={i} className={`h-6 text-center text-xs p-1 rounded-full flex items-center justify-center hover:bg-blue-100`}>{i}</div>);
+                    } else {
+                        days.push(<div key={i} className={`relative border border-gray-100 h-24 md:h-32 p-2 hover:bg-blue-50 cursor-pointer flex flex-col items-start justify-start bg-white`}><span className={`font-bold text-lg text-gray-700`}>{i}</span></div>);
+                    }
+                }
+                return { days }; 
+            };
+            
+            const smallCalendarData = renderCalendarGrid(true);
+            const calendarData = renderCalendarGrid(false);
 
             useEffect(() => {
                 const saved = localStorage.getItem(`tasks_${event.id}`);
@@ -656,6 +607,16 @@
                     }
                 }
                 setDraggedTask(null); setDragOverColumn(null);
+            };
+
+            const cyclePriority = (taskId) => {
+                setTasks(tasks.map(t => {
+                    if(t.id === taskId) {
+                        const next = t.priority === 'low' ? 'medium' : t.priority === 'medium' ? 'high' : 'low';
+                        return {...t, priority: next};
+                    }
+                    return t;
+                }));
             };
 
             const columns = viewMode === 'categories' ? categories : STATUS_COLUMNS;
@@ -707,6 +668,16 @@
                                 <div className="flex items-center justify-between mb-2"><h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><Users size={18} className="text-blue-900"/> Equipe</h2><button onClick={() => setIsTeamExpanded(!isTeamExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400"><ChevronDown size={16}/></button></div>
                                 {isTeamExpanded && (<div className="space-y-2 mt-4">{eventTeam.map(member => (<div key={member.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"><Avatar member={member}/><div className="leading-tight"><p className="font-semibold text-xs text-gray-900">{member.name}</p><p className="text-[10px] text-gray-500">{member.role}</p></div></div>))}</div>)}
                             </section>
+                            
+                            {/* AGENDA RESTAURADA */}
+                            <section className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 transition-all duration-300">
+                                <div className="flex items-center justify-between mb-2"><h2 className="text-base font-bold flex items-center gap-2 text-gray-800"><CalendarIcon size={18} className="text-blue-900"/> Agenda</h2><button onClick={() => setIsAgendaExpanded(!isAgendaExpanded)} className="p-1 hover:bg-gray-100 rounded text-gray-400">{isAgendaExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</button></div>
+                                {isAgendaExpanded && (
+                                    <div onClick={() => setIsCalendarOpen(true)} className="bg-white rounded-lg border border-gray-100 p-2 opacity-60 cursor-pointer hover:opacity-100 transition-opacity mt-2 relative overflow-hidden">
+                                        <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 font-medium">{['D','S','T','Q','Q','S','S'].map((d, i) => <span key={i}>{d}</span>)}{smallCalendarData.days}</div>
+                                    </div>
+                                )}
+                            </section>
                         </div>
                         <div className="lg:col-span-3">
                             <div className="flex justify-between items-center mb-6">
@@ -736,16 +707,26 @@
                                                     {viewMode === 'categories' ? getCategoryIcon(col.icon) : (col.id === 'todo' ? <ClipboardList size={16}/> : col.id === 'in_progress' ? <Truck size={16}/> : col.id === 'review' ? <Search size={16}/> : <CheckSquare size={16}/>)}
                                                 </div>
                                                 <span className="text-xs font-bold text-gray-700">{col.title}</span><span className="ml-auto bg-gray-100 text-gray-600 text-[10px] px-2 rounded-full">{colTasks.length}</span>
+                                                {viewMode === 'categories' && <button onClick={() => { setIsAddTaskOpen(true); }} className="text-gray-400 hover:text-blue-600"><Plus size={14}/></button>}
                                             </div>
                                             <div className="space-y-2 flex-1">
                                                 {colTasks.map(task => {
                                                     const cat = categories.find(c => c.id === task.category) || categories[0];
                                                     const catColor = getCategoryStyles(cat.color).split(' ')[1].replace('text-', 'bg-');
+                                                    const supportTeam = task.support || [];
                                                     return (
                                                         <div key={task.id} draggable onDragStart={(e) => handleTaskDragStart(e, task)} onClick={() => setSelectedTask(task)} className={`bg-white p-3 rounded-lg border shadow-sm cursor-grab hover:shadow-md transition-all group relative border-l-4 ${task.completed ? 'border-l-emerald-400 opacity-60' : 'hover:border-blue-300'} ${draggedTask?.id === task.id ? 'dragging' : ''}`} style={{ borderLeftColor: task.completed ? undefined : `var(--color-${cat.color})` }}>
                                                             {!task.completed && <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg ${catColor}`}></div>}
                                                             <div className="flex items-start gap-2 mb-2"><p className={`text-xs font-medium leading-tight flex-1 ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.text}</p></div>
-                                                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50"><Avatar member={task.responsible} size="w-5 h-5" textSize="text-[8px]"/><PriorityBadge level={task.priority}/></div>
+                                                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                                                                <div className="flex items-center -space-x-1.5">
+                                                                    <div className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden relative z-10"><Avatar member={task.responsible} size="w-5 h-5" textSize="text-[8px]"/></div>
+                                                                    {supportTeam.map((sm, i) => (
+                                                                        <div key={i} className="w-5 h-5 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-600 overflow-hidden relative z-0 opacity-80" title={sm.name}><Avatar member={sm} size="w-5 h-5" textSize="text-[8px]"/></div>
+                                                                    ))}
+                                                                </div>
+                                                                <PriorityBadge level={task.priority} onClick={() => cyclePriority(task.id)}/>
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -760,7 +741,44 @@
                     {/* Modais aqui... */}
                     <TaskDetailModal task={selectedTask} isOpen={!!selectedTask} onClose={() => setSelectedTask(null)} members={eventTeam} onSendMessage={handleSendMessage} onAssignResponsible={handleAssignResponsible} onAddSupport={handleAddSupport} onAddAttachment={handleAddAttachment} onDeleteAttachment={handleDeleteAttachment}/>
                     <ManageCategoriesModal isOpen={isManageCategoriesOpen} onClose={() => setIsManageCategoriesOpen(false)} categories={categories} onAdd={(c) => setCategories([...categories, {...c, id: Date.now().toString()}])} onUpdate={(c) => setCategories(categories.map(cat => cat.id === c.id ? c : cat))} onDelete={(id) => setCategories(categories.filter(c => c.id !== id))} />
-                    <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} title="Nova Tarefa"><div className="p-6"><button onClick={() => { setTasks([...tasks, { id: Date.now().toString(), text: 'Nova Tarefa', category: categories[0].id, status: 'todo', priority: 'medium', responsible: eventTeam[0], messages: [] }]); setIsAddTaskOpen(false); }} className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">Criar</button></div></Modal>
+                    
+                    {/* Modal NOVA TAREFA com Categoria */}
+                    <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} title="Nova Tarefa">
+                        <div className="p-6 space-y-4">
+                            <div><label className="block text-sm font-medium text-gray-700 mb-1">Título</label><input autoFocus id="newTaskTitle" className="w-full p-2 border rounded-lg outline-none focus:border-blue-500" placeholder="Ex: Reservar hotel..."/></div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                                <select id="newTaskCategory" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500">
+                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
+                                </select>
+                            </div>
+                            <button onClick={() => { 
+                                const titleInput = document.getElementById('newTaskTitle');
+                                const catInput = document.getElementById('newTaskCategory');
+                                if(titleInput.value) {
+                                    setTasks([...tasks, { id: Date.now().toString(), text: titleInput.value, category: catInput.value, status: 'todo', priority: 'medium', responsible: eventTeam[0], messages: [] }]); 
+                                    setIsAddTaskOpen(false); 
+                                }
+                            }} className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">Criar Tarefa</button>
+                        </div>
+                    </Modal>
+                    
+                    <Modal isOpen={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} title={`Agenda: ${event.title}`} fullScreen={true}>
+                         <div className="flex flex-col h-full bg-gray-50">
+                             <div className="flex items-center justify-center py-4 bg-white border-b shadow-sm sticky top-0 z-10 gap-8">
+                                <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-2 hover:bg-gray-100 rounded-full border shadow-sm relative"><ChevronLeft size={24}/></button>
+                                <span className="text-2xl font-bold text-gray-800 capitalize min-w-[200px] text-center">{MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
+                                <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))} className="p-2 hover:bg-gray-100 rounded-full border shadow-sm relative"><ChevronRight size={24}/></button>
+                             </div>
+                             <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+                                <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                    {['DOM','SEG','TER','QUA','QUI','SEX','SÁB'].map(d=><div key={d} className="bg-gray-100 p-2 text-center text-sm font-bold text-gray-500 uppercase">{d}</div>)}
+                                    {calendarData.days}
+                                </div>
+                             </div>
+                          </div>
+                    </Modal>
+
                     <AIContentModal isOpen={isAIContentModalOpen} onClose={() => setIsAIContentModalOpen(false)} content={aiGeneratedContent} />
                 </div>
             );
@@ -846,6 +864,7 @@
     </script>
 </body>
 </html>
+
 
 
 
