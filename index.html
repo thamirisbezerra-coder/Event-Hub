@@ -7,7 +7,7 @@ import {
     ChevronUp, Settings, UserPlus, Box, TrendingUp, Filter, Check, 
     Image as ImageIcon, AlertTriangle, Crown, Plane, Target, Camera,
     DollarSign, ClipboardList, Mic, Music, Coffee, Gift, Sparkles, Bot,
-    BarChart3, Layout, GripVertical, Flame, Info
+    BarChart3, Layout, GripVertical, Flame, Info, Wifi, WifiOff
 } from 'lucide-react';
 
 // --- Firebase Imports ---
@@ -21,13 +21,26 @@ import {
     getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken 
 } from 'firebase/auth';
 
-// --- Configuração Firebase (Ambiente) ---
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+// --- Configuração Firebase (Segura) ---
+let app, auth, db;
+let isFirebaseAvailable = false;
 // Usamos o ID da App fornecido pelo ambiente ou um padrão seguro
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'bolsas-termicas';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-hub-default';
+
+try {
+    if (typeof __firebase_config !== 'undefined') {
+        const firebaseConfig = JSON.parse(__firebase_config);
+        app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+        auth = getAuth(app);
+        db = getFirestore(app);
+        isFirebaseAvailable = true;
+    } else {
+        console.warn("Firebase config not found. Running in Offline/Demo mode.");
+    }
+} catch (error) {
+    console.error("Firebase Initialization Error:", error);
+    isFirebaseAvailable = false;
+}
 
 // --- Assets Iniciais ---
 const DefaultLogo = () => (
@@ -180,15 +193,19 @@ const AIAssistant = ({ isOpen, onClose, members, events, user }: any) => {
 
     // FIX: Guard clause to prevent fetching before auth
     useEffect(() => {
-        if (!user) return;
+        if (!user || !isFirebaseAvailable) return;
         
-        const q = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            setAllTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        }, (error) => {
-            console.error("Error fetching tasks for AI:", error);
-        });
-        return () => unsubscribe();
+        try {
+            const q = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                setAllTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            }, (error) => {
+                console.error("Error fetching tasks for AI:", error);
+            });
+            return () => unsubscribe();
+        } catch (e) {
+            console.error("AI Firebase Error", e);
+        }
     }, [user]);
 
     const scrollToBottom = () => {
@@ -734,7 +751,24 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
     }, [globalMembers]);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || !isFirebaseAvailable || !db) {
+            // Mock Data for offline/demo mode
+            const mockTasks = [
+                { id: 't1', text: 'Tarefa Demo', category: 'planning', status: 'todo', priority: 'medium', messages: [] },
+                { id: 't2', text: 'Validar Layout', category: 'logistics', status: 'in_progress', priority: 'high', messages: [] }
+            ];
+            setTasks(mockTasks);
+            
+            const defaults = [
+                { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue', order: 0 },
+                { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber', order: 1 },
+                { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple', order: 2 },
+                { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald', order: 3 }
+            ];
+            setCategories(defaults);
+            return;
+        }
+
         const q = collection(db, 'artifacts', appId, 'public', 'data', 'tasks');
         const unsubscribe = onSnapshot(q, (snapshot) => { setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))); }, (err) => console.error("Err tasks", err));
         const qr = collection(db, 'artifacts', appId, 'public', 'data', 'reminders');
@@ -759,7 +793,7 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
         return () => { unsubscribe(); unsubR(); unsubC(); };
     }, [db, user]);
 
-    const handleUpdateEvent = async (id: string, data: any) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); };
+    const handleUpdateEvent = async (id: string, data: any) => { if (db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', id), data); };
     const handleAddTeamMember = (member: any) => { if (!eventTeam.find((m: any) => m.id === member.id)) { setEventTeam([...eventTeam, member]); } setIsAddingMember(false); };
     const handleRemoveTeamMember = (memberId: string) => { setEventTeam(eventTeam.filter((m: any) => m.id !== memberId)); };
     const handlePromoteToLeader = (memberId: string) => {
@@ -776,20 +810,58 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
         const task = tasks.find(t => t.id === id); 
         if (task) { 
             const newStatus = !task.completed ? 'done' : 'todo';
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { completed: !task.completed, status: newStatus }); 
+            if (db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { completed: !task.completed, status: newStatus }); 
+            else setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed, status: newStatus } : t));
         } 
     };
-    const deleteTask = async (e: any, id: string) => { e.stopPropagation(); if(confirm("Deseja excluir esta tarefa?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id)); };
-    const cyclePriority = async (id: string) => { const priorities = ["low", "medium", "high"]; const task = tasks.find(t => t.id === id); if(task) { const nextIndex = (priorities.indexOf(task.priority) + 1) % priorities.length; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { priority: priorities[nextIndex] }); } };
-    const handleAddTask = async (newTask: any) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { ...newTask, completed: false, messages: [], support: [], eventId: event.id }); };
-    const handleAssignResponsible = async (taskId: string, member: any) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { responsible: member }); if (selectedTask && selectedTask.id === taskId) setSelectedTask({ ...selectedTask, responsible: member }); };
-    const handleSendMessage = async (taskId: string, text: string, isImportant: boolean) => { const newMessage = { sender: "Eu", text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isImportant }; const task = tasks.find(t => t.id === taskId); if(task) { const updatedMessages = [...(task.messages || []), newMessage]; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { messages: updatedMessages }); setSelectedTask((prev: any) => ({...prev, messages: updatedMessages})); } };
-    const handleAddSupport = async (taskId: string, member: any) => { const task = tasks.find(t => t.id === taskId); if(task) { const currentSupport = task.support || []; const exists = currentSupport.some((s: any) => s.id === member.id); const newSupport = exists ? currentSupport.filter((s: any) => s.id !== member.id) : [...currentSupport, member]; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { support: newSupport }); if (selectedTask && selectedTask.id === taskId) setSelectedTask((prev: any) => ({...prev, support: newSupport})); } };
+    const deleteTask = async (e: any, id: string) => { 
+        e.stopPropagation(); 
+        if(confirm("Deseja excluir esta tarefa?")) {
+            if(db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id));
+            else setTasks(tasks.filter(t => t.id !== id));
+        }
+    };
+    const cyclePriority = async (id: string) => { 
+        const priorities = ["low", "medium", "high"]; 
+        const task = tasks.find(t => t.id === id); 
+        if(task) { 
+            const nextIndex = (priorities.indexOf(task.priority) + 1) % priorities.length; 
+            if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', id), { priority: priorities[nextIndex] }); 
+            else setTasks(tasks.map(t => t.id === id ? { ...t, priority: priorities[nextIndex] } : t));
+        } 
+    };
+    const handleAddTask = async (newTask: any) => { 
+        if(db) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { ...newTask, completed: false, messages: [], support: [], eventId: event.id }); 
+        else setTasks([...tasks, { id: Date.now().toString(), ...newTask, completed: false, messages: [], support: [], eventId: event.id }]);
+    };
+    const handleAssignResponsible = async (taskId: string, member: any) => { 
+        if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { responsible: member }); 
+        if (selectedTask && selectedTask.id === taskId) setSelectedTask({ ...selectedTask, responsible: member }); 
+    };
+    const handleSendMessage = async (taskId: string, text: string, isImportant: boolean) => { 
+        const newMessage = { sender: "Eu", text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isImportant }; 
+        const task = tasks.find(t => t.id === taskId); 
+        if(task) { 
+            const updatedMessages = [...(task.messages || []), newMessage]; 
+            if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { messages: updatedMessages }); 
+            setSelectedTask((prev: any) => ({...prev, messages: updatedMessages})); 
+        } 
+    };
+    const handleAddSupport = async (taskId: string, member: any) => { 
+        const task = tasks.find(t => t.id === taskId); 
+        if(task) { 
+            const currentSupport = task.support || []; 
+            const exists = currentSupport.some((s: any) => s.id === member.id); 
+            const newSupport = exists ? currentSupport.filter((s: any) => s.id !== member.id) : [...currentSupport, member]; 
+            if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), { support: newSupport }); 
+            if (selectedTask && selectedTask.id === taskId) setSelectedTask((prev: any) => ({...prev, support: newSupport})); 
+        } 
+    };
 
     const handleAddReminder = async () => {
         if(!reminderForm.text || !selectedDateForReminder) return;
         
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reminders'), { 
+        const newReminder = { 
             date: selectedDateForReminder.toISOString().split('T')[0], 
             text: reminderForm.text, 
             eventId: event.id, 
@@ -797,21 +869,32 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
             startTime: reminderForm.startTime,
             endTime: reminderForm.endTime,
             participants: reminderForm.participants
-        });
+        };
+
+        if(db) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'reminders'), newReminder);
+        else setCalendarReminders([...calendarReminders, { id: Date.now().toString(), ...newReminder }]);
         
         setReminderForm({ text: "", color: "blue", startTime: "", endTime: "", participants: "" });
-        // Mantenha o modal aberto para ver o novo item ou feche se preferir
     };
 
     const handleDeleteReminder = async (id: string) => {
         if(confirm("Deseja cancelar (excluir) este compromisso?")) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reminders', id));
+            if(db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reminders', id));
+            else setCalendarReminders(calendarReminders.filter(r => r.id !== id));
         }
     };
 
-    const handleAddCategory = async (catData: any) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), { ...catData, order: categories.length }); };
-    const handleUpdateCategory = async (catData: any) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catData.id), catData); };
-    const handleDeleteCategory = async (id: string) => { if(confirm('Tem certeza? As tarefas dessa categoria ficarão órfãs.')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', id)); };
+    const handleAddCategory = async (catData: any) => { 
+        if(db) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), { ...catData, order: categories.length });
+    };
+    const handleUpdateCategory = async (catData: any) => { 
+        if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catData.id), catData); 
+    };
+    const handleDeleteCategory = async (id: string) => { 
+        if(confirm('Tem certeza? As tarefas dessa categoria ficarão órfãs.')) {
+            if(db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', id));
+        }
+    };
 
     // Logic for unread tasks
     const isTaskUnread = (task: any) => {
@@ -835,7 +918,7 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
     const handleDropUrgent = async (e: any) => {
         e.preventDefault();
         if (draggedTask) {
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', draggedTask.id), { priority: 'high' });
+            if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', draggedTask.id), { priority: 'high' });
             setDraggedTask(null);
         }
     };
@@ -847,7 +930,7 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
         if (viewMode === 'categories') {
             // Moving between categories
             if (draggedTask.category !== targetId) {
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', draggedTask.id), { category: targetId });
+                if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', draggedTask.id), { category: targetId });
             }
         } else {
             // Moving between statuses
@@ -855,7 +938,7 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
                  const updates: any = { status: targetId };
                  if (targetId === 'done') updates.completed = true;
                  else if (targetId === 'todo' || targetId === 'in_progress') updates.completed = false;
-                 await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', draggedTask.id), updates);
+                 if(db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', draggedTask.id), updates);
             }
         }
         setDraggedTask(null);
@@ -877,8 +960,10 @@ const EventDetailView = ({ event, onBack, globalMembers, db, user }: any) => {
         
         // Swap orders
         const tempOrder = draggedColumn.order;
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', draggedColumn.id), { order: targetCol.order });
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', targetCol.id), { order: tempOrder });
+        if(db) {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', draggedColumn.id), { order: targetCol.order });
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', targetCol.id), { order: tempOrder });
+        }
         
         setDraggedColumn(null);
     };
@@ -1190,6 +1275,10 @@ const App = () => {
 
     useEffect(() => {
         const initAuth = async () => { 
+            if (!isFirebaseAvailable) {
+                setAuthError("Modo Offline: Firebase não configurado");
+                return;
+            }
             try { 
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -1202,12 +1291,28 @@ const App = () => {
             } 
         };
         initAuth();
-        const unsubscribe = onAuthStateChanged(auth, setUser);
-        return () => unsubscribe();
+        if(auth) {
+            const unsubscribe = onAuthStateChanged(auth, setUser);
+            return () => unsubscribe();
+        }
     }, []);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user || !isFirebaseAvailable || !db) {
+            // Mock Data load
+            const defaultMembers = [
+                { id: '1', name: "Paulo Mokarzel", role: "Gestor", avatar: "PM", avatarType: 'executive', avatarContent: 'ex5' },
+                { id: '2', name: "Ana Silva", role: "Coordenação", avatar: "AS", avatarType: 'executive', avatarContent: 'ex4' }
+            ];
+            setMembers(defaultMembers);
+            
+            const defaultEvents = [
+                 { id: 'e1', day: "02", month: "FEV", title: "Convenção de Vendas", location: "Auditório Doremus", dateRange: "02/02/2026 - 06/02/2026", pending: 21 },
+                 { id: 'e2', day: "31", month: "MAR", title: "Nis Nutri", location: "Transamerica Expo Center", dateRange: "31/03/2026 - 01/04/2026", pending: 22 }
+            ];
+            setEvents(defaultEvents);
+            return;
+        }
         
         // Members
         const qm = collection(db, 'artifacts', appId, 'public', 'data', 'members');
@@ -1260,18 +1365,25 @@ const App = () => {
         return () => { unsubM(); unsubE(); unsubL(); unsubN(); };
     }, [user]);
 
-    const handleAddMember = async (newMember: any) => { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember); };
-    const handleUpdateMember = async (updatedMember: any) => { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember); };
-    const handleDeleteMember = async (id: string) => { if (confirm('Tem certeza?')) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); } };
+    const handleAddMember = async (newMember: any) => { if (db) await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), newMember); };
+    const handleUpdateMember = async (updatedMember: any) => { if (db) await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', updatedMember.id), updatedMember); };
+    const handleDeleteMember = async (id: string) => { if (confirm('Tem certeza?')) { if (db) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); } };
     const handleUpdateLogo = async (newLogo: string) => { 
-        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'logo'), { value: newLogo }); 
+        if (db) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'logo'), { value: newLogo }); 
     };
 
     const manager = members.find((m: any) => m.role === 'Gestor') || { name: 'Paulo Mokarzel', role: 'Gestor', avatarType: 'executive', avatarContent: 'ex5' };
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-800 pb-12" onClick={() => setIsNotificationsOpen(false)}>
-            {authError && (<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 sticky top-0 z-[200]"><p className="font-bold flex items-center gap-2"><AlertTriangle size={20}/> Erro de Conexão</p><p>{authError}</p></div>)}
+            {/* Indicador de Status da Conexão */}
+            <div className={`fixed bottom-4 left-4 z-[200] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 shadow-sm ${isFirebaseAvailable && user ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                {isFirebaseAvailable && user ? <Wifi size={14}/> : <WifiOff size={14}/>}
+                {isFirebaseAvailable && user ? 'Conectado' : 'Modo Offline / Demo'}
+            </div>
+
+            {authError && (<div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 sticky top-0 z-[200]"><p className="font-bold flex items-center gap-2"><AlertTriangle size={20}/> Aviso do Sistema</p><p>{authError}. Usando dados locais.</p></div>)}
+            
             <nav className="bg-white border-b border-gray-100 px-6 py-4 mb-8 sticky top-0 z-40 shadow-sm"><div className="max-w-[1600px] mx-auto flex items-center justify-between"><div className="flex items-center gap-12"><div className="flex items-center gap-2 cursor-pointer" onClick={() => { setSelectedEvent(null); setCurrentView('dashboard'); }}><div className="h-10 w-auto flex items-center">{typeof logo === 'string' ? <img src={logo} alt="Logo" className="h-full w-auto object-contain" /> : logo}</div><div className="flex flex-col border-l border-gray-300 pl-4 ml-4 h-10 justify-center"><span className="text-xl font-bold text-gray-900 tracking-tight leading-none">Event Hub</span><span className="text-xs text-gray-500 font-medium">Painel de Marketing</span></div></div></div><div className="flex items-center gap-6"><div className="hidden md:flex items-center gap-3 mr-4"><div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200"><Avatar member={manager} size="w-10 h-10"/></div><div className="flex flex-col items-end"><span className="text-[10px] text-gray-400 font-bold uppercase tracking-wide">Gestor <Crown size={12} className="inline text-yellow-500 fill-yellow-500"/></span><span className="text-sm font-bold text-gray-800">{manager.name}</span></div></div><div className="flex items-center gap-3 relative"><button onClick={(e) => { e.stopPropagation(); setIsNotificationsOpen(!isNotificationsOpen); }} className={`p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 hover:border-blue-100 transition-colors relative shadow-sm ${isNotificationsOpen ? 'ring-2 ring-blue-100' : ''}`}><Bell size={20}/>{!isNotificationsOpen && notifications.length > 0 && <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>}</button>{isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} notifications={notifications} />}<button onClick={() => setIsSettingsOpen(true)} className="p-2 bg-white border border-gray-100 rounded-lg text-gray-500 hover:text-blue-900 shadow-sm"><Settings size={20}/></button><button onClick={() => alert("Criar Novo Evento")} className="bg-blue-900 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-blue-800 transition-all shadow-lg flex items-center gap-2"><Plus size={18}/> Novo Evento</button></div></div></div></nav>
             <main className="max-w-[1600px] mx-auto px-6">{currentView === 'dashboard' ? <DashboardView onSelectEvent={(e: any) => { setSelectedEvent(e); setCurrentView('detail'); }} events={events} members={members} logo={logo} /> : <EventDetailView event={selectedEvent} onBack={() => { setSelectedEvent(null); setCurrentView('dashboard'); }} globalMembers={members} db={db} user={user} />}</main>
             
