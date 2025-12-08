@@ -422,12 +422,36 @@
         // --- AI Content Modal (Generated Copy) ---
         const AIContentModal = ({ isOpen, onClose, content }) => {
             if (!isOpen) return null;
+            
+            // Função de cópia segura para iframes/ambientes restritos
+            const handleCopy = () => {
+                const textArea = document.createElement("textarea");
+                textArea.value = content;
+                // Torna o elemento invisível mas selecionável
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    alert('Copiado para a área de transferência!');
+                } catch (err) {
+                    console.error('Erro ao copiar', err);
+                    alert('Erro ao copiar. Por favor, selecione e copie manualmente.');
+                }
+                
+                document.body.removeChild(textArea);
+            };
+
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="✨ Conteúdo Gerado">
                     <div className="p-6 space-y-4">
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm leading-relaxed whitespace-pre-wrap font-medium text-gray-700 relative">
                             {content}
-                            <button onClick={() => { navigator.clipboard.writeText(content); alert('Copiado!'); }} className="absolute top-2 right-2 p-1.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-blue-600 shadow-sm" title="Copiar"><Copy size={14}/></button>
+                            <button onClick={handleCopy} className="absolute top-2 right-2 p-1.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-blue-600 shadow-sm" title="Copiar"><Copy size={14}/></button>
                         </div>
                         <div className="flex justify-end gap-2">
                             <button onClick={onClose} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg text-sm font-bold">Fechar</button>
