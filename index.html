@@ -85,7 +85,8 @@ const compressImage = (file: File, maxWidth = 300): Promise<string> => {
                 canvas.height = img.height * scaleSize;
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-                resolve(canvas.toDataURL('image/jpeg', 0.7)); 
+                // Use PNG para arquivos PNG para preservar a transparência. JPEG para outros.
+                resolve(canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.7)); 
             };
         };
     });
