@@ -22,23 +22,34 @@ import {
     getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken 
 } from 'firebase/auth';
 
-// --- Configuração Firebase (Segura) ---
-let app, auth, db;
+// --- Configuração Firebase (Corrigida para usar Variável de Ambiente) ---
+// Prioriza a configuração injetada pelo ambiente para evitar mismatch de token
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+  apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
+  authDomain: "bolsas-termicas.firebaseapp.com",
+  projectId: "bolsas-termicas",
+  storageBucket: "bolsas-termicas.firebasestorage.app",
+  messagingSenderId: "372188665466",
+  appId: "1:372188665466:web:2a343ec375462f56920dc3",
+  measurementId: "G-THXNWD3M6D"
+};
+
+let app, auth, db, analytics;
 let isFirebaseAvailable = false;
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-hub-default';
+
+// Mantemos um ID de app padrão para estruturar os dados dentro do banco
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-hub-production';
 
 try {
-    if (typeof __firebase_config !== 'undefined') {
-        const firebaseConfig = JSON.parse(__firebase_config);
-        app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-        auth = getAuth(app);
-        db = getFirestore(app);
-        isFirebaseAvailable = true;
-    } else {
-        console.warn("Firebase config not found. Running in Offline/Demo mode.");
-    }
+    // Inicializa com a configuração correta
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    analytics = getAnalytics(app);
+    isFirebaseAvailable = true;
+    console.log("Firebase conectado com sucesso ao projeto:", firebaseConfig.projectId);
 } catch (error) {
-    console.error("Firebase Initialization Error:", error);
+    console.error("Erro na inicialização do Firebase:", error);
     isFirebaseAvailable = false;
 }
 
@@ -1431,7 +1442,13 @@ const App = () => {
                         await signInAnonymously(auth);
                     }
                 } catch (e) {
-                    console.error("Auth Error", e);
+                    console.error("Auth Error with custom token, falling back to anonymous:", e);
+                    // Fallback to anonymous auth if custom token fails
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (anonErr) {
+                         console.error("Fallback Auth Error:", anonErr);
+                    }
                 }
             };
             initAuth();
