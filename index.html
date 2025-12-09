@@ -60,8 +60,7 @@
             DollarSign, ClipboardList, Mic, Music, Coffee, Gift, Sparkles, Bot,
             BarChart3, Layout, GripVertical, Flame, Info, Wifi, WifiOff,
             ExternalLink, Lightbulb, BrainCircuit, MoreVertical, Paperclip, FileText,
-            Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin,
-            PieChart, TrendingDown
+            Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Firebase Imports ---
@@ -83,7 +82,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'event-hub-production-v3'; 
+        const appId = 'event-hub-production-v4'; // Namespace
 
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
@@ -113,33 +112,13 @@
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         };
         
-        // --- Gemini/AI Logic ---
-        const generateAIResponse = (prompt, contextData) => {
+        // --- Gemini Mock ---
+        const callGeminiFlash = async (prompt, context) => {
+            // Simulação
             const lower = prompt.toLowerCase();
-            const { tasks, events, members, totalCost } = contextData;
-
-            // Lógica local simulada para responder rápido
-            if (lower.includes('custo') || lower.includes('financeiro') || lower.includes('dinheiro')) {
-                return `💰 **Análise de Custos:**\nO custo total estimado acumulado até agora é de **${formatCurrency(totalCost)}**.\nIsso inclui orçamentos de buffet, logística e materiais. Quer que eu detalhe por categoria?`;
-            }
-            
-            if (lower.includes('tarefa') || lower.includes('andamento') || lower.includes('pendente')) {
-                const pending = tasks.filter(t => t.status !== 'done').length;
-                const done = tasks.filter(t => t.status === 'done').length;
-                return `📊 **Status das Tarefas:**\nVocê tem **${pending} tarefas pendentes** e **${done} concluídas**.\nA maior parte das pendências está na categoria de Logística. Posso listar as mais urgentes?`;
-            }
-
-            if (lower.includes('equipe') || lower.includes('pessoas')) {
-                return `👥 **Relatório da Equipe:**\nAtualmente temos **${members.length} membros** ativos no time.\nO gestor principal está configurado. Cada membro tem em média 3 tarefas atribuídas.`;
-            }
-
-            if (lower.includes('data') || lower.includes('quando') || lower.includes('evento')) {
-                if (events.length === 0) return "📅 Não há eventos futuros cadastrados no momento.";
-                const nextEvent = events[0];
-                return `📅 **Próximos Eventos:**\nO principal evento é **"${nextEvent.title}"**, que acontecerá em **${nextEvent.location}**.\nDatas: ${nextEvent.dateRange}.`;
-            }
-
-            return "Olá! Sou sua assistente. Posso ajudar com Custos, Tarefas, Equipe ou Datas dos eventos. Selecione uma das opções acima ou digite sua dúvida!";
+            if (lower.includes('custo')) return `Analisando os dados... O custo total estimado até o momento é de R$ 45.000,00.`;
+            if (lower.includes('tarefa')) return `Você tem 12 tarefas em andamento e 5 pendentes de revisão. Quer que eu liste as prioridades?`;
+            return `Entendi: "${prompt}". Como sou uma demonstração, não posso acessar a API real, mas seus dados estão salvos no Firebase.`;
         };
 
         const PASTEL_COLORS = [
@@ -190,8 +169,7 @@
             { text: "Contratar equipe de foto/vídeo", category: "staff" }
         ];
 
-        // --- Componentes Genéricos ---
-
+        // --- UI Components ---
         const ImagePreviewModal = ({ isOpen, onClose, imageUrl }) => {
             if (!isOpen || !imageUrl) return null;
             return createPortal(
@@ -205,21 +183,19 @@
             );
         };
 
-        const Avatar = ({ member, size = "w-10 h-10", photoUrl = null, name = "?" }) => {
-            // Lógica para usar dados passados ou objeto member
-            const finalPhotoUrl = member ? member.photoUrl : photoUrl;
-            const finalName = member ? member.name : name;
-
-            const content = finalPhotoUrl ? (
-                <img src={finalPhotoUrl} className="w-full h-full object-cover" />
+        const Avatar = ({ member, size = "w-10 h-10", showCrown = true }) => {
+            if (!member) return <div className={`${size} rounded-full bg-gray-200 border border-gray-300`}></div>;
+            const content = member.photoUrl ? (
+                <img src={member.photoUrl} className="w-full h-full object-cover" />
             ) : (
                 <div className="w-full h-full flex items-center justify-center text-blue-900 font-bold text-[10px]">
-                    {finalName?.substring(0,2).toUpperCase()}
+                    {member.name?.substring(0,2).toUpperCase()}
                 </div>
             );
             return (
                 <div className={`${size} rounded-full bg-white border border-gray-200 relative flex-shrink-0 overflow-hidden`}>
                     {content}
+                    {/* Crown removed */}
                 </div>
             );
         };
@@ -309,7 +285,9 @@
             );
         };
 
-        // --- Novo Modal de Criação de Evento ---
+        // --- Modals Específicos ---
+
+        // NEW EVENT MODAL (Definido antes de ser usado)
         const NewEventModal = ({ isOpen, onClose, members, onCreate }) => {
             const [formData, setFormData] = useState({
                 title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null
@@ -354,13 +332,7 @@
 
             const handleSubmit = () => {
                 if (!formData.title || !formData.startDate || !formData.responsible) return;
-                
-                const formatDate = (dateStr) => {
-                    if (!dateStr) return '';
-                    const [y, m, d] = dateStr.split('-');
-                    return `${d}/${m}/${y}`;
-                };
-
+                const formatDate = (dateStr) => { if (!dateStr) return ''; const [y, m, d] = dateStr.split('-'); return `${d}/${m}/${y}`; };
                 const newEvent = {
                     title: formData.title,
                     location: formData.location || 'Local a definir',
@@ -370,7 +342,6 @@
                     initialTasks: formData.selectedTasks,
                     coverUrl: formData.cover
                 };
-
                 onCreate(newEvent);
                 setFormData({ title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null });
             };
@@ -385,15 +356,7 @@
                 <Modal isOpen={isOpen} onClose={onClose} title="Criar Novo Evento" maxWidth="max-w-4xl">
                     <div className="p-6 space-y-6">
                         <div className="relative w-full h-40 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer" onClick={() => coverInputRef.current?.click()}>
-                            {formData.cover ? (
-                                <img src={formData.cover} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="text-center p-4">
-                                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/>
-                                    <p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p>
-                                    <p className="text-xs text-gray-400">Clique para fazer upload</p>
-                                </div>
-                            )}
+                            {formData.cover ? (<img src={formData.cover} className="w-full h-full object-cover" />) : (<div className="text-center p-4"><ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/><p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p></div>)}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <span className="text-white font-bold text-sm"><Camera size={20} className="inline mr-2"/>Alterar Capa</span>
                             </div>
@@ -493,6 +456,245 @@
                             <button onClick={handleSubmit} disabled={!formData.title} className="bg-blue-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-800 disabled:opacity-50 shadow-lg shadow-blue-900/20">Criar Evento</button>
                         </div>
                     </div>
+                </Modal>
+            );
+        };
+
+        // TASK DETAIL MODAL
+        const TaskDetailModal = ({ task, isOpen, onClose, members, dbOperations }) => {
+            const [messageText, setMessageText] = useState("");
+            const [isSelectingResponsible, setIsSelectingResponsible] = useState(false);
+            const [isSelectingSupport, setIsSelectingSupport] = useState(false);
+            const [previewImage, setPreviewImage] = useState(null);
+            const [chatAttachment, setChatAttachment] = useState(null);
+            const [newSubtask, setNewSubtask] = useState("");
+            const [confirmDeleteMessageId, setConfirmDeleteMessageId] = useState(null);
+            const chatContainerRef = useRef(null);
+            const chatFileRef = useRef(null);
+            const [selectedSender, setSelectedSender] = useState(members[0] || {name: 'Eu', id: 'me'});
+
+            const messages = task?.messages || [];
+            
+            useEffect(() => { 
+                if (isOpen && chatContainerRef.current) { chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight; }
+                if (isOpen && task && members.length > 0) {
+                    const me = members.find(m => m.name === 'Paulo Mokarzel') || members[0];
+                    if (me) setSelectedSender(me);
+                }
+            }, [messages, isOpen, task, members]);
+
+            if (!task) return null;
+            
+            const responsible = task.responsible || { name: "Não definido", role: "-", avatar: "?" };
+            const supportList = task.support || [];
+            const attachments = task.attachments || [];
+            const subtasks = task.subtasks || [];
+
+            const handleSend = () => { 
+                if (!messageText.trim() && !chatAttachment) return;
+                const newMessage = { 
+                    sender: selectedSender.name, 
+                    senderId: selectedSender.id, 
+                    text: messageText, 
+                    attachment: chatAttachment, 
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                };
+                dbOperations.updateTask(task.id, { messages: [...messages, newMessage] });
+                setMessageText(""); 
+                setChatAttachment(null);
+            };
+
+            const handleAddSubtask = () => {
+                if(!newSubtask.trim()) return;
+                dbOperations.updateTask(task.id, { subtasks: [...subtasks, { id: Date.now(), text: newSubtask, completed: false }] });
+                setNewSubtask("");
+            };
+
+            const toggleSubtask = (subId) => {
+                dbOperations.updateTask(task.id, { subtasks: subtasks.map(s => s.id === subId ? {...s, completed: !s.completed} : s) });
+            };
+
+            const deleteSubtask = (subId) => {
+                if(window.confirm("Excluir este complemento?")) {
+                    dbOperations.updateTask(task.id, { subtasks: subtasks.filter(s => s.id !== subId) });
+                }
+            };
+
+            const handleChatImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) { compressImage(file, 400).then(url => { setChatAttachment(url); }); }
+            };
+
+            const addSupport = (member) => {
+                if (!supportList.find(s => s.id === member.id)) {
+                    dbOperations.updateTask(task.id, { support: [...supportList, member] });
+                }
+                setIsSelectingSupport(false);
+            };
+
+            const removeSupport = (memberId) => {
+                dbOperations.updateTask(task.id, { support: supportList.filter(s => s.id !== memberId) });
+            };
+
+            const handleDeleteMessage = (index) => {
+                 dbOperations.updateTask(task.id, { messages: messages.filter((_, i) => i !== index) });
+                 setConfirmDeleteMessageId(null);
+            };
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa #${task.id.toString().slice(-4)}`} fullScreen={true}>
+                    <div className="flex flex-col md:flex-row h-full">
+                        <div className="flex-1 flex flex-col border-r border-gray-100 bg-gray-50/50 overflow-y-auto">
+                            <div className="p-6 border-b bg-white">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <PriorityBadge level={task.priority} />
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${task.status === 'done' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{task.status === 'done' ? 'Concluído' : 'Em Andamento'}</span>
+                                </div>
+                                <h2 className="text-xl font-bold text-gray-900 leading-tight mb-6">{task.text}</h2>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Responsável</p>
+                                        <button onClick={() => setIsSelectingResponsible(!isSelectingResponsible)} className="flex items-center gap-2 p-1.5 -ml-1.5 rounded-lg hover:bg-gray-100 transition-colors text-left group w-full">
+                                            <Avatar member={responsible} size="w-8 h-8" />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-bold text-gray-800 flex items-center gap-1 truncate">{responsible.name} <ChevronDown size={12}/></p>
+                                                <p className="text-[10px] text-gray-500 truncate">{responsible.role}</p>
+                                            </div>
+                                        </button>
+                                        {isSelectingResponsible && (<div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2 max-h-48 overflow-y-auto"><div className="space-y-1">{members.map((member) => (<button key={member.id} onClick={() => { dbOperations.updateTask(task.id, { responsible: member }); setIsSelectingResponsible(false); }} className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors text-left ${responsible.name === member.name ? 'bg-blue-50' : ''}`}><Avatar member={member} size="w-6 h-6" /><span className="text-xs font-bold">{member.name}</span></button>))}</div></div>)}
+                                    </div>
+                                    <div className="relative">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Apoio</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {supportList.map(member => (
+                                                <div key={member.id} className="relative group cursor-pointer" onClick={() => removeSupport(member.id)}>
+                                                    <Avatar member={member} size="w-8 h-8" />
+                                                    <div className="absolute inset-0 bg-black/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} className="text-white"/></div>
+                                                </div>
+                                            ))}
+                                            <button onClick={() => setIsSelectingSupport(!isSelectingSupport)} className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"><Plus size={14}/></button>
+                                        </div>
+                                        {isSelectingSupport && (<div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 z-50 p-2 max-h-48 overflow-y-auto"><div className="space-y-1">{members.map((member) => (<button key={member.id} onClick={() => addSupport(member)} className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-blue-50 transition-colors text-left`}><Avatar member={member} size="w-6 h-6" /><span className="text-xs font-bold">{member.name}</span></button>))}</div></div>)}
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Custo Estimado</p>
+                                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2 max-w-[200px]">
+                                            <DollarSign size={14} className="text-gray-400"/>
+                                            <input type="number" className="w-full text-sm font-bold text-gray-700 outline-none" placeholder="0,00" value={task.cost || ''} onChange={(e) => dbOperations.updateTask(task.id, { cost: e.target.value })} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="p-4 bg-white border-b border-gray-100">
+                                <h4 className="font-bold text-xs text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2"><Layers size={14}/> Complementos</h4>
+                                <div className="space-y-2 mb-3">
+                                    {subtasks.map(sub => (
+                                        <div key={sub.id} className="flex items-center gap-2 group">
+                                            <button onClick={() => toggleSubtask(sub.id)} className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${sub.completed ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 hover:border-blue-400'}`}>{sub.completed && <Check size={10}/>}</button>
+                                            <span className={`text-sm flex-1 ${sub.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{sub.text}</span>
+                                            <button onClick={() => deleteSubtask(sub.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><X size={14}/></button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex gap-2">
+                                    <input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddSubtask()} placeholder="Adicionar complemento..." className="flex-1 text-xs p-2 bg-gray-50 rounded border border-gray-200 outline-none focus:border-blue-300" />
+                                    <button onClick={handleAddSubtask} disabled={!newSubtask} className="p-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"><Plus size={14}/></button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 flex flex-col bg-slate-100 overflow-hidden">
+                                <div className="p-3 border-b bg-white/50 backdrop-blur-sm flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10"><MessageSquare size={14}/> Comentários</div>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={chatContainerRef}>
+                                    {messages.map((msg, i) => {
+                                        const isMe = msg.senderId === selectedSender.id;
+                                        const senderMember = members.find(m => m.id === msg.senderId) || { name: msg.sender, photoUrl: null };
+                                        return (
+                                            <div key={i} className={`flex gap-3 group/msg ${isMe ? 'flex-row-reverse' : ''}`}>
+                                                <Avatar member={senderMember} size="w-8 h-8" />
+                                                <div className={`max-w-[75%] flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-[10px] font-bold text-gray-600">{senderMember.name}</span>
+                                                        <span className="text-[9px] text-gray-400">{msg.time}</span>
+                                                        <button onClick={() => setConfirmDeleteMessageId(i)} className="opacity-0 group-hover/msg:opacity-100 text-gray-400 hover:text-red-500 transition-opacity"><Trash2 size={10}/></button>
+                                                    </div>
+                                                    <div className={`p-3 rounded-2xl text-sm shadow-sm relative group ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-gray-700 border border-gray-200 rounded-tl-none'}`}>
+                                                        {msg.attachment && (<div className="mb-2 rounded-lg overflow-hidden cursor-pointer bg-black/5 hover:opacity-90 transition-opacity" onClick={() => setPreviewImage(msg.attachment)}><img src={msg.attachment} className="max-w-full h-32 object-cover" alt="Anexo" /></div>)}
+                                                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="p-3 bg-white border-t border-gray-200">
+                                    {chatAttachment && (<div className="flex items-center gap-2 mb-2 p-2 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700"><ImageIcon size={14}/> Imagem anexada <button onClick={() => setChatAttachment(null)} className="ml-auto hover:text-red-500"><X size={14}/></button></div>)}
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center gap-2 text-xs text-gray-500 px-1"><span>Falando como:</span><select className="bg-transparent font-bold text-blue-900 outline-none cursor-pointer hover:bg-gray-50 rounded p-1" value={selectedSender.id} onChange={(e) => setSelectedSender(members.find(m => m.id === e.target.value))}>{members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                                        <div className="flex items-end gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200 focus-within:ring-2 ring-blue-100 transition-all">
+                                            <button onClick={() => chatFileRef.current?.click()} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Anexar imagem"><Paperclip size={18} /></button><input type="file" ref={chatFileRef} onChange={handleChatImageUpload} className="hidden" accept="image/*" />
+                                            <textarea rows={1} placeholder="Escreva uma mensagem..." className="flex-1 text-sm p-2 bg-transparent outline-none text-gray-700 resize-none max-h-24" value={messageText} onChange={(e) => setMessageText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }}} />
+                                            <button onClick={handleSend} disabled={!messageText.trim() && !chatAttachment} className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"><Send size={16} /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="w-full md:w-80 bg-white border-l border-gray-100 flex flex-col h-full overflow-y-auto">
+                            <div className="p-4 border-b border-gray-100">
+                                <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2 mb-4"><Paperclip size={16}/> Arquivos</h4>
+                                <div className="space-y-2 mb-4">
+                                    {attachments.map(att => (<div key={att.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 bg-gray-50 hover:bg-blue-50 transition-colors group"><div className="w-8 h-8 rounded bg-white border border-gray-200 flex items-center justify-center text-blue-600"><FileText size={16}/></div><div className="flex-1 min-w-0"><p className="text-xs font-bold text-gray-700 truncate">{att.name}</p><p className="text-[10px] text-gray-400">{att.size}</p></div><button onClick={() => { if(window.confirm("Excluir?")) dbOperations.updateTask(task.id, { attachments: attachments.filter(a => a.id !== att.id) }); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><X size={14}/></button></div>))}
+                                </div>
+                                <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-blue-300 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors"><Plus size={14}/> Adicionar Arquivo<input type="file" className="hidden" onChange={(e) => { const file = e.target.files[0]; if(file) dbOperations.updateTask(task.id, { attachments: [...attachments, { id: Date.now(), name: file.name, size: (file.size/1024).toFixed(1)+'KB' }] }); }}/></label>
+                            </div>
+                        </div>
+                    </div>
+                    <ImagePreviewModal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} imageUrl={previewImage} />
+                    <ConfirmModal isOpen={confirmDeleteMessageId !== null} onClose={() => setConfirmDeleteMessageId(null)} onConfirm={() => handleDeleteMessage(confirmDeleteMessageId)} title="Excluir Comentário" message="Tem certeza que deseja excluir este comentário?" />
+                </Modal>
+            );
+        };
+
+        // --- Configurações de Categoria Modal ---
+        const ManageCategoriesModal = ({ isOpen, onClose, categories, onAdd, onUpdate, onDelete }) => {
+            const [editingId, setEditingId] = useState(null);
+            const [formData, setFormData] = useState({ title: '', icon: 'box', color: 'blue' });
+            const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+            const handleSubmit = (e) => { 
+                e.preventDefault(); 
+                if (!formData.title) return; 
+                if (editingId) { onUpdate({ id: editingId, ...formData }); setEditingId(null); } 
+                else { onAdd({ ...formData, id: Date.now().toString() }); } 
+                setFormData({ title: '', icon: 'box', color: 'blue' }); 
+            };
+            const handleEdit = (cat) => { setEditingId(cat.id); setFormData({ title: cat.title, icon: cat.icon || 'box', color: cat.color || 'blue' }); };
+            
+            if (!isOpen) return null;
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Gerenciar Categorias">
+                    <div className="p-6 space-y-6">
+                        <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4">
+                            <div className="flex items-center justify-between"><h4 className="text-sm font-bold text-gray-700">{editingId ? 'Editar Categoria' : 'Nova Categoria'}</h4></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome</label><input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-2 border rounded-lg outline-none focus:border-blue-500"/></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Ícone</label><div className="flex flex-wrap gap-2">{Object.keys(ICON_MAP).map(icon => { const Icon = ICON_MAP[icon]; return (<button key={icon} type="button" onClick={() => setFormData({...formData, icon})} className={`p-2 rounded-lg border ${formData.icon === icon ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-500'}`}><Icon size={16}/></button>); })}</div></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cor Pastel</label><div className="flex flex-wrap gap-2">{PASTEL_COLORS.map(color => (<button key={color.id} type="button" onClick={() => setFormData({...formData, color: color.id})} className={`w-8 h-8 rounded-full border-2 ${formData.color === color.id ? 'border-gray-600 scale-110' : 'border-transparent'}`} style={{backgroundColor: color.hex}}></button>))}</div></div>
+                            <button type="submit" className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">{editingId ? 'Salvar' : 'Adicionar'}</button>
+                            {editingId && <button type="button" onClick={() => { setEditingId(null); setFormData({ title: '', icon: 'box', color: 'blue' }); }} className="w-full text-gray-500 text-xs underline mt-2">Cancelar Edição</button>}
+                        </form>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">{categories.map(cat => {
+                            const catColor = PASTEL_COLORS.find(c => c.id === cat.color) || PASTEL_COLORS[0];
+                            return (
+                                <div key={cat.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                                    <div className="flex items-center gap-2"><div className={`p-1.5 rounded-lg ${catColor.bg} ${catColor.text}`}>{getCategoryIcon(cat.icon)}</div><span className="font-medium text-gray-700">{cat.title}</span></div>
+                                    <div className="flex gap-1"><button onClick={() => handleEdit(cat)} className="p-2 text-blue-600"><Edit2 size={16}/></button><button onClick={() => setConfirmDeleteId(cat.id)} className="p-2 text-red-600"><Trash2 size={16}/></button></div>
+                                </div>
+                            );
+                        })}</div>
+                    </div>
+                    <ConfirmModal isOpen={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} onConfirm={() => onDelete(confirmDeleteId)} title="Excluir Categoria" message="Tem certeza? Isso pode afetar tarefas existentes." />
                 </Modal>
             );
         };
