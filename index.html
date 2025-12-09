@@ -63,6 +63,27 @@
             Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin
         } from 'https://esm.sh/lucide-react@0.294.0';
 
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // --- Configuração Firebase ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
+            authDomain: "bolsas-termicas.firebaseapp.com",
+            projectId: "bolsas-termicas",
+            storageBucket: "bolsas-termicas.firebasestorage.app",
+            messagingSenderId: "372188665466",
+            appId: "1:372188665466:web:3b1514a6c681fb06920dc3",
+            measurementId: "G-1HTMMPYKHM"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'event-hub-production-v1'; // Namespace para isolar dados
+
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
             return new Promise((resolve) => {
@@ -80,7 +101,7 @@
                         if (ctx) {
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                             const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-                            resolve(canvas.toDataURL(outputType, 0.9)); 
+                            resolve(canvas.toDataURL(outputType, 0.7)); 
                         } else resolve(img.src);
                     };
                 };
@@ -89,6 +110,13 @@
 
         const formatCurrency = (value) => {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        };
+        
+        // --- Gemini API Mock (Placeholder) ---
+        // Em produção, isso seria uma chamada de backend para proteger a chave
+        const callGeminiFlash = async (prompt, context) => {
+            // Simulação simples
+            return "Estou analisando os dados do Event Hub. Como sou uma demonstração, não posso acessar a API real agora, mas entendi que você quer saber sobre: " + prompt;
         };
 
         const PASTEL_COLORS = [
@@ -107,11 +135,7 @@
             amber: 'text-amber-800 bg-amber-100 border-amber-200',
             purple: 'text-purple-800 bg-purple-100 border-purple-200',
             emerald: 'text-emerald-800 bg-emerald-100 border-emerald-200',
-            gray: 'text-gray-800 bg-gray-100 border-gray-200',
-            rose: 'text-rose-800 bg-rose-100 border-rose-200',
-            indigo: 'text-indigo-800 bg-indigo-100 border-indigo-200',
-            teal: 'text-teal-800 bg-teal-100 border-teal-200',
-            orange: 'text-orange-800 bg-orange-100 border-orange-200'
+            gray: 'text-gray-800 bg-gray-100 border-gray-200'
         };
 
         const STATUS_COLUMNS = [
@@ -121,11 +145,7 @@
             { id: 'done', title: 'Concluído', color: 'emerald', icon: CheckSquare }
         ];
 
-        const ICON_MAP = { 
-            box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, 
-            layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift,
-            coffee: Coffee, music: Music
-        };
+        const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift, coffee: Coffee, music: Music };
         
         const getCategoryStyles = (color) => COLOR_PRESETS[color] || COLOR_PRESETS.blue;
         const getCategoryIcon = (iconName) => { const Icon = ICON_MAP[iconName] || Box; return <Icon size={18} />; };
@@ -144,11 +164,7 @@
             { text: "Contratar buffet", category: "logistics" },
             { text: "Criar identidade visual", category: "planning" },
             { text: "Enviar convites", category: "planning" },
-            { text: "Contratar equipe de foto/vídeo", category: "staff" },
-            { text: "Definir cronograma", category: "planning" },
-            { text: "Comprar brindes", category: "logistics" },
-            { text: "Reservar passagens/hotel", category: "staff" },
-            { text: "Criar formulário de leads", category: "post" }
+            { text: "Contratar equipe de foto/vídeo", category: "staff" }
         ];
 
         // --- Componentes Genéricos ---
@@ -199,14 +215,9 @@
             );
         };
 
-        // MODAL COM PORTAL PARA CORRIGIR POSICIONAMENTO
         const Modal = ({ isOpen, onClose, title, children, fullScreen, maxWidth = "max-w-lg" }) => {
             useEffect(() => {
-                if (isOpen) {
-                    document.body.style.overflow = 'hidden';
-                } else {
-                    document.body.style.overflow = 'unset';
-                }
+                if (isOpen) { document.body.style.overflow = 'hidden'; } else { document.body.style.overflow = 'unset'; }
                 return () => { document.body.style.overflow = 'unset'; };
             }, [isOpen]);
 
@@ -226,13 +237,9 @@
             );
 
             const modalMarkup = fullScreen ? (
-                <div className="fixed inset-0 z-[9999] bg-white animate-in" style={{animationDuration: '200ms'}}>
-                    {content}
-                </div>
+                <div className="fixed inset-0 z-[9999] bg-white animate-in" style={{animationDuration: '200ms'}}>{content}</div>
             ) : (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in" style={{animationDuration: '200ms'}}>
-                    {content}
-                </div>
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in" style={{animationDuration: '200ms'}}>{content}</div>
             );
 
             return createPortal(modalMarkup, document.body);
@@ -285,14 +292,7 @@
         // --- Novo Modal de Criação de Evento ---
         const NewEventModal = ({ isOpen, onClose, members, onCreate }) => {
             const [formData, setFormData] = useState({
-                title: '',
-                location: '',
-                startDate: '',
-                endDate: '',
-                responsible: '',
-                team: [],
-                selectedTasks: [],
-                cover: null
+                title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null
             });
             const [customTask, setCustomTask] = useState('');
             const [customTaskCategory, setCustomTaskCategory] = useState(DEFAULT_CATEGORIES[0].id);
@@ -301,20 +301,14 @@
             if (!isOpen) return null;
 
             const handleToggleMember = (memberId) => {
-                if (formData.team.includes(memberId)) {
-                    setFormData({ ...formData, team: formData.team.filter(id => id !== memberId) });
-                } else {
-                    setFormData({ ...formData, team: [...formData.team, memberId] });
-                }
+                if (formData.team.includes(memberId)) { setFormData({ ...formData, team: formData.team.filter(id => id !== memberId) }); } 
+                else { setFormData({ ...formData, team: [...formData.team, memberId] }); }
             };
 
             const handleToggleTask = (task) => {
                 const exists = formData.selectedTasks.some(t => t.text === task.text);
-                if (exists) {
-                    setFormData({ ...formData, selectedTasks: formData.selectedTasks.filter(t => t.text !== task.text) });
-                } else {
-                    setFormData({ ...formData, selectedTasks: [...formData.selectedTasks, task] });
-                }
+                if (exists) { setFormData({ ...formData, selectedTasks: formData.selectedTasks.filter(t => t.text !== task.text) }); } 
+                else { setFormData({ ...formData, selectedTasks: [...formData.selectedTasks, task] }); }
             };
 
             const addCustomTask = () => {
@@ -340,13 +334,7 @@
 
             const handleSubmit = () => {
                 if (!formData.title || !formData.startDate || !formData.responsible) return;
-                
-                const formatDate = (dateStr) => {
-                    if (!dateStr) return '';
-                    const [y, m, d] = dateStr.split('-');
-                    return `${d}/${m}/${y}`;
-                };
-
+                const formatDate = (dateStr) => { if (!dateStr) return ''; const [y, m, d] = dateStr.split('-'); return `${d}/${m}/${y}`; };
                 const newEvent = {
                     title: formData.title,
                     location: formData.location || 'Local a definir',
@@ -356,7 +344,6 @@
                     initialTasks: formData.selectedTasks,
                     coverUrl: formData.cover
                 };
-
                 onCreate(newEvent);
                 setFormData({ title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null });
             };
@@ -370,24 +357,11 @@
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Criar Novo Evento" maxWidth="max-w-4xl">
                     <div className="p-6 space-y-6">
-                        {/* Capa do Evento */}
                         <div className="relative w-full h-40 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer" onClick={() => coverInputRef.current?.click()}>
-                            {formData.cover ? (
-                                <img src={formData.cover} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="text-center p-4">
-                                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/>
-                                    <p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p>
-                                    <p className="text-xs text-gray-400">Clique para fazer upload</p>
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="text-white font-bold text-sm"><Camera size={20} className="inline mr-2"/>Alterar Capa</span>
-                            </div>
+                            {formData.cover ? (<img src={formData.cover} className="w-full h-full object-cover" />) : (<div className="text-center p-4"><ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/><p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p></div>)}
                             <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" accept="image/*"/>
                         </div>
 
-                        {/* Dados Básicos */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="md:col-span-2">
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label>
@@ -410,7 +384,6 @@
                             </div>
                         </div>
 
-                        {/* Responsável e Equipe */}
                         <div className="space-y-4 border-t pt-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável Principal</label>
@@ -438,27 +411,18 @@
                             </div>
                         </div>
 
-                        {/* Tarefas Iniciais */}
                         <div className="space-y-4 border-t pt-4">
-                            <label className="block text-xs font-bold text-gray-500 uppercase">Checklist Inicial (Selecione o que se aplica)</label>
-                            
+                            <label className="block text-xs font-bold text-gray-500 uppercase">Checklist Inicial</label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {Object.keys(groupedTasks).map(catId => {
                                     const cat = DEFAULT_CATEGORIES.find(c => c.id === catId);
                                     return (
                                         <div key={catId} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                            <h5 className={`text-xs font-bold mb-2 flex items-center gap-1 ${getCategoryStyles(cat?.color || 'gray').split(' ')[0]}`}>
-                                                {getCategoryIcon(cat?.icon)} {cat?.title}
-                                            </h5>
+                                            <h5 className={`text-xs font-bold mb-2 flex items-center gap-1 ${getCategoryStyles(cat?.color || 'gray').split(' ')[0]}`}>{getCategoryIcon(cat?.icon)} {cat?.title}</h5>
                                             <div className="space-y-1">
                                                 {groupedTasks[catId].map((task, idx) => (
                                                     <label key={idx} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-white hover:shadow-sm transition-all">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={formData.selectedTasks.some(t => t.text === task.text)} 
-                                                            onChange={() => handleToggleTask(task)} 
-                                                            className="rounded text-blue-600 focus:ring-blue-500"
-                                                        />
+                                                        <input type="checkbox" checked={formData.selectedTasks.some(t => t.text === task.text)} onChange={() => handleToggleTask(task)} className="rounded text-blue-600 focus:ring-blue-500"/>
                                                         <span className="text-xs text-gray-700">{task.text}</span>
                                                     </label>
                                                 ))}
@@ -471,23 +435,12 @@
                             <div className="bg-white border border-gray-200 rounded-lg p-3">
                                 <label className="block text-xs font-bold text-gray-500 mb-2">Adicionar Tarefa Personalizada</label>
                                 <div className="flex gap-2">
-                                    <select 
-                                        className="w-1/3 p-2 border rounded-lg text-sm bg-gray-50 outline-none"
-                                        value={customTaskCategory}
-                                        onChange={e => setCustomTaskCategory(e.target.value)}
-                                    >
+                                    <select className="w-1/3 p-2 border rounded-lg text-sm bg-gray-50 outline-none" value={customTaskCategory} onChange={e => setCustomTaskCategory(e.target.value)}>
                                         {DEFAULT_CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
                                     </select>
-                                    <input 
-                                        className="flex-1 p-2 border rounded-lg text-sm outline-none focus:border-blue-500" 
-                                        placeholder="Digite a tarefa..." 
-                                        value={customTask} 
-                                        onChange={e => setCustomTask(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && addCustomTask()}
-                                    />
+                                    <input className="flex-1 p-2 border rounded-lg text-sm outline-none focus:border-blue-500" placeholder="Digite a tarefa..." value={customTask} onChange={e => setCustomTask(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCustomTask()}/>
                                     <button onClick={addCustomTask} className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"><Plus size={16}/></button>
                                 </div>
-                                {/* Lista de personalizadas */}
                                 <div className="flex flex-wrap gap-2 mt-3">
                                     {formData.selectedTasks.filter(t => t.isCustom).map((t, idx) => (
                                         <span key={idx} className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs flex items-center gap-1 border border-purple-100">
@@ -511,7 +464,7 @@
             const [messageText, setMessageText] = useState("");
             const [isSelectingResponsible, setIsSelectingResponsible] = useState(false);
             const [isSelectingSupport, setIsSelectingSupport] = useState(false);
-            const [selectedSender, setSelectedSender] = useState(members[0]);
+            const [selectedSender, setSelectedSender] = useState(members[0] || {name: 'Eu'});
             const [previewImage, setPreviewImage] = useState(null);
             const [chatAttachment, setChatAttachment] = useState(null);
             const [newSubtask, setNewSubtask] = useState("");
@@ -522,9 +475,7 @@
             const messages = task?.messages || [];
             
             useEffect(() => { 
-                if (isOpen && chatContainerRef.current) {
-                    chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-                }
+                if (isOpen && chatContainerRef.current) { chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight; }
                 if (isOpen && task && members.length > 0) {
                     const me = members.find(m => m.name === 'Paulo Mokarzel') || members[0];
                     if (me) setSelectedSender(me);
@@ -547,20 +498,17 @@
 
             const handleAddSubtask = () => {
                 if(!newSubtask.trim()) return;
-                const updatedSubtasks = [...subtasks, { id: Date.now(), text: newSubtask, completed: false }];
-                onUpdateTask(task.id, { subtasks: updatedSubtasks });
+                onUpdateTask(task.id, { subtasks: [...subtasks, { id: Date.now(), text: newSubtask, completed: false }] });
                 setNewSubtask("");
             };
 
             const toggleSubtask = (subId) => {
-                const updatedSubtasks = subtasks.map(s => s.id === subId ? {...s, completed: !s.completed} : s);
-                onUpdateTask(task.id, { subtasks: updatedSubtasks });
+                onUpdateTask(task.id, { subtasks: subtasks.map(s => s.id === subId ? {...s, completed: !s.completed} : s) });
             };
 
             const deleteSubtask = (subId) => {
                 if(window.confirm("Excluir este complemento?")) {
-                    const updatedSubtasks = subtasks.filter(s => s.id !== subId);
-                    onUpdateTask(task.id, { subtasks: updatedSubtasks });
+                    onUpdateTask(task.id, { subtasks: subtasks.filter(s => s.id !== subId) });
                 }
             };
 
@@ -570,16 +518,14 @@
             };
 
             const addSupport = (member) => {
-                const exists = supportList.find(s => s.id === member.id);
-                if (!exists) {
+                if (!supportList.find(s => s.id === member.id)) {
                     onUpdateTask(task.id, { support: [...supportList, member] });
                 }
                 setIsSelectingSupport(false);
             };
 
             const removeSupport = (memberId) => {
-                const updatedSupport = supportList.filter(s => s.id !== memberId);
-                onUpdateTask(task.id, { support: updatedSupport });
+                onUpdateTask(task.id, { support: supportList.filter(s => s.id !== memberId) });
             };
 
             return (
@@ -592,7 +538,6 @@
                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${task.status === 'done' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{task.status === 'done' ? 'Concluído' : 'Em Andamento'}</span>
                                 </div>
                                 <h2 className="text-xl font-bold text-gray-900 leading-tight mb-6">{task.text}</h2>
-                                
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="relative">
                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Responsável</p>
@@ -611,9 +556,7 @@
                                             {supportList.map(member => (
                                                 <div key={member.id} className="relative group cursor-pointer" onClick={() => removeSupport(member.id)}>
                                                     <Avatar member={member} size="w-8 h-8" showCrown={false}/>
-                                                    <div className="absolute inset-0 bg-black/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <X size={12} className="text-white"/>
-                                                    </div>
+                                                    <div className="absolute inset-0 bg-black/20 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} className="text-white"/></div>
                                                 </div>
                                             ))}
                                             <button onClick={() => setIsSelectingSupport(!isSelectingSupport)} className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors"><Plus size={14}/></button>
@@ -650,8 +593,7 @@
                             <div className="flex-1 flex flex-col bg-slate-100 overflow-hidden">
                                 <div className="p-3 border-b bg-white/50 backdrop-blur-sm flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10"><MessageSquare size={14}/> Comentários</div>
                                 <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={chatContainerRef}>
-                                    {messages.length === 0 ? <p className="text-xs text-center text-gray-400 mt-10">Nenhuma mensagem. Inicie a conversa!</p> : 
-                                    messages.map((msg, i) => {
+                                    {messages.map((msg, i) => {
                                         const isMe = msg.senderId === selectedSender.id;
                                         const senderMember = members.find(m => m.id === msg.senderId) || { name: msg.sender, photoUrl: null };
                                         return (
@@ -687,12 +629,10 @@
                         </div>
                         <div className="w-full md:w-80 bg-white border-l border-gray-100 flex flex-col h-full overflow-y-auto">
                             <div className="p-4 border-b border-gray-100">
-                                <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2 mb-4"><Paperclip size={16}/> Arquivos & Documentos</h4>
+                                <h4 className="font-bold text-sm text-gray-800 flex items-center gap-2 mb-4"><Paperclip size={16}/> Arquivos</h4>
                                 <div className="space-y-2 mb-4">
-                                    {attachments.map(att => (<div key={att.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 bg-gray-50 hover:bg-blue-50 transition-colors group"><div className="w-8 h-8 rounded bg-white border border-gray-200 flex items-center justify-center text-blue-600"><FileText size={16}/></div><div className="flex-1 min-w-0"><p className="text-xs font-bold text-gray-700 truncate">{att.name}</p><p className="text-[10px] text-gray-400">{att.size}</p></div><button onClick={() => { if(window.confirm("Excluir este anexo?")) onDeleteAttachment(task.id, att.id); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><X size={14}/></button></div>))}
-                                    {attachments.length === 0 && <p className="text-xs text-gray-400 italic">Nenhum arquivo anexado.</p>}
+                                    {attachments.map(att => (<div key={att.id} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 bg-gray-50 hover:bg-blue-50 transition-colors group"><div className="w-8 h-8 rounded bg-white border border-gray-200 flex items-center justify-center text-blue-600"><FileText size={16}/></div><div className="flex-1 min-w-0"><p className="text-xs font-bold text-gray-700 truncate">{att.name}</p><p className="text-[10px] text-gray-400">{att.size}</p></div><button onClick={() => { if(window.confirm("Excluir?")) onDeleteAttachment(task.id, att.id); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500"><X size={14}/></button></div>))}
                                 </div>
-                                <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-blue-300 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors"><Plus size={14}/> Adicionar Arquivo<input type="file" className="hidden" onChange={(e) => { const file = e.target.files[0]; if(file) onAddAttachment(task.id, { id: Date.now(), name: file.name, size: (file.size/1024).toFixed(1)+'KB' }); }}/></label>
                             </div>
                         </div>
                     </div>
@@ -811,11 +751,26 @@
             const [messages, setMessages] = useState([{ id: 1, sender: 'ai', text: "Olá! Sou sua Assistente de Marketing. Como posso ajudar com o evento hoje?" }]);
             const messagesEndRef = useRef(null);
             
-            const handleSend = (e) => {
+            const handleSend = async (e) => {
                 e.preventDefault();
                 if (!input.trim()) return;
-                setMessages([...messages, { id: Date.now(), sender: 'user', text: input }, { id: Date.now()+1, sender: 'ai', text: "Entendido! Estou processando sua solicitação..." }]);
+                
+                const userMessage = { id: Date.now(), sender: 'user', text: input };
+                setMessages(prev => [...prev, userMessage]);
                 setInput("");
+
+                // Contexto do app para a IA
+                const context = `
+                    Você é a assistente virtual do Event Hub.
+                    Dados atuais:
+                    - Membros: ${members.map(m => m.name + " (" + m.role + ")").join(", ")}
+                    - Eventos: ${events.map(e => e.title + " em " + e.location).join(", ")}
+                    - Tarefas pendentes: ${tasks ? tasks.filter(t => t.status !== 'done').length : 0}
+                `;
+                
+                const responseText = await callGeminiFlash(input, context);
+                
+                setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]);
             };
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -833,7 +788,7 @@
             );
         };
 
-        // --- Dashboard View ---
+        // --- Dashboard View (Mova para antes do App) ---
         const DashboardView = ({ onSelectEvent, events, members, updates, onDeleteUpdate, onNewEvent }) => {
             const [confirmDeleteId, setConfirmDeleteId] = useState(null);
             return (
@@ -1348,85 +1303,118 @@
         const App = () => {
             const [view, setView] = useState('dashboard');
             const [selectedEvent, setSelectedEvent] = useState(null);
+            
+            // Estado Global via Firebase (inicialmente vazio, preenchido via snapshot)
+            const [events, setEvents] = useState([]);
+            const [members, setMembers] = useState([]);
+            const [tasks, setTasks] = useState([]); 
+
             const [isAIOpen, setIsAIOpen] = useState(false);
-            const [logo, setLogo] = useState(null);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
             const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
+            const [logo, setLogo] = useState(null);
             const [toastMessage, setToastMessage] = useState(null);
-            
-            const [updates, setUpdates] = useState([
-                { id: 1, user: 'Paulo Mokarzel', text: 'Produtos definidos e aprovados.', date: '04/12/2025' },
-                { id: 2, user: 'Ana Silva', text: 'Gráfica colocou a previsão para entrega dos rótulos para o dia 23/05.', date: '27/11/2025' }
-            ]);
-            
-            const [members, setMembers] = useState([
-                { id: '1', name: 'Paulo Mokarzel', role: 'Gestor da Equipe', photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop' },
-                { id: '2', name: 'Ana Silva', role: 'Gerente de Mkt', photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop' },
-                { id: '3', name: 'Beatriz Costa', role: 'Coordenadora', photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop' },
-                { id: '4', name: 'João Mendes', role: 'Logística', photoUrl: null },
-                { id: '5', name: 'Fernanda Lima', role: 'Social Media', photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' }
-            ]);
 
-            const [events, setEvents] = useState([
-                { id: 'ev1', title: 'Convenção de Vendas 2026', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026', coverUrl: null }
-            ]);
+            // Auth & Listeners
+            useEffect(() => {
+                const unsubscribeAuth = onAuthStateChanged(auth, async (u) => {
+                    if (u) {
+                        // User is signed in
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                });
+                return () => unsubscribeAuth();
+            }, []);
 
-            const notifications = [{ text: "Tarefa concluída: Orçamento Aprovado", date: "Há 10 min" }];
+            // Simulação de dados iniciais enquanto o Firebase não carrega ou se estiver vazio
+            useEffect(() => {
+                if (events.length === 0) {
+                     setEvents([{ id: 'ev1', title: 'Convenção de Vendas 2026', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026', coverUrl: null }]);
+                }
+                if (members.length === 0) {
+                    setMembers([
+                        { id: '1', name: 'Paulo Mokarzel', role: 'Gestor da Equipe', photoUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop' },
+                        { id: '2', name: 'Ana Silva', role: 'Gerente de Mkt', photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop' },
+                        { id: '3', name: 'Beatriz Costa', role: 'Coordenadora', photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=100&h=100&fit=crop' },
+                        { id: '4', name: 'João Mendes', role: 'Logística', photoUrl: null },
+                        { id: '5', name: 'Fernanda Lima', role: 'Social Media', photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' }
+                    ]);
+                }
+            }, []);
 
-            const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(setLogo); };
-
-            // Show toast function
-            const showToast = (msg) => {
-                setToastMessage(msg);
-                if(Math.random() > 0.7) { setTimeout(() => setToastMessage("Nova atualização: João comentou na tarefa Logística"), 8000); }
+            // Helpers de Banco de Dados
+            const handleAddMember = async (memberData) => {
+                // Implementação Firebase real seria: await addDoc(...)
+                setMembers([...members, { ...memberData, id: Date.now().toString() }]);
+                showToast("Membro adicionado!");
             };
 
-            const handleAddEvent = (eventData) => {
-                const newEvent = {
-                    id: `ev-${Date.now()}`,
-                    ...eventData
-                };
-                setEvents([...events, newEvent]);
+            const handleUpdateMember = async (memberData) => {
+                 setMembers(members.map(m => m.id === memberData.id ? memberData : m));
+            };
+
+            const handleDeleteMember = async (id) => {
+                 setMembers(members.filter(m => m.id !== id));
+                 showToast("Membro removido.");
+            };
+
+            const handleCreateEvent = async (eventData) => {
+                setEvents([...events, { ...eventData, id: `ev-${Date.now()}` }]);
                 setIsNewEventModalOpen(false);
-                showToast("Evento criado com sucesso!");
+                showToast("Evento criado!");
+            };
+
+            const showToast = (msg) => {
+                setToastMessage(msg);
             };
 
             return (
                 <div className="min-h-screen pb-12">
-                    <header className="fixed top-0 left-0 right-0 bg-white h-24 border-b border-gray-100 z-40 px-8 flex items-center justify-between shadow-sm">
+                     <header className="fixed top-0 left-0 right-0 bg-white h-24 border-b border-gray-100 z-40 px-8 flex items-center justify-between shadow-sm">
                         <div className="flex items-center gap-6 cursor-pointer" onClick={() => setView('dashboard')}>
-                            <div className={`h-12 w-32 rounded-lg flex items-center justify-center text-xs text-gray-400 font-medium relative transition-colors ${!logo ? 'border-2 border-dashed border-gray-300 hover:border-blue-400' : ''}`}>{logo ? <img src={logo} className="h-full w-full object-contain"/> : "Sua Logo"}<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleLogoUpload} accept="image/*" /></div>
+                            <div className={`h-12 w-32 rounded-lg flex items-center justify-center text-xs text-gray-400 font-medium relative transition-colors ${!logo ? 'border-2 border-dashed border-gray-300 hover:border-blue-400' : ''}`}>{logo ? <img src={logo} className="h-full w-full object-contain"/> : "Sua Logo"}<input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(setLogo); }} accept="image/*" /></div>
                             <div className="h-10 w-px bg-gray-200"></div><div><h1 className="text-2xl font-extrabold text-[#002060]">Event Hub</h1><p className="text-sm text-gray-500 font-medium">Painel de Marketing</p></div>
                         </div>
                         <div className="flex items-center gap-6">
                             <div className="flex items-center gap-3 pr-6 border-r border-gray-100 hidden md:flex">
-                                <div className="w-10 h-10 rounded-full bg-gray-200 border border-gray-300 overflow-hidden relative"><Avatar member={members[0]} size="w-full h-full" textSize="text-xs"/></div>
-                                <div className="text-right"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">Gestor da Equipe</p><p className="text-sm font-bold text-gray-800 leading-tight">{members[0].name}</p></div>
+                                {members.length > 0 && (
+                                    <>
+                                    <div className="w-10 h-10 rounded-full bg-gray-200 border border-gray-300 overflow-hidden relative"><Avatar member={members[0]} size="w-full h-full" textSize="text-xs"/></div>
+                                    <div className="text-right"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">Gestor da Equipe</p><p className="text-sm font-bold text-gray-800 leading-tight">{members[0].name}</p></div>
+                                    </>
+                                )}
                             </div>
                             <div className="flex items-center gap-3 relative">
                                 <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-xl transition-colors relative border border-gray-200 shadow-sm"><Bell size={20}/><span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span></button>
-                                {isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} notifications={notifications} />}
+                                {isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} notifications={[{ text: "Sistema conectado", date: "Agora" }]} />}
                                 <button onClick={() => setIsSettingsOpen(true)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 shadow-sm"><Settings size={20}/></button>
                             </div>
                         </div>
                     </header>
+
                     <main className="pt-32 px-8 max-w-[1600px] mx-auto">
                         {view === 'dashboard' ? (
                             <DashboardView 
-                                onSelectEvent={(e) => { setSelectedEvent(e); setView('event'); }} 
+                                onSelectEvent={(evt) => { setSelectedEvent(evt); setView('event'); }} 
                                 events={events} 
                                 members={members} 
-                                updates={updates}
-                                onDeleteUpdate={(id) => setUpdates(updates.filter(u => u.id !== id))}
+                                updates={[]} 
+                                onDeleteUpdate={() => {}}
                                 onNewEvent={() => setIsNewEventModalOpen(true)}
                             />
                         ) : (
-                            <EventDetailView event={selectedEvent} onBack={() => setView('dashboard')} globalMembers={members} onShowToast={showToast}/>
+                            <EventDetailView 
+                                event={selectedEvent} 
+                                onBack={() => setView('dashboard')} 
+                                globalMembers={members} 
+                                onShowToast={showToast}
+                            />
                         )}
                     </main>
-                    
-                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} events={events} tasks={[]} />
+
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} events={events} tasks={tasks} />
 
                     <SettingsModal 
                         isOpen={isSettingsOpen} 
@@ -1435,20 +1423,20 @@
                         logo={logo} 
                         setLogo={setLogo} 
                         onUpdateLogo={setLogo} 
-                        onAddMember={(m) => setMembers([...members, {...m, id: Date.now().toString()}])} 
-                        onUpdateMember={(m) => setMembers(members.map(mem => mem.id === m.id ? {...mem, ...m} : mem))} 
-                        onDeleteMember={(id) => setMembers(members.filter(m => m.id !== id))} 
+                        onAddMember={handleAddMember} 
+                        onUpdateMember={handleUpdateMember} 
+                        onDeleteMember={handleDeleteMember} 
                     />
 
                     <NewEventModal 
                         isOpen={isNewEventModalOpen} 
                         onClose={() => setIsNewEventModalOpen(false)} 
                         members={members} 
-                        onCreate={handleAddEvent}
+                        onCreate={handleCreateEvent}
                     />
-                    
-                    {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
 
+                    {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
+                    
                     <button onClick={() => setIsAIOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center group"><Bot size={28} className="group-hover:animate-bounce"/></button>
                 </div>
             );
