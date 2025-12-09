@@ -22,16 +22,12 @@
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
         .drag-over { background-color: #eff6ff !important; border-color: #3b82f6 !important; }
         .dragging { opacity: 0.5; transform: scale(0.95); }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-in { animation: fadeIn 0.4s ease-out forwards; }
-        
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .slide-in-notification { animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
         @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
         .animate-shimmer { animation: shimmer 2s infinite linear; background: linear-gradient(to right, #eff6ff 4%, #dbeafe 25%, #eff6ff 36%); background-size: 1000px 100%; }
     </style>
@@ -53,6 +49,7 @@
 
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
+        import { createPortal } from 'https://esm.sh/react-dom@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         import { 
             Calendar as CalendarIcon, Users, CheckSquare, Flag, Plus, X, Clock, 
@@ -63,11 +60,11 @@
             DollarSign, ClipboardList, Mic, Music, Coffee, Gift, Sparkles, Bot,
             BarChart3, Layout, GripVertical, Flame, Info, Wifi, WifiOff,
             ExternalLink, Lightbulb, BrainCircuit, MoreVertical, Paperclip, FileText,
-            Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2
+            Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Utils & Constants ---
-        const compressImage = (file, maxWidth = 300) => {
+        const compressImage = (file, maxWidth = 800) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -134,17 +131,38 @@
         const getCategoryIcon = (iconName) => { const Icon = ICON_MAP[iconName] || Box; return <Icon size={18} />; };
         const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
+        const DEFAULT_CATEGORIES = [
+            { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue' },
+            { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber' },
+            { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple' },
+            { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald' }
+        ];
+
+        const PREDEFINED_TASKS_DATA = [
+            { text: "Definir orçamento inicial", category: "planning" },
+            { text: "Reservar local do evento", category: "logistics" },
+            { text: "Contratar buffet", category: "logistics" },
+            { text: "Criar identidade visual", category: "planning" },
+            { text: "Enviar convites", category: "planning" },
+            { text: "Contratar equipe de foto/vídeo", category: "staff" },
+            { text: "Definir cronograma", category: "planning" },
+            { text: "Comprar brindes", category: "logistics" },
+            { text: "Reservar passagens/hotel", category: "staff" },
+            { text: "Criar formulário de leads", category: "post" }
+        ];
+
         // --- Componentes Genéricos ---
-        
+
         const ImagePreviewModal = ({ isOpen, onClose, imageUrl }) => {
             if (!isOpen || !imageUrl) return null;
-            return (
-                <div className="fixed inset-0 z-[150] bg-black/90 flex items-center justify-center p-4 animate-in" onClick={onClose}>
+            return createPortal(
+                <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 animate-in" onClick={onClose}>
                     <div className="relative max-w-4xl max-h-[90vh]">
                          <button onClick={onClose} className="absolute -top-10 right-0 text-white hover:text-gray-300"><X size={24}/></button>
                          <img src={imageUrl} className="max-w-full max-h-[85vh] rounded-lg shadow-2xl" onClick={(e) => e.stopPropagation()} />
                     </div>
-                </div>
+                </div>,
+                document.body
             );
         };
 
@@ -181,11 +199,22 @@
             );
         };
 
+        // MODAL COM PORTAL PARA CORRIGIR POSICIONAMENTO
         const Modal = ({ isOpen, onClose, title, children, fullScreen, maxWidth = "max-w-lg" }) => {
+            useEffect(() => {
+                if (isOpen) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = 'unset';
+                }
+                return () => { document.body.style.overflow = 'unset'; };
+            }, [isOpen]);
+
             if (!isOpen) return null;
+            
             const content = (
-                <div className={`bg-white ${fullScreen ? 'fixed inset-0 z-50' : `rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] overflow-hidden flex flex-col`}`}>
-                    <div className="p-4 border-b bg-[#1e1b4b] text-white flex justify-between items-center">
+                <div className={`bg-white ${fullScreen ? 'fixed inset-0 z-[100] flex flex-col' : `rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] overflow-hidden flex flex-col bg-white relative z-[100]`}`}>
+                    <div className="p-4 border-b bg-[#1e1b4b] text-white flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-2">
                              {title === 'Configurações' && <Settings size={18}/>}
                              <h3 className="font-bold">{title}</h3>
@@ -195,18 +224,29 @@
                     <div className="p-0 overflow-y-auto flex-1 bg-white relative">{children}</div>
                 </div>
             );
-            if (fullScreen) return content;
-            return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in">{content}</div>;
+
+            const modalMarkup = fullScreen ? (
+                <div className="fixed inset-0 z-[9999] bg-white animate-in" style={{animationDuration: '200ms'}}>
+                    {content}
+                </div>
+            ) : (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in" style={{animationDuration: '200ms'}}>
+                    {content}
+                </div>
+            );
+
+            return createPortal(modalMarkup, document.body);
         };
 
         const Toast = ({ message, onClose }) => {
             useEffect(() => { const timer = setTimeout(onClose, 5000); return () => clearTimeout(timer); }, [onClose]);
-            return (
-                <div className="fixed top-6 right-6 z-[200] bg-white rounded-xl shadow-2xl border-l-4 border-blue-600 p-4 flex items-start gap-3 max-w-sm slide-in-notification">
+            return createPortal(
+                <div className="fixed top-6 right-6 z-[10000] bg-white rounded-xl shadow-2xl border-l-4 border-blue-600 p-4 flex items-start gap-3 max-w-sm slide-in-notification">
                     <div className="bg-blue-100 p-2 rounded-full text-blue-600"><Bell size={20}/></div>
                     <div className="flex-1"><h4 className="font-bold text-gray-800 text-sm">Nova Atualização</h4><p className="text-xs text-gray-600 mt-1">{message}</p></div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={14}/></button>
-                </div>
+                </div>,
+                document.body
             );
         };
 
@@ -242,6 +282,230 @@
             );
         };
 
+        // --- Novo Modal de Criação de Evento ---
+        const NewEventModal = ({ isOpen, onClose, members, onCreate }) => {
+            const [formData, setFormData] = useState({
+                title: '',
+                location: '',
+                startDate: '',
+                endDate: '',
+                responsible: '',
+                team: [],
+                selectedTasks: [],
+                cover: null
+            });
+            const [customTask, setCustomTask] = useState('');
+            const [customTaskCategory, setCustomTaskCategory] = useState(DEFAULT_CATEGORIES[0].id);
+            const coverInputRef = useRef(null);
+
+            if (!isOpen) return null;
+
+            const handleToggleMember = (memberId) => {
+                if (formData.team.includes(memberId)) {
+                    setFormData({ ...formData, team: formData.team.filter(id => id !== memberId) });
+                } else {
+                    setFormData({ ...formData, team: [...formData.team, memberId] });
+                }
+            };
+
+            const handleToggleTask = (task) => {
+                const exists = formData.selectedTasks.some(t => t.text === task.text);
+                if (exists) {
+                    setFormData({ ...formData, selectedTasks: formData.selectedTasks.filter(t => t.text !== task.text) });
+                } else {
+                    setFormData({ ...formData, selectedTasks: [...formData.selectedTasks, task] });
+                }
+            };
+
+            const addCustomTask = () => {
+                if (customTask.trim()) {
+                    const newTask = { text: customTask.trim(), category: customTaskCategory, isCustom: true };
+                    setFormData({ ...formData, selectedTasks: [...formData.selectedTasks, newTask] });
+                    setCustomTask('');
+                }
+            };
+
+            const removeCustomTask = (taskText) => {
+                setFormData({ ...formData, selectedTasks: formData.selectedTasks.filter(t => t.text !== taskText) });
+            };
+
+            const handleCoverUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    compressImage(file, 800).then(url => {
+                        setFormData({ ...formData, cover: url });
+                    });
+                }
+            };
+
+            const handleSubmit = () => {
+                if (!formData.title || !formData.startDate || !formData.responsible) return;
+                
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    const [y, m, d] = dateStr.split('-');
+                    return `${d}/${m}/${y}`;
+                };
+
+                const newEvent = {
+                    title: formData.title,
+                    location: formData.location || 'Local a definir',
+                    dateRange: `${formatDate(formData.startDate)} - ${formData.endDate ? formatDate(formData.endDate) : formatDate(formData.startDate)}`,
+                    responsibleId: formData.responsible,
+                    teamIds: formData.team,
+                    initialTasks: formData.selectedTasks,
+                    coverUrl: formData.cover
+                };
+
+                onCreate(newEvent);
+                setFormData({ title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null });
+            };
+
+            const groupedTasks = PREDEFINED_TASKS_DATA.reduce((acc, task) => {
+                if (!acc[task.category]) acc[task.category] = [];
+                acc[task.category].push(task);
+                return acc;
+            }, {});
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Criar Novo Evento" maxWidth="max-w-4xl">
+                    <div className="p-6 space-y-6">
+                        {/* Capa do Evento */}
+                        <div className="relative w-full h-40 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+                            {formData.cover ? (
+                                <img src={formData.cover} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="text-center p-4">
+                                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/>
+                                    <p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p>
+                                    <p className="text-xs text-gray-400">Clique para fazer upload</p>
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-white font-bold text-sm"><Camera size={20} className="inline mr-2"/>Alterar Capa</span>
+                            </div>
+                            <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" accept="image/*"/>
+                        </div>
+
+                        {/* Dados Básicos */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label>
+                                <input className="w-full p-2 border rounded-lg outline-none focus:border-blue-500" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Convenção 2026"/>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Local</label>
+                                <div className="flex items-center gap-2 border rounded-lg p-2 focus-within:border-blue-500">
+                                    <MapPin size={16} className="text-gray-400"/>
+                                    <input className="flex-1 outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Ex: Auditório Principal"/>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início</label>
+                                <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})}/>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Fim</label>
+                                <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})}/>
+                            </div>
+                        </div>
+
+                        {/* Responsável e Equipe */}
+                        <div className="space-y-4 border-t pt-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável Principal</label>
+                                <select className="w-full p-2 border rounded-lg bg-white text-sm" value={formData.responsible} onChange={e => setFormData({...formData, responsible: e.target.value})}>
+                                    <option value="">Selecione um gestor...</option>
+                                    {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe do Evento</label>
+                                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg bg-gray-50">
+                                    {members.map(m => (
+                                        <button 
+                                            key={m.id} 
+                                            onClick={() => handleToggleMember(m.id)}
+                                            className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs transition-colors ${formData.team.includes(m.id) ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                                        >
+                                            <div className="w-5 h-5 rounded-full overflow-hidden border border-gray-200">
+                                                {m.photoUrl ? <img src={m.photoUrl} className="w-full h-full object-cover"/> : <div className="w-full h-full bg-gray-200 flex items-center justify-center font-bold">{m.name.substring(0,1)}</div>}
+                                            </div>
+                                            {m.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tarefas Iniciais */}
+                        <div className="space-y-4 border-t pt-4">
+                            <label className="block text-xs font-bold text-gray-500 uppercase">Checklist Inicial (Selecione o que se aplica)</label>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {Object.keys(groupedTasks).map(catId => {
+                                    const cat = DEFAULT_CATEGORIES.find(c => c.id === catId);
+                                    return (
+                                        <div key={catId} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                            <h5 className={`text-xs font-bold mb-2 flex items-center gap-1 ${getCategoryStyles(cat?.color || 'gray').split(' ')[0]}`}>
+                                                {getCategoryIcon(cat?.icon)} {cat?.title}
+                                            </h5>
+                                            <div className="space-y-1">
+                                                {groupedTasks[catId].map((task, idx) => (
+                                                    <label key={idx} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-white hover:shadow-sm transition-all">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={formData.selectedTasks.some(t => t.text === task.text)} 
+                                                            onChange={() => handleToggleTask(task)} 
+                                                            className="rounded text-blue-600 focus:ring-blue-500"
+                                                        />
+                                                        <span className="text-xs text-gray-700">{task.text}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="bg-white border border-gray-200 rounded-lg p-3">
+                                <label className="block text-xs font-bold text-gray-500 mb-2">Adicionar Tarefa Personalizada</label>
+                                <div className="flex gap-2">
+                                    <select 
+                                        className="w-1/3 p-2 border rounded-lg text-sm bg-gray-50 outline-none"
+                                        value={customTaskCategory}
+                                        onChange={e => setCustomTaskCategory(e.target.value)}
+                                    >
+                                        {DEFAULT_CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
+                                    </select>
+                                    <input 
+                                        className="flex-1 p-2 border rounded-lg text-sm outline-none focus:border-blue-500" 
+                                        placeholder="Digite a tarefa..." 
+                                        value={customTask} 
+                                        onChange={e => setCustomTask(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && addCustomTask()}
+                                    />
+                                    <button onClick={addCustomTask} className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"><Plus size={16}/></button>
+                                </div>
+                                {/* Lista de personalizadas */}
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                    {formData.selectedTasks.filter(t => t.isCustom).map((t, idx) => (
+                                        <span key={idx} className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs flex items-center gap-1 border border-purple-100">
+                                            {t.text} <button onClick={() => removeCustomTask(t.text)} className="hover:text-purple-900"><X size={10}/></button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end pt-4 border-t">
+                            <button onClick={handleSubmit} disabled={!formData.title} className="bg-blue-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-800 disabled:opacity-50 shadow-lg shadow-blue-900/20">Criar Evento</button>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
         // --- Detalhes da Tarefa ---
         const TaskDetailModal = ({ task, isOpen, onClose, members, onUpdateTask, onSendMessage, onAssignResponsible, onAddAttachment, onDeleteAttachment, onDeleteMessage }) => {
             const [messageText, setMessageText] = useState("");
@@ -252,14 +516,16 @@
             const [chatAttachment, setChatAttachment] = useState(null);
             const [newSubtask, setNewSubtask] = useState("");
             const [confirmDeleteMessageId, setConfirmDeleteMessageId] = useState(null);
-            const messagesEndRef = useRef(null);
+            const chatContainerRef = useRef(null);
             const chatFileRef = useRef(null);
 
             const messages = task?.messages || [];
             
             useEffect(() => { 
-                if (isOpen && task) {
-                    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                if (isOpen && chatContainerRef.current) {
+                    chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+                }
+                if (isOpen && task && members.length > 0) {
                     const me = members.find(m => m.name === 'Paulo Mokarzel') || members[0];
                     if (me) setSelectedSender(me);
                 }
@@ -292,8 +558,10 @@
             };
 
             const deleteSubtask = (subId) => {
-                const updatedSubtasks = subtasks.filter(s => s.id !== subId);
-                onUpdateTask(task.id, { subtasks: updatedSubtasks });
+                if(window.confirm("Excluir este complemento?")) {
+                    const updatedSubtasks = subtasks.filter(s => s.id !== subId);
+                    onUpdateTask(task.id, { subtasks: updatedSubtasks });
+                }
             };
 
             const handleChatImageUpload = (e) => {
@@ -315,9 +583,9 @@
             };
 
             return (
-                <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa #${task.id.toString().slice(-4)}`} maxWidth="max-w-5xl">
-                    <div className="flex flex-col md:flex-row h-[85vh]">
-                        <div className="flex-1 flex flex-col border-r border-gray-100 bg-gray-50/50">
+                <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa #${task.id.toString().slice(-4)}`} fullScreen={true}>
+                    <div className="flex flex-col md:flex-row h-full">
+                        <div className="flex-1 flex flex-col border-r border-gray-100 bg-gray-50/50 overflow-y-auto">
                             <div className="p-6 border-b bg-white">
                                 <div className="flex items-center gap-3 mb-3">
                                     <PriorityBadge level={task.priority} />
@@ -381,7 +649,7 @@
 
                             <div className="flex-1 flex flex-col bg-slate-100 overflow-hidden">
                                 <div className="p-3 border-b bg-white/50 backdrop-blur-sm flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 z-10"><MessageSquare size={14}/> Comentários</div>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                                <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={chatContainerRef}>
                                     {messages.length === 0 ? <p className="text-xs text-center text-gray-400 mt-10">Nenhuma mensagem. Inicie a conversa!</p> : 
                                     messages.map((msg, i) => {
                                         const isMe = msg.senderId === selectedSender.id;
@@ -403,7 +671,6 @@
                                             </div>
                                         );
                                     })}
-                                    <div ref={messagesEndRef} />
                                 </div>
                                 <div className="p-3 bg-white border-t border-gray-200">
                                     {chatAttachment && (<div className="flex items-center gap-2 mb-2 p-2 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700"><ImageIcon size={14}/> Imagem anexada <button onClick={() => setChatAttachment(null)} className="ml-auto hover:text-red-500"><X size={14}/></button></div>)}
@@ -567,7 +834,7 @@
         };
 
         // --- Dashboard View ---
-        const DashboardView = ({ onSelectEvent, events, members, updates, onDeleteUpdate }) => {
+        const DashboardView = ({ onSelectEvent, events, members, updates, onDeleteUpdate, onNewEvent }) => {
             const [confirmDeleteId, setConfirmDeleteId] = useState(null);
             return (
                 <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8 animate-in slide-in-from-right-4 duration-500">
@@ -579,7 +846,24 @@
                             </div>
                             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex flex-col justify-center"><h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2"><Users size={18} /> Carga de Trabalho</h3><div className="flex items-end gap-6 overflow-x-auto pb-2 hide-scrollbar">{members.map(m => (<div key={m.id} className="flex flex-col items-center gap-2 min-w-[50px]"><div className="w-10 h-1 bg-gray-100 rounded-full overflow-hidden mb-1"><div className="h-full bg-blue-600 rounded-full" style={{width: '60%'}}></div></div><Avatar member={m}/><span className="text-xs font-bold text-blue-600">3</span></div>))}</div></div>
                         </section>
-                        <section><h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><Clock size={20} /> Próximos Eventos</h2><div className="space-y-4">{events.map(event => (<div key={event.id} onClick={() => onSelectEvent(event)} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col md:flex-row items-center gap-6"><div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100 group-hover:bg-blue-50 transition-colors"><span className="text-[10px] font-bold text-gray-500 uppercase">DEZ</span><span className="text-3xl font-extrabold text-gray-800">02</span></div><div className="flex-1"><h3 className="text-xl font-bold text-blue-700 group-hover:text-blue-900">{event.title}</h3><p className="text-sm text-gray-500 mt-1 flex items-center gap-2"><Truck size={14}/> {event.location}</p></div></div>))}</div></section>
+                        <section>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-lg font-bold text-blue-900 flex items-center gap-2"><Clock size={20} /> Próximos Eventos</h2>
+                                <button onClick={onNewEvent} className="bg-blue-900 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg hover:bg-blue-800 transition-colors"><Plus size={16}/> Novo Evento</button>
+                            </div>
+                            <div className="space-y-4">{events.map(event => (
+                                <div key={event.id} onClick={() => onSelectEvent(event)} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+                                    {event.coverUrl && (
+                                        <div className="absolute inset-0 z-0">
+                                            <img src={event.coverUrl} className="w-full h-full object-cover opacity-10 group-hover:opacity-20 transition-opacity"/>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
+                                        </div>
+                                    )}
+                                    <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100 group-hover:bg-blue-50 transition-colors z-10 relative"><span className="text-[10px] font-bold text-gray-500 uppercase">DEZ</span><span className="text-3xl font-extrabold text-gray-800">02</span></div>
+                                    <div className="flex-1 z-10 relative"><h3 className="text-xl font-bold text-blue-700 group-hover:text-blue-900">{event.title}</h3><p className="text-sm text-gray-500 mt-1 flex items-center gap-2"><Truck size={14}/> {event.location}</p></div>
+                                </div>
+                            ))}</div>
+                        </section>
                     </div>
                     <div className="xl:col-span-1">
                         <section className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-full">
@@ -611,13 +895,19 @@
             const [selectedTaskId, setSelectedTaskId] = useState(null);
             const selectedTask = tasks.find(t => t.id === selectedTaskId);
 
-            const [categories, setCategories] = useState([
-                { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue' },
-                { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber' },
-                { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple' },
-                { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald' }
-            ]);
-            const [eventTeam, setEventTeam] = useState(globalMembers);
+            const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+            
+            const [eventTeam, setEventTeam] = useState([]);
+            
+            useEffect(() => {
+                if (event && event.teamIds) {
+                    const teamMembers = globalMembers.filter(m => event.teamIds.includes(m.id));
+                    setEventTeam(teamMembers.length > 0 ? teamMembers : globalMembers);
+                } else {
+                    setEventTeam(globalMembers);
+                }
+            }, [event, globalMembers]);
+
             const [draggedTask, setDraggedTask] = useState(null);
             const [dragOverColumn, setDragOverColumn] = useState(null);
             const [totalCost, setTotalCost] = useState(0);
@@ -641,18 +931,33 @@
 
             useEffect(() => {
                 const saved = localStorage.getItem(`tasks_${event.id}`);
-                if (saved) setTasks(JSON.parse(saved));
-                else setTasks([
-                    { id: '1', text: 'Definir orçamento', category: 'planning', status: 'done', priority: 'high', responsible: globalMembers[0], cost: 5000, messages: [], subtasks: [] },
-                    { id: '2', text: 'Contratar buffet', category: 'logistics', status: 'in_progress', priority: 'medium', responsible: globalMembers[1], cost: 12000, messages: [], subtasks: [] }
-                ]);
+                if (saved) {
+                    setTasks(JSON.parse(saved));
+                } else if (event.initialTasks && event.initialTasks.length > 0) {
+                    const newTasks = event.initialTasks.map((t, i) => ({
+                        id: Date.now().toString() + i,
+                        text: t.text, // Access .text property
+                        category: t.category || 'planning', // Access .category property or default
+                        status: 'todo',
+                        priority: 'medium',
+                        responsible: eventTeam[0] || globalMembers[0],
+                        messages: [],
+                        subtasks: []
+                    }));
+                    setTasks(newTasks);
+                } else {
+                    setTasks([
+                        { id: '1', text: 'Definir orçamento', category: 'planning', status: 'done', priority: 'high', responsible: globalMembers[0], cost: 5000, messages: [], subtasks: [] },
+                        { id: '2', text: 'Contratar buffet', category: 'logistics', status: 'in_progress', priority: 'medium', responsible: globalMembers[1], cost: 12000, messages: [], subtasks: [] }
+                    ]);
+                }
             }, [event]);
 
             useEffect(() => { 
                 localStorage.setItem(`tasks_${event.id}`, JSON.stringify(tasks)); 
                 const total = tasks.reduce((acc, t) => acc + (parseFloat(t.cost) || 0), 0);
                 setTotalCost(total);
-            }, [tasks]);
+            }, [tasks, event.id]);
 
             // Drag & Drop
             const handleTaskDragStart = (e, task) => { setDraggedTask(task); };
@@ -779,9 +1084,15 @@
             return (
                 <div className="pb-20 animate-in slide-in-from-right-4 duration-500">
                     {/* Header do Evento */}
-                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                        <div className="flex items-center gap-6">
-                            <button onClick={onBack} className="p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"><ArrowLeft size={24}/></button>
+                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+                        {event.coverUrl && (
+                            <div className="absolute inset-0 z-0">
+                                <img src={event.coverUrl} className="w-full h-full object-cover opacity-20"/>
+                                <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-transparent"></div>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-6 z-10 relative">
+                            <button onClick={onBack} className="p-3 bg-white/80 border border-gray-200 rounded-xl hover:bg-white transition-colors backdrop-blur-sm"><ArrowLeft size={24}/></button>
                             <div>
                                 <h1 className="text-3xl font-extrabold text-gray-900 mb-1">{event.title}</h1>
                                 <p className="text-gray-500 flex items-center gap-3 text-sm font-medium">
@@ -791,7 +1102,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-col items-end">
+                        <div className="flex flex-col items-end z-10 relative">
                             <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Custo Total Acumulado</span>
                             <div className="text-3xl font-extrabold text-emerald-600 flex items-center gap-2">{formatCurrency(totalCost)}</div>
                         </div>
@@ -1041,6 +1352,7 @@
             const [logo, setLogo] = useState(null);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+            const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
             const [toastMessage, setToastMessage] = useState(null);
             
             const [updates, setUpdates] = useState([
@@ -1056,7 +1368,10 @@
                 { id: '5', name: 'Fernanda Lima', role: 'Social Media', photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop' }
             ]);
 
-            const events = [{ id: 'ev1', title: 'Convenção de Vendas 2026', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026' }];
+            const [events, setEvents] = useState([
+                { id: 'ev1', title: 'Convenção de Vendas 2026', location: 'Auditório Doremus', dateRange: '02/02/2026 - 06/02/2026', coverUrl: null }
+            ]);
+
             const notifications = [{ text: "Tarefa concluída: Orçamento Aprovado", date: "Há 10 min" }];
 
             const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(setLogo); };
@@ -1065,6 +1380,16 @@
             const showToast = (msg) => {
                 setToastMessage(msg);
                 if(Math.random() > 0.7) { setTimeout(() => setToastMessage("Nova atualização: João comentou na tarefa Logística"), 8000); }
+            };
+
+            const handleAddEvent = (eventData) => {
+                const newEvent = {
+                    id: `ev-${Date.now()}`,
+                    ...eventData
+                };
+                setEvents([...events, newEvent]);
+                setIsNewEventModalOpen(false);
+                showToast("Evento criado com sucesso!");
             };
 
             return (
@@ -1094,13 +1419,14 @@
                                 members={members} 
                                 updates={updates}
                                 onDeleteUpdate={(id) => setUpdates(updates.filter(u => u.id !== id))}
+                                onNewEvent={() => setIsNewEventModalOpen(true)}
                             />
                         ) : (
                             <EventDetailView event={selectedEvent} onBack={() => setView('dashboard')} globalMembers={members} onShowToast={showToast}/>
                         )}
                     </main>
                     
-                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} />
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} events={events} tasks={[]} />
 
                     <SettingsModal 
                         isOpen={isSettingsOpen} 
@@ -1112,6 +1438,13 @@
                         onAddMember={(m) => setMembers([...members, {...m, id: Date.now().toString()}])} 
                         onUpdateMember={(m) => setMembers(members.map(mem => mem.id === m.id ? {...mem, ...m} : mem))} 
                         onDeleteMember={(id) => setMembers(members.filter(m => m.id !== id))} 
+                    />
+
+                    <NewEventModal 
+                        isOpen={isNewEventModalOpen} 
+                        onClose={() => setIsNewEventModalOpen(false)} 
+                        members={members} 
+                        onCreate={handleAddEvent}
                     />
                     
                     {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
@@ -1126,6 +1459,7 @@
     </script>
 </body>
 </html>
+
 
 
 
