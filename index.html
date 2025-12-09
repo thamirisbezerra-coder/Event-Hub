@@ -82,7 +82,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'event-hub-production-v4'; // Namespace
+        const appId = 'event-hub-production-v7'; // Namespace
 
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
@@ -112,13 +112,34 @@
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         };
         
-        // --- Gemini Mock ---
-        const callGeminiFlash = async (prompt, context) => {
-            // Simulação
+        // --- Gemini Mock Inteligente ---
+        const generateAIResponse = (prompt, contextData) => {
             const lower = prompt.toLowerCase();
-            if (lower.includes('custo')) return `Analisando os dados... O custo total estimado até o momento é de R$ 45.000,00.`;
-            if (lower.includes('tarefa')) return `Você tem 12 tarefas em andamento e 5 pendentes de revisão. Quer que eu liste as prioridades?`;
-            return `Entendi: "${prompt}". Como sou uma demonstração, não posso acessar a API real, mas seus dados estão salvos no Firebase.`;
+            const { tasks, events, members, totalCost } = contextData;
+
+            if (lower.includes('custo') || lower.includes('financeiro') || lower.includes('dinheiro')) {
+                return `💰 **Análise de Custos:**\nO custo total estimado acumulado é de **${formatCurrency(totalCost)}**.\nIsso inclui orçamentos de buffet, logística e produção.`;
+            }
+            if (lower.includes('tarefa') || lower.includes('andamento') || lower.includes('pendente')) {
+                const pending = tasks.filter(t => t.status !== 'done').length;
+                const done = tasks.filter(t => t.status === 'done').length;
+                return `📊 **Status das Tarefas:**\nVocê tem **${pending} tarefas pendentes** e **${done} concluídas**.\nQuer que eu liste as mais urgentes?`;
+            }
+            if (lower.includes('equipe') || lower.includes('pessoas')) {
+                return `👥 **Relatório da Equipe:**\nAtualmente temos **${members.length} membros** ativos no time.`;
+            }
+            if (lower.includes('data') || lower.includes('evento')) {
+                if (events.length === 0) return "📅 Não há eventos futuros cadastrados.";
+                const nextEvent = events[0];
+                return `📅 **Próximo Evento:**\n**"${nextEvent.title}"** em **${nextEvent.location}**.\nDatas: ${nextEvent.dateRange}.`;
+            }
+            return "Olá! Posso ajudar com Custos, Tarefas, Equipe ou Datas. Selecione uma opção ou digite sua dúvida!";
+        };
+
+        // Simulação de chamada assíncrona para manter a estrutura
+        const callGeminiFlash = async (prompt, context) => {
+            await new Promise(r => setTimeout(r, 600));
+            return generateAIResponse(prompt, context);
         };
 
         const PASTEL_COLORS = [
@@ -169,7 +190,8 @@
             { text: "Contratar equipe de foto/vídeo", category: "staff" }
         ];
 
-        // --- UI Components ---
+        // --- Componentes Genéricos ---
+
         const ImagePreviewModal = ({ isOpen, onClose, imageUrl }) => {
             if (!isOpen || !imageUrl) return null;
             return createPortal(
@@ -195,7 +217,6 @@
             return (
                 <div className={`${size} rounded-full bg-white border border-gray-200 relative flex-shrink-0 overflow-hidden`}>
                     {content}
-                    {/* Crown removed */}
                 </div>
             );
         };
@@ -285,9 +306,7 @@
             );
         };
 
-        // --- Modals Específicos ---
-
-        // NEW EVENT MODAL (Definido antes de ser usado)
+        // --- Novo Modal de Criação de Evento ---
         const NewEventModal = ({ isOpen, onClose, members, onCreate }) => {
             const [formData, setFormData] = useState({
                 title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null
@@ -332,7 +351,13 @@
 
             const handleSubmit = () => {
                 if (!formData.title || !formData.startDate || !formData.responsible) return;
-                const formatDate = (dateStr) => { if (!dateStr) return ''; const [y, m, d] = dateStr.split('-'); return `${d}/${m}/${y}`; };
+                
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    const [y, m, d] = dateStr.split('-');
+                    return `${d}/${m}/${y}`;
+                };
+
                 const newEvent = {
                     title: formData.title,
                     location: formData.location || 'Local a definir',
@@ -342,6 +367,7 @@
                     initialTasks: formData.selectedTasks,
                     coverUrl: formData.cover
                 };
+
                 onCreate(newEvent);
                 setFormData({ title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null });
             };
@@ -356,7 +382,15 @@
                 <Modal isOpen={isOpen} onClose={onClose} title="Criar Novo Evento" maxWidth="max-w-4xl">
                     <div className="p-6 space-y-6">
                         <div className="relative w-full h-40 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer" onClick={() => coverInputRef.current?.click()}>
-                            {formData.cover ? (<img src={formData.cover} className="w-full h-full object-cover" />) : (<div className="text-center p-4"><ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/><p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p></div>)}
+                            {formData.cover ? (
+                                <img src={formData.cover} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="text-center p-4">
+                                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/>
+                                    <p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p>
+                                    <p className="text-xs text-gray-400">Clique para fazer upload</p>
+                                </div>
+                            )}
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <span className="text-white font-bold text-sm"><Camera size={20} className="inline mr-2"/>Alterar Capa</span>
                             </div>
@@ -460,7 +494,7 @@
             );
         };
 
-        // TASK DETAIL MODAL
+        // --- Detalhes da Tarefa ---
         const TaskDetailModal = ({ task, isOpen, onClose, members, dbOperations }) => {
             const [messageText, setMessageText] = useState("");
             const [isSelectingResponsible, setIsSelectingResponsible] = useState(false);
@@ -473,11 +507,15 @@
             const chatFileRef = useRef(null);
             const [selectedSender, setSelectedSender] = useState(members[0] || {name: 'Eu', id: 'me'});
 
+            // Estado local da fase para edição
+            const [taskPhase, setTaskPhase] = useState(task?.phase || 'pre');
+
             const messages = task?.messages || [];
             
             useEffect(() => { 
                 if (isOpen && chatContainerRef.current) { chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight; }
-                if (isOpen && task && members.length > 0) {
+                if (isOpen && task) {
+                    setTaskPhase(task.phase || 'pre');
                     const me = members.find(m => m.name === 'Paulo Mokarzel') || members[0];
                     if (me) setSelectedSender(me);
                 }
@@ -540,16 +578,30 @@
                  dbOperations.updateTask(task.id, { messages: messages.filter((_, i) => i !== index) });
                  setConfirmDeleteMessageId(null);
             };
+            
+            const handlePhaseChange = (e) => {
+                const newPhase = e.target.value;
+                setTaskPhase(newPhase);
+                dbOperations.updateTask(task.id, { phase: newPhase });
+            };
 
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa #${task.id.toString().slice(-4)}`} fullScreen={true}>
                     <div className="flex flex-col md:flex-row h-full">
                         <div className="flex-1 flex flex-col border-r border-gray-100 bg-gray-50/50 overflow-y-auto">
                             <div className="p-6 border-b bg-white">
-                                <div className="flex items-center gap-3 mb-3">
-                                    <PriorityBadge level={task.priority} />
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${task.status === 'done' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{task.status === 'done' ? 'Concluído' : 'Em Andamento'}</span>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <PriorityBadge level={task.priority} />
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${task.status === 'done' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{task.status === 'done' ? 'Concluído' : 'Em Andamento'}</span>
+                                    </div>
+                                    <select value={taskPhase} onChange={handlePhaseChange} className="text-xs bg-gray-100 border border-gray-300 rounded px-2 py-1 outline-none focus:border-blue-500 font-medium text-gray-700">
+                                        <option value="pre">Pré-Evento</option>
+                                        <option value="during">Durante</option>
+                                        <option value="post">Pós-Evento</option>
+                                    </select>
                                 </div>
+                                
                                 <h2 className="text-xl font-bold text-gray-900 leading-tight mb-6">{task.text}</h2>
                                 
                                 <div className="grid grid-cols-2 gap-4">
@@ -652,7 +704,7 @@
                         </div>
                     </div>
                     <ImagePreviewModal isOpen={!!previewImage} onClose={() => setPreviewImage(null)} imageUrl={previewImage} />
-                    <ConfirmModal isOpen={confirmDeleteMessageId !== null} onClose={() => setConfirmDeleteMessageId(null)} onConfirm={() => handleDeleteMessage(confirmDeleteMessageId)} title="Excluir Comentário" message="Tem certeza que deseja excluir este comentário?" />
+                    <ConfirmModal isOpen={confirmDeleteMessageId !== null} onClose={() => setConfirmDeleteMessageId(null)} onConfirm={() => onDeleteMessage(task.id, confirmDeleteMessageId)} title="Excluir Comentário" message="Tem certeza que deseja excluir este comentário?" />
                 </Modal>
             );
         };
@@ -714,7 +766,6 @@
             const [newMemberPhoto, setNewMemberPhoto] = useState(null);
             const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState(null);
             
-            // Estado local do gestor para edição
             const [localManagerName, setLocalManagerName] = useState(manager?.name || '');
             const [localManagerRole, setLocalManagerRole] = useState(manager?.role || 'Gestor da Equipe');
             
@@ -828,7 +879,6 @@
                     'dates': 'Quais as datas dos próximos eventos?'
                 };
                 setInput(queryMap[action]);
-                // Auto submit could be triggered here or user presses enter
             };
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -913,6 +963,8 @@
             const [viewMode, setViewMode] = useState('categories');
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedTaskId, setSelectedTaskId] = useState(null);
+            const [selectedMemberFilter, setSelectedMemberFilter] = useState(''); // NEW: Member Filter
+            const [selectedPhaseFilter, setSelectedPhaseFilter] = useState('all'); // NEW: Phase Filter
             
             // Filtra tarefas do evento atual
             const eventTasks = tasks.filter(t => t.eventId === event.id);
@@ -1055,12 +1107,22 @@
                 return <div className={`grid grid-cols-7 ${isSmall ? 'gap-1' : 'gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden'}`}>{days}</div>;
             };
 
-            // Filter tasks based on search
+            // Filter tasks based on search, member, and phase
             const filteredTasks = eventTasks.filter(t => {
                 const query = searchQuery.toLowerCase();
-                const matchesText = t.text.toLowerCase().includes(query);
+                const matchesText = (t.text || '').toLowerCase().includes(query);
                 const matchesSubtasks = t.subtasks && t.subtasks.some(st => st.text.toLowerCase().includes(query));
-                return matchesText || matchesSubtasks;
+                const matchesSearch = matchesText || matchesSubtasks;
+
+                const matchesMember = selectedMemberFilter ? t.responsible?.id === selectedMemberFilter : true;
+                
+                // Phase filter logic: 'pre' (default), 'during', 'post'
+                // If filter is 'all', show all. Else match exact phase.
+                // Assuming tasks have a 'phase' property. If undefined, assume 'pre' for legacy tasks.
+                const taskPhase = t.phase || 'pre';
+                const matchesPhase = selectedPhaseFilter === 'all' ? true : taskPhase === selectedPhaseFilter;
+
+                return matchesSearch && matchesMember && matchesPhase;
             });
 
             return (
@@ -1150,24 +1212,47 @@
 
                         {/* Kanban Board */}
                         <div className="lg:col-span-3">
-                            <div className="flex justify-between items-center mb-6">
-                                <div className="flex items-center gap-2 flex-1 max-w-md bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm focus-within:ring-2 ring-blue-100 transition-all">
-                                    <Search size={18} className="text-gray-400"/>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Pesquisar tarefas ou complementos..." 
-                                        className="bg-transparent outline-none text-sm w-full text-gray-700 placeholder-gray-400"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
+                            {/* Filtros e Busca - NEW LAYOUT */}
+                            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm mb-6 flex flex-col gap-4">
+                                {/* Linha 1: Abas de Fase */}
+                                <div className="flex gap-2 border-b border-gray-100 pb-2 overflow-x-auto">
+                                    <button onClick={() => setSelectedPhaseFilter('all')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}>Todos</button>
+                                    <button onClick={() => setSelectedPhaseFilter('pre')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'pre' ? 'bg-amber-50 text-amber-700' : 'text-gray-500 hover:bg-gray-50'}`}>Pré-Evento</button>
+                                    <button onClick={() => setSelectedPhaseFilter('during')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'during' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-50'}`}>Durante</button>
+                                    <button onClick={() => setSelectedPhaseFilter('post')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'post' ? 'bg-purple-50 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}>Pós-Evento</button>
                                 </div>
-                                <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg ml-4">
-                                    <button onClick={() => setViewMode('categories')} className={`px-3 py-1.5 text-xs font-bold rounded-md ${viewMode === 'categories' ? 'bg-white text-blue-900 shadow-sm' : 'text-gray-500'}`}>Categorias</button>
-                                    <button onClick={() => setViewMode('status')} className={`px-3 py-1.5 text-xs font-bold rounded-md ${viewMode === 'status' ? 'bg-white text-blue-900 shadow-sm' : 'text-gray-500'}`}>Status</button>
-                                </div>
-                                <div className="flex gap-2 ml-4">
+
+                                {/* Linha 2: Busca e Filtro de Pessoa */}
+                                <div className="flex flex-col md:flex-row gap-3 items-center">
+                                    <div className="flex items-center gap-2 flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 shadow-inner focus-within:ring-2 ring-blue-100 transition-all w-full">
+                                        <Search size={18} className="text-gray-400"/>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Pesquisar tarefas..." 
+                                            className="bg-transparent outline-none text-sm w-full text-gray-700 placeholder-gray-400"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2 w-full md:w-auto">
+                                        <select 
+                                            className="p-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 bg-white outline-none focus:border-blue-500 w-full md:w-48"
+                                            value={selectedMemberFilter}
+                                            onChange={(e) => setSelectedMemberFilter(e.target.value)}
+                                        >
+                                            <option value="">Todos Responsáveis</option>
+                                            {eventTeam.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                                        <button onClick={() => setViewMode('categories')} className={`p-2 rounded-md ${viewMode === 'categories' ? 'bg-white shadow-sm text-blue-900' : 'text-gray-400'}`} title="Categorias"><Layout size={16}/></button>
+                                        <button onClick={() => setViewMode('status')} className={`p-2 rounded-md ${viewMode === 'status' ? 'bg-white shadow-sm text-blue-900' : 'text-gray-400'}`} title="Status"><CheckSquare size={16}/></button>
+                                    </div>
+
+                                    <button onClick={() => setIsAddTaskOpen(true)} className="bg-blue-900 text-white p-2 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-colors"><Plus size={18}/></button>
                                     <button onClick={() => setIsManageCategoriesOpen(true)} className="p-2 border rounded-lg text-gray-500 hover:text-blue-900 bg-white hover:bg-gray-50"><Settings size={18}/></button>
-                                    <button onClick={() => setIsAddTaskOpen(true)} className="bg-blue-900 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2"><Plus size={16}/> Nova Tarefa</button>
                                 </div>
                             </div>
 
@@ -1240,11 +1325,29 @@
                                     {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
                                 </select>
                             </div>
+                             <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Fase</label>
+                                <select id="newTaskPhase" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500">
+                                    <option value="pre">Pré-Evento</option>
+                                    <option value="during">Durante</option>
+                                    <option value="post">Pós-Evento</option>
+                                </select>
+                            </div>
                             <button onClick={() => { 
                                 const titleInput = document.getElementById('newTaskTitle');
                                 const catInput = document.getElementById('newTaskCategory');
+                                const phaseInput = document.getElementById('newTaskPhase');
                                 if(titleInput.value) {
-                                    dbOperations.addTask({ text: titleInput.value, category: catInput.value, status: 'todo', priority: 'medium', responsible: eventTeam[0] || globalMembers[0], messages: [], subtasks: [] });
+                                    dbOperations.addTask({ 
+                                        text: titleInput.value, 
+                                        category: catInput.value, 
+                                        phase: phaseInput.value,
+                                        status: 'todo', 
+                                        priority: 'medium', 
+                                        responsible: eventTeam[0] || globalMembers[0], 
+                                        messages: [], 
+                                        subtasks: [] 
+                                    });
                                     setIsAddTaskOpen(false); 
                                     onShowToast("Tarefa criada com sucesso!");
                                 }
@@ -1329,7 +1432,7 @@
             const [events, setEvents] = useState([]);
             const [members, setMembers] = useState([]);
             const [tasks, setTasks] = useState([]); 
-            const [manager, setManager] = useState(null); // Manager State
+            const [manager, setManager] = useState(null); 
 
             const [isAIOpen, setIsAIOpen] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -1365,7 +1468,6 @@
                     setTasks(data);
                 });
 
-                // Listener para Settings (Logo e Manager)
                 const unsubSettings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'settings'), (snap) => {
                     snap.docs.forEach(docSnap => {
                         if (docSnap.id === 'global') {
@@ -1380,7 +1482,7 @@
                 return () => { unsubEvents(); unsubMembers(); unsubTasks(); unsubSettings(); };
             }, [user]);
 
-            // Seeding inicial (apenas exemplo)
+            // Seeding inicial se vazio
             useEffect(() => {
                 if(user && events.length === 0 && members.length === 0) {
                      // Lógica de seeding opcional
