@@ -176,18 +176,24 @@
             const { tasks, totalCost } = contextData;
 
             if (lower.includes('custo') || lower.includes('orçamento')) {
-                return `💰 **(Modo Offline)** Investimento total atual: ${formatCurrency(totalCost)}.`;
+                return `💰 **(Modo Offline)** Investimento total atual: ${formatCurrency(totalCost)}. \n\n*Para análises mais detalhadas, conecte sua API Key.*`;
             }
             if (lower.includes('tarefa') || lower.includes('status')) {
                 const done = tasks.filter(t => t.status === 'done').length;
-                return `📊 **(Modo Offline)** Temos ${tasks.length} tarefas no total, sendo ${done} concluídas.`;
+                return `📊 **(Modo Offline)** Temos ${tasks.length} tarefas no total, sendo ${done} concluídas. \n\n*Para insights inteligentes, conecte sua API Key.*`;
             }
-            return "Estou no modo offline, mas ainda posso ver seus dados básicos. Tente perguntar sobre 'custos' ou 'tarefas'.";
+            return "Estou no modo offline. Para me conectar ao cérebro do Google Gemini, adicione sua API Key no código fonte (linha ~208).";
         };
 
         // --- CONEXÃO COM GEMINI API ---
         const callGeminiFlash = async (prompt, context) => {
+            // ---------------------------------------------------------
+            // 🔑 INSIRA SUA API KEY DO GOOGLE AI STUDIO ABAIXO
+            // ---------------------------------------------------------
             const apiKey = ""; 
+            
+            // Se não tiver chave, usa o modo offline
+            if (!apiKey || apiKey.length < 10) return localAIResponse(prompt, context);
             
             const aiContext = {
                 resumo: "Gestão de eventos de marketing",
@@ -1182,7 +1188,30 @@
             const addTeamMember = (member) => { if(!event.teamIds?.includes(member.id)) { const newTeamIds = [...(event.teamIds || []), member.id]; onUpdateEvent(event.id, { teamIds: newTeamIds }); onShowToast(`Membro adicionado: ${member.name}`); } setIsAddMemberOpen(false); };
             const addTemporaryMember = () => { if (!tempMemberName || !tempMemberRole) return; const newTemp = { id: `temp-${Date.now()}`, name: tempMemberName, role: tempMemberRole, isTemporary: true, photoUrl: null }; const newTempTeam = [...(event.temporaryTeam || []), newTemp]; onUpdateEvent(event.id, { temporaryTeam: newTempTeam }); setTempMemberName(''); setTempMemberRole(''); setIsAddMemberOpen(false); onShowToast(`Colaborador temporário adicionado: ${newTemp.name}`); };
             const handleRemoveMemberClick = (memberId) => { setMemberToRemove(memberId); };
-            const confirmRemoveMember = () => { if (memberToRemove) { if (event.teamIds?.includes(memberToRemove)) { const newTeamIds = event.teamIds.filter(id => id !== memberToRemove); onUpdateEvent(event.id, { teamIds: newTeamIds }); } else { const newTempTeam = (event.temporaryTeam || []).filter(m => m.id !== memberToRemove); onUpdateEvent(event.id, { temporaryTeam: newTempTeam }); } setMemberToRemove(null); onShowToast("Membro removido."); } };
+            
+            const confirmRemoveMember = () => { 
+                if (memberToRemove) { 
+                    // Verificação para o caso de "Equipe Implícita" (todos os globais)
+                    const isImplicitTeam = (!event.teamIds || event.teamIds.length === 0) && (!event.temporaryTeam || event.temporaryTeam.length === 0);
+                    
+                    if (isImplicitTeam) {
+                        // Se era implícito (todos), ao remover um, criamos a lista explícita com todos MENOS o removido
+                        const newTeamIds = globalMembers.map(m => m.id).filter(id => id !== memberToRemove);
+                        onUpdateEvent(event.id, { teamIds: newTeamIds });
+                    } else if (event.teamIds?.includes(memberToRemove)) { 
+                        // Caso normal: remover da lista explícita
+                        const newTeamIds = event.teamIds.filter(id => id !== memberToRemove); 
+                        onUpdateEvent(event.id, { teamIds: newTeamIds }); 
+                    } else { 
+                        // Remover temporário
+                        const newTempTeam = (event.temporaryTeam || []).filter(m => m.id !== memberToRemove); 
+                        onUpdateEvent(event.id, { temporaryTeam: newTempTeam }); 
+                    } 
+                    setMemberToRemove(null); 
+                    onShowToast("Membro removido."); 
+                } 
+            };
+            
             const handleAddAgendaItem = () => { if(!newAgendaItem.title || !newAgendaItem.date) return; const dateParts = newAgendaItem.date.split('-'); const dateObj = new Date(dateParts[0], dateParts[1]-1, dateParts[2]); setAgendaItems([...agendaItems, { id: Date.now(), ...newAgendaItem, date: dateObj }]); setNewAgendaItem({ date: '', title: '', color: 'blue' }); onShowToast("Novo item na agenda!"); };
             const changeMonth = (offset) => { const newDate = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + offset, 1); setCurrentCalendarDate(newDate); };
             const renderCalendar = (date = new Date(), isSmall = false) => { const year = date.getFullYear(); const month = date.getMonth(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const days = []; for(let i=0; i<firstDay; i++) days.push(<div key={`empty-${i}`} className="h-8"></div>); for(let i=1; i<=daysInMonth; i++) { const items = agendaItems.filter(a => a.date.getDate() === i && a.date.getMonth() === month && a.date.getFullYear() === year); if (isSmall) { const hasEvent = items.length > 0; const pastel = hasEvent ? PASTEL_COLORS.find(c => c.id === items[0].color) : null; days.push(<div key={i} className={`h-6 w-6 text-[10px] flex items-center justify-center rounded-full relative mx-auto ${hasEvent ? 'font-bold' : 'text-gray-500'}`} style={{ backgroundColor: pastel ? pastel.hex : 'transparent', color: pastel ? pastel.text : undefined }}>{i}</div>); } else { days.push(<div key={i} className="h-24 border border-gray-100 p-2 relative bg-white hover:bg-blue-50 transition-colors cursor-pointer group"><span className={`text-sm font-bold ${items.length > 0 ? 'text-blue-600' : 'text-gray-400'}`}>{i}</span><div className="mt-1 space-y-1 overflow-hidden max-h-16">{items.map(item => { const pastel = PASTEL_COLORS.find(c => c.id === item.color); return (<div key={item.id} className={`text-[9px] px-1 py-0.5 rounded truncate ${pastel ? pastel.bg : 'bg-gray-100'} ${pastel ? pastel.text : 'text-gray-600'}`}>{item.title}</div>); })}</div></div>); } } return <div className={`grid grid-cols-7 ${isSmall ? 'gap-1' : 'gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden'}`}>{days}</div>; };
@@ -1381,7 +1410,6 @@
     </script>
 </body>
 </html>
-
 
 
 
