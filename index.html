@@ -22,14 +22,29 @@
         body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .drag-over { background-color: #eff6ff !important; border-color: #3b82f6 !important; }
+        .drag-over { transform: scale(1.01); transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
         .dragging { opacity: 0.5; transform: scale(0.95); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .slide-in-notification { animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
-        .animate-shimmer { animation: shimmer 2s infinite linear; background: linear-gradient(to right, #eff6ff 4%, #dbeafe 25%, #eff6ff 36%); background-size: 1000px 100%; }
+        
+        /* Efeito de brilho no botão */
+        @keyframes shine {
+            0% { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+        .animate-shine {
+            background-size: 200% auto;
+            animation: shine 3s linear infinite;
+        }
+
+        /* Glassmorphism sutil */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
     </style>
 
     <script>
@@ -60,7 +75,8 @@
             DollarSign, ClipboardList, Mic, Music, Coffee, Gift, Sparkles, Bot,
             BarChart3, Layout, GripVertical, Flame, Info, Wifi, WifiOff,
             ExternalLink, Lightbulb, BrainCircuit, MoreVertical, Paperclip, FileText,
-            Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase
+            Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase, Rocket, Star,
+            PieChart
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Firebase Imports ---
@@ -82,7 +98,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'event-hub-production-v19'; 
+        const appId = 'event-hub-production-v22';
 
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
@@ -112,60 +128,109 @@
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
         };
         
-        // --- Gemini Mock Inteligente ---
+        // --- CÉREBRO DA IA (Avançado) ---
         const generateAIResponse = (prompt, contextData) => {
             const lower = prompt.toLowerCase();
             const { tasks, events, members, totalCost } = contextData;
 
-            if (lower.includes('custo') || lower.includes('financeiro')) {
-                return `💰 **Análise de Custos:**\nO custo total estimado acumulado é de **${formatCurrency(totalCost)}**.\nIsso inclui orçamentos definidos em tarefas de buffet, logística e produção.`;
+            // 1. Busca por Tarefas Específicas
+            // Ex: "Quem cuida do buffet?", "Status do hotel?"
+            const keywords = lower.split(' ').filter(w => w.length > 3);
+            const foundTask = tasks.find(t => keywords.some(k => t.text.toLowerCase().includes(k)));
+            
+            if (foundTask && (lower.includes('quem') || lower.includes('responsável') || lower.includes('status') || lower.includes('como está'))) {
+                const resp = foundTask.responsible ? foundTask.responsible.name : "ninguém";
+                const statusMap = { 'planning': 'em planejamento', 'in_progress': 'em andamento', 'review': 'em revisão', 'done': 'concluída' };
+                return `🤖 **Encontrei a tarefa:** "${foundTask.text}"\n\n👤 **Responsável:** ${resp}\n📊 **Status:** ${statusMap[foundTask.status] || foundTask.status}\n💰 **Custo:** ${formatCurrency(foundTask.cost || 0)}\n\nDeseja alterar algo nela?`;
             }
-            if (lower.includes('tarefa') || lower.includes('andamento') || lower.includes('pendente')) {
-                const pending = tasks.filter(t => t.status !== 'done').length;
+
+            // 2. Análise Financeira
+            if (lower.includes('custo') || lower.includes('orçamento') || lower.includes('gasto') || lower.includes('financeiro')) {
+                const expensiveTasks = [...tasks].sort((a, b) => (b.cost || 0) - (a.cost || 0)).slice(0, 3);
+                const categoryCosts = tasks.reduce((acc, t) => {
+                    acc[t.category] = (acc[t.category] || 0) + (parseFloat(t.cost) || 0);
+                    return acc;
+                }, {});
+                
+                let categoryText = Object.entries(categoryCosts).map(([cat, cost]) => `- ${cat}: ${formatCurrency(cost)}`).join('\n');
+                
+                return `💰 **Raio-X Financeiro:**\n\n💸 **Total Investido:** ${formatCurrency(totalCost)}\n\n**Top 3 Maiores Custos:**\n${expensiveTasks.map(t => `1. ${t.text}: ${formatCurrency(t.cost)}`).join('\n')}\n\n**Por Categoria:**\n${categoryText}`;
+            }
+
+            // 3. Status Geral / Resumo
+            if (lower.includes('resumo') || lower.includes('status') || lower.includes('andamento') || lower.includes('geral')) {
+                const total = tasks.length;
                 const done = tasks.filter(t => t.status === 'done').length;
-                return `📊 **Status das Tarefas:**\n- **${pending}** Pendentes\n- **${done}** Concluídas\n\nPosso listar as prioridades?`;
+                const planning = tasks.filter(t => t.status === 'planning').length;
+                const progress = tasks.filter(t => t.status === 'in_progress').length;
+                const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+
+                let mood = "Estamos indo bem! 🚀";
+                if (percent < 20) mood = "Início de jornada. Vamos acelerar! 💪";
+                if (progress > planning && progress > done) mood = "O time está focado na execução! 🔥";
+
+                return `📊 **Status Report:**\n\n${mood}\n\nConclusão: **${percent}%**\n\n🟦 Planejamento: ${planning}\n🟧 Execução: ${progress}\n✅ Prontos: ${done}\n\nExistem ${total - done} tarefas restantes.`;
             }
-            if (lower.includes('equipe') || lower.includes('pessoas')) {
-                return `👥 **Relatório da Equipe:**\nAtualmente temos **${members.length} membros** ativos no time.`;
+
+            // 4. Inteligência de Equipe
+            if (lower.includes('equipe') || lower.includes('quem') || lower.includes('pessoas')) {
+                const workload = {};
+                tasks.forEach(t => {
+                    const name = t.responsible?.name || 'Sem Dono';
+                    if(!workload[name]) workload[name] = 0;
+                    if(t.status !== 'done') workload[name]++;
+                });
+                
+                const busy = Object.entries(workload).sort((a,b) => b[1] - a[1])[0];
+                
+                return `👥 **Análise de Staff:**\n\nTemos **${members.length} colaboradores**.\n\n🔥 **Sobrecarga:** ${busy ? `${busy[0]} está com ${busy[1]} tarefas pendentes.` : 'Tudo equilibrado.'}\n\nDica: Mantenha as tarefas distribuídas para evitar gargalos.`;
             }
-            if (lower.includes('data') || lower.includes('evento')) {
-                if (events.length === 0) return "📅 Não há eventos futuros cadastrados.";
-                const nextEvent = events[0];
-                return `📅 **Próximo Evento:**\n**"${nextEvent.title}"** em **${nextEvent.location}**.\nDatas: ${nextEvent.dateRange}.`;
-            }
-            return "Olá! Posso ajudar com Custos, Tarefas, Equipe ou Datas. Selecione uma opção ou digite sua dúvida!";
+
+            // Default: Aleatoriedade para parecer menos robô
+            const defaults = [
+                "Estou aqui! Posso ajudar com custos, status de tarefas ou detalhes da equipe. O que você precisa?",
+                "Analisando seus eventos... Tudo parece sob controle. Quer que eu verifique algo específico?",
+                "Sou sua assistente de eventos. Pergunte sobre 'custo do buffet' ou 'tarefas do João' que eu busco pra você!",
+                "Estou monitorando o progresso. Parece que temos algumas tarefas em 'Planejamento' que poderiam avançar. Quer ver quais?"
+            ];
+            return defaults[Math.floor(Math.random() * defaults.length)];
         };
 
         const callGeminiFlash = async (prompt, context) => {
-            await new Promise(r => setTimeout(r, 600));
+            // Simulando um tempo de "pensamento" para dar peso à resposta
+            await new Promise(r => setTimeout(r, 700));
             return generateAIResponse(prompt, context);
         };
 
         const PASTEL_COLORS = [
-            { id: 'blue', bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200', hex: '#DBEAFE', hover: 'hover:bg-blue-200' },
-            { id: 'green', bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-200', hex: '#D1FAE5', hover: 'hover:bg-emerald-200' },
-            { id: 'yellow', bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', hex: '#FEF3C7', hover: 'hover:bg-amber-200' },
-            { id: 'red', bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-200', hex: '#FFE4E6', hover: 'hover:bg-rose-200' },
-            { id: 'purple', bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200', hex: '#F3E8FF', hover: 'hover:bg-purple-200' },
-            { id: 'orange', bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200', hex: '#FFEDD5', hover: 'hover:bg-orange-200' },
-            { id: 'teal', bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', hex: '#CCFBF1', hover: 'hover:bg-teal-200' },
-            { id: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200', hex: '#E0E7FF', hover: 'hover:bg-indigo-200' },
+            { id: 'blue', bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200', hex: '#DBEAFE' },
+            { id: 'green', bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-200', hex: '#D1FAE5' },
+            { id: 'yellow', bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', hex: '#FEF3C7' },
+            { id: 'red', bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-200', hex: '#FFE4E6' },
+            { id: 'purple', bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200', hex: '#F3E8FF' },
+            { id: 'orange', bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200', hex: '#FFEDD5' },
+            { id: 'teal', bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', hex: '#CCFBF1' },
+            { id: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200', hex: '#E0E7FF' },
         ];
 
-        const COLOR_PRESETS = {
-            blue: 'text-blue-800 bg-blue-100 border-blue-200',
-            amber: 'text-amber-800 bg-amber-100 border-amber-200',
-            purple: 'text-purple-800 bg-purple-100 border-purple-200',
-            emerald: 'text-emerald-800 bg-emerald-100 border-emerald-200',
-            gray: 'text-gray-800 bg-gray-100 border-gray-200'
-        };
-
+        // --- CORES VIBRANTES PARA OS STATUS ---
+        // Adicionei 'bgSoft' para o fundo da coluna inteira
         const STATUS_COLUMNS = [
-            { id: 'todo', title: 'Pendentes', color: 'amber', icon: Clock },
-            { id: 'done', title: 'Concluídas', color: 'emerald', icon: CheckSquare }
+            { id: 'planning', title: 'Planejamento', color: 'blue', icon: Box, bgSoft: 'bg-blue-50/80', border: 'border-blue-100' },
+            { id: 'in_progress', title: 'Andamento', color: 'amber', icon: Truck, bgSoft: 'bg-amber-50/80', border: 'border-amber-100' },
+            { id: 'review', title: 'Finalização', color: 'purple', icon: Search, bgSoft: 'bg-purple-50/80', border: 'border-purple-100' },
+            { id: 'done', title: 'Concluído', color: 'emerald', icon: CheckSquare, bgSoft: 'bg-emerald-50/80', border: 'border-emerald-100' }
         ];
 
         const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift, coffee: Coffee, music: Music };
+        
+        const COLOR_PRESETS = {
+            blue: 'text-blue-700 bg-blue-100 border-blue-200',
+            amber: 'text-amber-700 bg-amber-100 border-amber-200',
+            purple: 'text-purple-700 bg-purple-100 border-purple-200',
+            emerald: 'text-emerald-700 bg-emerald-100 border-emerald-200',
+            gray: 'text-gray-700 bg-gray-100 border-gray-200'
+        };
         
         const getCategoryStyles = (color) => COLOR_PRESETS[color] || COLOR_PRESETS.blue;
         const getCategoryIcon = (iconName) => { const Icon = ICON_MAP[iconName] || Box; return <Icon size={18} />; };
@@ -178,13 +243,32 @@
             { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald' }
         ];
 
+        // --- CHECKLIST PRÉ-DEFINIDO ROBUSTO (5 por categoria) ---
         const PREDEFINED_TASKS_DATA = [
-            { text: "Definir orçamento inicial", category: "planning" },
-            { text: "Reservar local do evento", category: "logistics" },
-            { text: "Contratar buffet", category: "logistics" },
-            { text: "Criar identidade visual", category: "planning" },
-            { text: "Enviar convites", category: "planning" },
-            { text: "Contratar equipe de foto/vídeo", category: "staff" }
+            // Planejamento
+            { text: "Definir tema e conceito do evento", category: "planning" },
+            { text: "Aprovar orçamento preliminar", category: "planning" },
+            { text: "Criar cronograma macro", category: "planning" },
+            { text: "Desenvolver identidade visual (KV)", category: "planning" },
+            { text: "Disparar 'Save the Date'", category: "planning" },
+            // Logística
+            { text: "Reservar local/espaço", category: "logistics" },
+            { text: "Contratar serviço de Buffet", category: "logistics" },
+            { text: "Definir projeto cenográfico", category: "logistics" },
+            { text: "Contratar Sonorização e Luz", category: "logistics" },
+            { text: "Alinhar equipe de segurança e limpeza", category: "logistics" },
+            // Staff
+            { text: "Contratar recepcionistas", category: "staff" },
+            { text: "Reservar passagens aéreas", category: "staff" },
+            { text: "Reservar hospedagem da equipe", category: "staff" },
+            { text: "Produzir uniformes/camisetas", category: "staff" },
+            { text: "Realizar briefing com a equipe", category: "staff" },
+            // Pós-Evento
+            { text: "Consolidar relatório de leads", category: "post" },
+            { text: "Enviar pesquisa de satisfação (NPS)", category: "post" },
+            { text: "Realizar pagamentos finais", category: "post" },
+            { text: "Organizar material de foto/vídeo", category: "post" },
+            { text: "Reunião de debriefing", category: "post" }
         ];
 
         // --- Componentes Genéricos ---
@@ -218,18 +302,29 @@
             );
         };
 
+        // --- PRIORITY BADGE INTERATIVO ---
         const PriorityBadge = ({ level, onClick }) => {
-            const styles = { high: "bg-red-100 text-red-700 hover:bg-red-200", medium: "bg-amber-100 text-amber-700 hover:bg-amber-200", low: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" };
+            // Agora aceita onClick
+            const styles = { 
+                high: "bg-red-100 text-red-700 hover:bg-red-200 border-red-200", 
+                medium: "bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200", 
+                low: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200" 
+            };
             const labels = { high: "Alta", medium: "Média", low: "Baixa" };
             const safeLevel = styles[level] ? level : 'low';
+            
             return (
-                <button onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-transparent transition-colors ${styles[safeLevel]}`}>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onClick && onClick(); }} 
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all active:scale-95 ${styles[safeLevel]}`}
+                    title="Clique para alterar prioridade"
+                >
                     <Flag size={10} fill="currentColor" /> {labels[safeLevel]}
                 </button>
             );
         };
 
-        const Modal = ({ isOpen, onClose, title, children, fullScreen, maxWidth = "max-w-lg" }) => {
+        const Modal = ({ isOpen, onClose, title, children, fullScreen, maxWidth = "max-w-lg", hideHeader = false }) => {
             useEffect(() => {
                 if (isOpen) { document.body.style.overflow = 'hidden'; } else { document.body.style.overflow = 'unset'; }
                 return () => { document.body.style.overflow = 'unset'; };
@@ -239,13 +334,16 @@
             
             const content = (
                 <div className={`bg-white ${fullScreen ? 'fixed inset-0 z-[100] flex flex-col' : `rounded-2xl shadow-2xl w-full ${maxWidth} max-h-[90vh] overflow-hidden flex flex-col bg-white relative z-[100]`}`}>
-                    <div className="p-4 border-b bg-[#1e1b4b] text-white flex justify-between items-center shrink-0">
-                        <div className="flex items-center gap-2">
-                             {title === 'Configurações' && <Settings size={18}/>}
-                             <h3 className="font-bold">{title}</h3>
+                    {!hideHeader && (
+                        <div className="p-4 border-b bg-[#1e1b4b] text-white flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-2">
+                                {title === 'Configurações' && <Settings size={18}/>}
+                                <h3 className="font-bold">{title}</h3>
+                            </div>
+                            <button onClick={onClose}><X size={20}/></button>
                         </div>
-                        <button onClick={onClose}><X size={20}/></button>
-                    </div>
+                    )}
+                    {hideHeader && <button onClick={onClose} className="absolute top-4 right-4 z-50 p-2 bg-black/10 hover:bg-black/20 rounded-full text-gray-800"><X size={20}/></button>}
                     <div className="p-0 overflow-y-auto flex-1 bg-white relative">{children}</div>
                 </div>
             );
@@ -303,8 +401,6 @@
             );
         };
 
-        // --- Modals e Componentes Específicos ---
-
         const NewEventModal = ({ isOpen, onClose, members, onCreate }) => {
             const [formData, setFormData] = useState({
                 title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null
@@ -312,6 +408,13 @@
             const [customTask, setCustomTask] = useState('');
             const [customTaskCategory, setCustomTaskCategory] = useState(DEFAULT_CATEGORIES[0].id);
             const coverInputRef = useRef(null);
+
+            // Ao abrir, já seleciona todas as tarefas pré-definidas por padrão (conforme pedido "tarefas que sempre estarão")
+            useEffect(() => {
+                if (isOpen) {
+                    setFormData(prev => ({ ...prev, selectedTasks: PREDEFINED_TASKS_DATA }));
+                }
+            }, [isOpen]);
 
             if (!isOpen) return null;
 
@@ -324,18 +427,6 @@
                 const exists = formData.selectedTasks.some(t => t.text === task.text);
                 if (exists) { setFormData({ ...formData, selectedTasks: formData.selectedTasks.filter(t => t.text !== task.text) }); } 
                 else { setFormData({ ...formData, selectedTasks: [...formData.selectedTasks, task] }); }
-            };
-
-            const addCustomTask = () => {
-                if (customTask.trim()) {
-                    const newTask = { text: customTask.trim(), category: customTaskCategory, isCustom: true };
-                    setFormData({ ...formData, selectedTasks: [...formData.selectedTasks, newTask] });
-                    setCustomTask('');
-                }
-            };
-
-            const removeCustomTask = (taskText) => {
-                setFormData({ ...formData, selectedTasks: formData.selectedTasks.filter(t => t.text !== taskText) });
             };
 
             const handleCoverUpload = (e) => {
@@ -377,135 +468,121 @@
             }, {});
 
             return (
-                <Modal isOpen={isOpen} onClose={onClose} title="Criar Novo Evento" maxWidth="max-w-4xl">
-                    <div className="p-6 space-y-6">
-                        <div className="relative w-full h-40 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer" onClick={() => coverInputRef.current?.click()}>
-                            {formData.cover ? (
-                                <img src={formData.cover} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="text-center p-4">
-                                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/><p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p>
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="text-white font-bold text-sm"><Camera size={20} className="inline mr-2"/>Alterar Capa</span>
-                            </div>
-                            <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" accept="image/*"/>
+                <Modal isOpen={isOpen} onClose={onClose} title="Criar Novo Evento" maxWidth="max-w-4xl" hideHeader={true}>
+                    <div>
+                        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-900 p-8 text-white relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-10 opacity-10"><Rocket size={120} /></div>
+                            <h2 className="text-3xl font-bold mb-2 flex items-center gap-3 relative z-10">
+                                <Sparkles className="text-amber-400 animate-pulse"/> Vamos criar o próximo sucesso?
+                            </h2>
+                            <p className="text-blue-200 text-sm max-w-lg relative z-10">Prepare o terreno para um evento inesquecível. Organize, planeje e execute com excelência.</p>
                         </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label>
-                                <input className="w-full p-2 border rounded-lg outline-none focus:border-blue-500" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Convenção 2026"/>
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Local</label>
-                                <div className="flex items-center gap-2 border rounded-lg p-2 focus-within:border-blue-500">
-                                    <MapPin size={16} className="text-gray-400"/>
-                                    <input className="flex-1 outline-none text-sm" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Ex: Auditório Principal"/>
+                        
+                        <div className="p-6 space-y-6">
+                            <div className="relative w-full h-40 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+                                {formData.cover ? (
+                                    <img src={formData.cover} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="text-center p-4">
+                                        <ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/><p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-white font-bold text-sm"><Camera size={20} className="inline mr-2"/>Alterar Capa</span>
                                 </div>
+                                <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" accept="image/*"/>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início</label>
-                                <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})}/>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Fim</label>
-                                <input type="date" className="w-full p-2 border rounded-lg text-sm" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})}/>
-                            </div>
-                        </div>
 
-                        <div className="space-y-4 border-t pt-4">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável Principal</label>
-                                <select className="w-full p-2 border rounded-lg bg-white text-sm" value={formData.responsible} onChange={e => setFormData({...formData, responsible: e.target.value})}>
-                                    <option value="">Selecione um gestor...</option>
-                                    {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe do Evento</label>
-                                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-lg bg-gray-50">
-                                    {members.map(m => (
-                                        <button 
-                                            key={m.id} 
-                                            onClick={() => handleToggleMember(m.id)}
-                                            className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs transition-colors ${formData.team.includes(m.id) ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-200'}`}
-                                        >
-                                            <div className="w-5 h-5 rounded-full overflow-hidden border border-gray-200">
-                                                <Avatar member={m} size="w-full h-full" showCrown={false} />
-                                            </div>
-                                            {m.name}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4 border-t pt-4">
-                            <label className="block text-xs font-bold text-gray-500 uppercase">Checklist Inicial</label>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {Object.keys(groupedTasks).map(catId => {
-                                    const cat = DEFAULT_CATEGORIES.find(c => c.id === catId);
-                                    return (
-                                        <div key={catId} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                            <h5 className={`text-xs font-bold mb-2 flex items-center gap-1 ${getCategoryStyles(cat?.color || 'gray').split(' ')[0]}`}>{getCategoryIcon(cat?.icon)} {cat?.title}</h5>
-                                            <div className="space-y-1">
-                                                {groupedTasks[catId].map((task, idx) => (
-                                                    <label key={idx} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-white hover:shadow-sm transition-all">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={formData.selectedTasks.some(t => t.text === task.text)} 
-                                                            onChange={() => handleToggleTask(task)} 
-                                                            className="rounded text-blue-600 focus:ring-blue-500"
-                                                        />
-                                                        <span className="text-xs text-gray-700">{task.text}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label>
+                                    <input className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition-colors" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Convenção 2026"/>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Local</label>
+                                    <div className="flex items-center gap-2 border rounded-xl p-3 bg-gray-50 focus-within:bg-white focus-within:border-blue-500 transition-colors">
+                                        <MapPin size={18} className="text-gray-400"/>
+                                        <input className="flex-1 outline-none text-sm bg-transparent" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Ex: Auditório Principal"/>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início</label>
+                                    <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})}/>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Fim</label>
+                                    <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})}/>
+                                </div>
                             </div>
 
-                            <div className="bg-white border border-gray-200 rounded-lg p-3">
-                                <label className="block text-xs font-bold text-gray-500 mb-2">Adicionar Tarefa Personalizada</label>
-                                <div className="flex gap-2">
-                                    <select 
-                                        className="w-1/3 p-2 border rounded-lg text-sm bg-gray-50 outline-none"
-                                        value={customTaskCategory}
-                                        onChange={e => setCustomTaskCategory(e.target.value)}
-                                    >
-                                        {DEFAULT_CATEGORIES.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
+                            <div className="space-y-4 border-t pt-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável Principal</label>
+                                    <select className="w-full p-3 border rounded-xl bg-gray-50 text-sm outline-none focus:border-blue-500" value={formData.responsible} onChange={e => setFormData({...formData, responsible: e.target.value})}>
+                                        <option value="">Selecione um gestor...</option>
+                                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                     </select>
-                                    <input 
-                                        className="flex-1 p-2 border rounded-lg text-sm outline-none focus:border-blue-500" 
-                                        placeholder="Digite a tarefa..." 
-                                        value={customTask} 
-                                        onChange={e => setCustomTask(e.target.value)}
-                                        onKeyDown={e => e.key === 'Enter' && addCustomTask()}
-                                    />
-                                    <button onClick={addCustomTask} className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"><Plus size={16}/></button>
                                 </div>
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                    {formData.selectedTasks.filter(t => t.isCustom).map((t, idx) => (
-                                        <span key={idx} className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs flex items-center gap-1 border border-purple-100">
-                                            {t.text} <button onClick={() => removeCustomTask(t.text)} className="hover:text-purple-900"><X size={10}/></button>
-                                        </span>
-                                    ))}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe do Evento</label>
+                                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border rounded-xl bg-gray-50">
+                                        {members.map(m => (
+                                            <button 
+                                                key={m.id} 
+                                                onClick={() => handleToggleMember(m.id)}
+                                                className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs transition-colors ${formData.team.includes(m.id) ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-200'}`}
+                                            >
+                                                <div className="w-5 h-5 rounded-full overflow-hidden border border-gray-200">
+                                                    <Avatar member={m} size="w-full h-full" showCrown={false} />
+                                                </div>
+                                                {m.name}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="flex justify-end pt-4 border-t">
-                            <button onClick={handleSubmit} disabled={!formData.title} className="bg-blue-900 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-800 disabled:opacity-50 shadow-lg shadow-blue-900/20">Criar Evento</button>
+                            <div className="space-y-4 border-t pt-4">
+                                <label className="block text-xs font-bold text-gray-500 uppercase">Tarefas Pré-definidas (Serão criadas automaticamente)</label>
+                                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-800 mb-2 flex items-center gap-2">
+                                    <Info size={14}/> Estas tarefas já vêm marcadas para agilizar seu processo. Desmarque as que não precisar.
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-40 overflow-y-auto p-1">
+                                    {Object.keys(groupedTasks).map(catId => {
+                                        const cat = DEFAULT_CATEGORIES.find(c => c.id === catId);
+                                        return (
+                                            <div key={catId} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                <h5 className={`text-xs font-bold mb-2 flex items-center gap-1 ${getCategoryStyles(cat?.color || 'gray').split(' ')[0]}`}>{getCategoryIcon(cat?.icon)} {cat?.title}</h5>
+                                                <div className="space-y-1">
+                                                    {groupedTasks[catId].map((task, idx) => (
+                                                        <label key={idx} className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-white hover:shadow-sm transition-all">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                checked={formData.selectedTasks.some(t => t.text === task.text)} 
+                                                                onChange={() => handleToggleTask(task)} 
+                                                                className="rounded text-blue-600 focus:ring-blue-500"
+                                                            />
+                                                            <span className="text-xs text-gray-700">{task.text}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-6 border-t mt-4">
+                                <button onClick={handleSubmit} disabled={!formData.title} className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 animate-shine flex items-center justify-center gap-2 shadow-blue-500/30">
+                                    <Rocket size={20} /> Lançar Evento
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </Modal>
             );
         };
 
-        // --- Task Detail Modal ---
         const TaskDetailModal = ({ task, isOpen, onClose, members, dbOperations }) => {
             const [messageText, setMessageText] = useState("");
             const [isSelectingResponsible, setIsSelectingResponsible] = useState(false);
@@ -515,10 +592,9 @@
             const [newSubtask, setNewSubtask] = useState("");
             const [confirmDeleteMessageId, setConfirmDeleteMessageId] = useState(null);
             const chatContainerRef = useRef(null);
-            const chatFileRef = useRef(null); // CORREÇÃO: Definido aqui
+            const chatFileRef = useRef(null); 
             const [selectedSender, setSelectedSender] = useState(members[0] || {name: 'Eu', id: 'me'});
 
-            // Estado local da fase para edição
             const [taskPhase, setTaskPhase] = useState(task?.phase || 'pre');
 
             const messages = task?.messages || [];
@@ -538,7 +614,7 @@
             const supportList = task.support || [];
             const attachments = task.attachments || [];
             const subtasks = task.subtasks || [];
-            // NOVO STATUS LABEL (mapeia o ID para um texto bonito)
+            
             const statusConfig = STATUS_COLUMNS.find(c => c.id === task.status) || STATUS_COLUMNS[0];
 
             const handleSend = () => { 
@@ -587,15 +663,16 @@
                 dbOperations.updateTask(task.id, { support: supportList.filter(s => s.id !== memberId) });
             };
 
-            const handleDeleteMessage = (index) => {
-                 dbOperations.updateTask(task.id, { messages: messages.filter((_, i) => i !== index) });
-                 setConfirmDeleteMessageId(null);
-            };
-            
             const handlePhaseChange = (e) => {
                 const newPhase = e.target.value;
                 setTaskPhase(newPhase);
                 dbOperations.updateTask(task.id, { phase: newPhase });
+            };
+            
+            const cyclePriority = () => {
+                const order = ['low', 'medium', 'high'];
+                const nextIndex = (order.indexOf(task.priority || 'low') + 1) % 3;
+                dbOperations.updateTask(task.id, { priority: order[nextIndex] });
             };
 
             return (
@@ -605,7 +682,7 @@
                             <div className="p-6 border-b bg-white">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
-                                        <PriorityBadge level={task.priority} />
+                                        <PriorityBadge level={task.priority} onClick={cyclePriority} />
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${getCategoryStyles(statusConfig.color)}`}>
                                             {statusConfig.title}
                                         </span>
@@ -724,7 +801,6 @@
             );
         };
 
-        // --- Configurações de Categoria Modal ---
         const ManageCategoriesModal = ({ isOpen, onClose, categories, onAdd, onUpdate, onDelete }) => {
             const [editingId, setEditingId] = useState(null);
             const [formData, setFormData] = useState({ title: '', icon: 'box', color: 'blue' });
@@ -761,7 +837,6 @@
             );
         };
 
-        // --- Configurações Modal (COMPLETO) ---
         const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onUpdateLogo, onAddMember, onUpdateMember, onDeleteMember, manager, onUpdateManager }) => {
             const [newMemberName, setNewMemberName] = useState('');
             const [newMemberRole, setNewMemberRole] = useState('');
@@ -776,7 +851,6 @@
             const [newMemberPhoto, setNewMemberPhoto] = useState(null);
             const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState(null);
             
-            // Estado local do gestor para edição
             const [localManagerName, setLocalManagerName] = useState(manager?.name || '');
             const [localManagerRole, setLocalManagerRole] = useState(manager?.role || 'Gestor da Equipe');
             
@@ -857,17 +931,26 @@
             );
         };
 
-        // --- AI Assistant Component ---
         const AIAssistant = ({ isOpen, onClose, members, events, tasks, manager, totalCost }) => {
             const [input, setInput] = useState("");
-            const [messages, setMessages] = useState([{ id: 1, sender: 'ai', text: "Olá! Sou sua Assistente de Marketing. Como posso ajudar com o evento hoje?" }]);
+            const [messages, setMessages] = useState([{ id: 1, sender: 'ai', text: "Olá! Sou sua Assistente de Marketing. Como posso ajudar a tornar seu evento um sucesso hoje?" }]);
             const messagesEndRef = useRef(null);
             const contextData = { members, events, tasks, manager, totalCost };
-            const handleSend = async (e) => { e.preventDefault(); if (!input.trim()) return; const userMessage = { id: Date.now(), sender: 'user', text: input }; setMessages(prev => [...prev, userMessage]); setInput(""); const responseText = generateAIResponse(input, contextData); setTimeout(() => { setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]); }, 600); };
-            const handleQuickAction = (action) => { const queryMap = { 'status': 'andamento tarefas', 'costs': 'custo eventos', 'team': 'relatório equipe', 'dates': 'datas eventos' }; setInput(queryMap[action]); };
+            
+            const handleSend = async (e) => { 
+                e.preventDefault(); 
+                if (!input.trim()) return; 
+                const userMessage = { id: Date.now(), sender: 'user', text: input }; 
+                setMessages(prev => [...prev, userMessage]); 
+                setInput(""); 
+                const responseText = await callGeminiFlash(userMessage.text, contextData);
+                setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]); 
+            };
+            
+            const handleQuickAction = (action) => { const queryMap = { 'status': 'resumo geral status', 'costs': 'analise financeira detalhada', 'team': 'como está a equipe?', 'dates': 'proximo evento' }; setInput(queryMap[action]); };
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
             if (!isOpen) return null;
-            return (<div className="fixed bottom-24 right-6 w-80 md:w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[150] flex flex-col overflow-hidden animate-in"><div className="bg-blue-900 p-4 text-white flex justify-between items-center"><div className="flex items-center gap-2"><Bot size={20}/> <span className="font-bold text-sm">Assistente IA</span></div><button onClick={onClose}><X size={16}/></button></div><div className="bg-gray-50 p-2 flex gap-2 overflow-x-auto border-b"><button onClick={() => handleQuickAction('status')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Andamento</button><button onClick={() => handleQuickAction('costs')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Custos</button><button onClick={() => handleQuickAction('team')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Equipe</button><button onClick={() => handleQuickAction('dates')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Datas</button></div><div className="flex-1 bg-gray-50 p-4 overflow-y-auto space-y-3">{messages.map(m => (<div key={m.id} className={`p-3 rounded-xl text-sm ${m.sender === 'user' ? 'bg-blue-100 ml-auto max-w-[80%]' : 'bg-white border mr-auto max-w-[80%]'}`}>{m.text}</div>))}<div ref={messagesEndRef} /></div><form onSubmit={handleSend} className="p-3 bg-white border-t"><input className="w-full bg-gray-100 p-2 rounded-lg text-sm outline-none" placeholder="Digite..." value={input} onChange={e=>setInput(e.target.value)}/></form></div>);
+            return (<div className="fixed bottom-24 right-6 w-80 md:w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-[150] flex flex-col overflow-hidden animate-in"><div className="bg-blue-900 p-4 text-white flex justify-between items-center"><div className="flex items-center gap-2"><Bot size={20}/> <span className="font-bold text-sm">Assistente IA</span></div><button onClick={onClose}><X size={16}/></button></div><div className="bg-gray-50 p-2 flex gap-2 overflow-x-auto border-b"><button onClick={() => handleQuickAction('status')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Andamento</button><button onClick={() => handleQuickAction('costs')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Custos</button><button onClick={() => handleQuickAction('team')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Equipe</button><button onClick={() => handleQuickAction('dates')} className="whitespace-nowrap px-3 py-1 bg-white border rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50">Datas</button></div><div className="flex-1 bg-gray-50 p-4 overflow-y-auto space-y-3">{messages.map(m => (<div key={m.id} className={`p-3 rounded-xl text-sm whitespace-pre-wrap ${m.sender === 'user' ? 'bg-blue-100 ml-auto max-w-[80%]' : 'bg-white border mr-auto max-w-[90%] shadow-sm'}`}>{m.text}</div>))}<div ref={messagesEndRef} /></div><form onSubmit={handleSend} className="p-3 bg-white border-t"><input className="w-full bg-gray-100 p-2 rounded-lg text-sm outline-none" placeholder="Digite..." value={input} onChange={e=>setInput(e.target.value)}/></form></div>);
         };
 
         const DashboardView = ({ onSelectEvent, events, members, onNewEvent }) => {
@@ -912,12 +995,10 @@
             
             useEffect(() => {
                 let combinedTeam = [];
-                // Se o evento for novo, não tem teamIds, então pega todos os membros globais
                 if (event && event.teamIds && event.teamIds.length > 0) { 
                     const globalPart = globalMembers.filter(m => event.teamIds.includes(m.id)); 
                     combinedTeam = [...combinedTeam, ...globalPart]; 
                 } else if (event && (!event.teamIds || event.teamIds.length === 0) && (!event.temporaryTeam || event.temporaryTeam.length === 0)) {
-                    // Fallback: Se não tiver equipe definida, mostra todos os globais
                     combinedTeam = [...globalMembers];
                 }
                 
@@ -935,7 +1016,21 @@
 
             const handleTaskDragStart = (e, task) => { setDraggedTask(task); };
             const handleDragOver = (e, colId) => { e.preventDefault(); setDragOverColumn(colId); };
-            const handleDrop = (e, targetId) => { e.preventDefault(); if (!draggedTask) return; if (viewMode === 'categories') { if (draggedTask.category !== targetId) dbOperations.updateTask(draggedTask.id, { category: targetId }); } else { if (draggedTask.status !== targetId) dbOperations.updateTask(draggedTask.id, { status: targetId === 'done' ? 'done' : 'pending' }); } setDraggedTask(null); setDragOverColumn(null); };
+            
+            const handleDrop = (e, targetId) => { 
+                e.preventDefault(); 
+                if (!draggedTask) return; 
+                if (viewMode === 'categories') { 
+                    if (draggedTask.category !== targetId) dbOperations.updateTask(draggedTask.id, { category: targetId }); 
+                } else { 
+                    if (draggedTask.status !== targetId) {
+                        dbOperations.updateTask(draggedTask.id, { status: targetId }); 
+                    }
+                } 
+                setDraggedTask(null); 
+                setDragOverColumn(null); 
+            };
+            
             const getMemberStats = (memberId) => { const memberTasks = eventTasks.filter(t => t.responsible?.id === memberId); const pending = memberTasks.filter(t => t.status !== 'done').length; const done = memberTasks.filter(t => t.status === 'done').length; return { pending, done, total: memberTasks.length }; };
             
             const addTeamMember = (member) => { if(!event.teamIds?.includes(member.id)) { const newTeamIds = [...(event.teamIds || []), member.id]; onUpdateEvent(event.id, { teamIds: newTeamIds }); onShowToast(`Membro adicionado: ${member.name}`); } setIsAddMemberOpen(false); };
@@ -947,7 +1042,24 @@
             const renderCalendar = (date = new Date(), isSmall = false) => { const year = date.getFullYear(); const month = date.getMonth(); const daysInMonth = new Date(year, month + 1, 0).getDate(); const firstDay = new Date(year, month, 1).getDay(); const days = []; for(let i=0; i<firstDay; i++) days.push(<div key={`empty-${i}`} className="h-8"></div>); for(let i=1; i<=daysInMonth; i++) { const items = agendaItems.filter(a => a.date.getDate() === i && a.date.getMonth() === month && a.date.getFullYear() === year); if (isSmall) { const hasEvent = items.length > 0; const pastel = hasEvent ? PASTEL_COLORS.find(c => c.id === items[0].color) : null; days.push(<div key={i} className={`h-6 w-6 text-[10px] flex items-center justify-center rounded-full relative mx-auto ${hasEvent ? 'font-bold' : 'text-gray-500'}`} style={{ backgroundColor: pastel ? pastel.hex : 'transparent', color: pastel ? pastel.text : undefined }}>{i}</div>); } else { days.push(<div key={i} className="h-24 border border-gray-100 p-2 relative bg-white hover:bg-blue-50 transition-colors cursor-pointer group"><span className={`text-sm font-bold ${items.length > 0 ? 'text-blue-600' : 'text-gray-400'}`}>{i}</span><div className="mt-1 space-y-1 overflow-hidden max-h-16">{items.map(item => { const pastel = PASTEL_COLORS.find(c => c.id === item.color); return (<div key={item.id} className={`text-[9px] px-1 py-0.5 rounded truncate ${pastel ? pastel.bg : 'bg-gray-100'} ${pastel ? pastel.text : 'text-gray-600'}`}>{item.title}</div>); })}</div></div>); } } return <div className={`grid grid-cols-7 ${isSmall ? 'gap-1' : 'gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden'}`}>{days}</div>; };
             
             const columns = viewMode === 'categories' ? categories : STATUS_COLUMNS;
-            const filteredTasks = eventTasks.filter(t => { const query = searchQuery.toLowerCase(); const matchesText = (t.text || '').toLowerCase().includes(query); const matchesSubtasks = t.subtasks && t.subtasks.some(st => st.text.toLowerCase().includes(query)); const matchesSearch = matchesText || matchesSubtasks; const matchesMember = selectedMemberFilter ? t.responsible?.id === selectedMemberFilter : true; const taskPhase = t.phase || 'pre'; const matchesPhase = selectedPhaseFilter === 'all' ? true : taskPhase === selectedPhaseFilter; return matchesSearch && matchesMember && matchesPhase; });
+            
+            const filteredTasks = eventTasks.filter(t => { 
+                const query = searchQuery.toLowerCase(); 
+                const matchesText = (t.text || '').toLowerCase().includes(query); 
+                const matchesSubtasks = t.subtasks && t.subtasks.some(st => st.text.toLowerCase().includes(query)); 
+                const matchesSearch = matchesText || matchesSubtasks; 
+                const matchesMember = selectedMemberFilter ? t.responsible?.id === selectedMemberFilter : true; 
+                const taskPhase = t.phase || 'pre'; 
+                const matchesPhase = selectedPhaseFilter === 'all' ? true : taskPhase === selectedPhaseFilter; 
+                return matchesSearch && matchesMember && matchesPhase; 
+            });
+
+            // Função para alternar prioridade na lista
+            const cycleTaskPriority = (task) => {
+                const order = ['low', 'medium', 'high'];
+                const nextIndex = (order.indexOf(task.priority || 'low') + 1) % 3;
+                dbOperations.updateTask(task.id, { priority: order[nextIndex] });
+            };
 
             return (
                 <div className="pb-20 animate-in">
@@ -962,12 +1074,61 @@
                                 <div className="flex gap-2 border-b border-gray-100 pb-2 overflow-x-auto"><button onClick={() => setSelectedPhaseFilter('all')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'all' ? 'bg-blue-50 text-blue-700' : 'text-gray-500 hover:bg-gray-50'}`}>Todos</button><button onClick={() => setSelectedPhaseFilter('pre')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'pre' ? 'bg-amber-50 text-amber-700' : 'text-gray-500 hover:bg-gray-50'}`}>Pré-Evento</button><button onClick={() => setSelectedPhaseFilter('during')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'during' ? 'bg-emerald-50 text-emerald-700' : 'text-gray-500 hover:bg-gray-50'}`}>Durante</button><button onClick={() => setSelectedPhaseFilter('post')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors whitespace-nowrap ${selectedPhaseFilter === 'post' ? 'bg-purple-50 text-purple-700' : 'text-gray-500 hover:bg-gray-50'}`}>Pós-Evento</button></div>
                                 <div className="flex flex-col md:flex-row gap-3 items-center"><div className="flex items-center gap-2 flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 shadow-inner focus-within:ring-2 ring-blue-100 transition-all w-full"><Search size={18} className="text-gray-400"/><input type="text" placeholder="Pesquisar tarefas..." className="bg-transparent outline-none text-sm w-full text-gray-700 placeholder-gray-400" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/></div><div className="flex items-center gap-2 w-full md:w-auto"><select className="p-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 bg-white outline-none focus:border-blue-500 w-full md:w-48" value={selectedMemberFilter} onChange={(e) => setSelectedMemberFilter(e.target.value)}><option value="">Todos Responsáveis</option>{eventTeam.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div><div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg"><button onClick={() => setViewMode('categories')} className={`p-2 rounded-md ${viewMode === 'categories' ? 'bg-white shadow-sm text-blue-900' : 'text-gray-400'}`} title="Categorias"><Layout size={16}/></button><button onClick={() => setViewMode('status')} className={`p-2 rounded-md ${viewMode === 'status' ? 'bg-white shadow-sm text-blue-900' : 'text-gray-400'}`} title="Status"><CheckSquare size={16}/></button></div><button onClick={() => setIsAddTaskOpen(true)} className="bg-blue-900 text-white p-2 rounded-lg font-bold shadow-lg hover:bg-blue-800 transition-colors"><Plus size={18}/></button><button onClick={() => setIsManageCategoriesOpen(true)} className="p-2 border rounded-lg text-gray-500 hover:text-blue-900 bg-white hover:bg-gray-50"><Settings size={18}/></button></div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start pb-20">{columns.map(col => { const colTasks = filteredTasks.filter(t => viewMode === 'categories' ? t.category === col.id : (col.id === 'done' ? t.status === 'done' : (!['done'].includes(t.status) && (col.id === 'todo' || col.id === 'pending' ? t.status === 'todo' || !t.status : t.status === col.id)))); const style = getCategoryStyles(col.color); return (<div key={col.id} onDragOver={(e) => handleDragOver(e, col.id)} onDrop={(e) => handleDrop(e, col.id)} className={`bg-gray-50 rounded-xl p-3 border border-gray-200 flex flex-col min-h-[300px] transition-colors ${dragOverColumn === col.id ? 'drag-over' : ''}`}><div className={`flex items-center gap-2 p-2 rounded-lg mb-3 border bg-white shadow-sm ${style}`}><div className={`p-1 rounded ${style.split(' ')[1]}`}>{viewMode === 'categories' ? getCategoryIcon(col.icon) : (col.id === 'todo' || col.id === 'pending' ? <ClipboardList size={16}/> : col.id === 'in_progress' ? <Truck size={16}/> : col.id === 'review' ? <Search size={16}/> : <CheckSquare size={16}/>)}</div><span className="text-xs font-bold text-gray-700">{col.title}</span><span className="ml-auto bg-gray-100 text-gray-600 text-[10px] px-2 rounded-full">{colTasks.length}</span></div><div className="space-y-2">{colTasks.map(task => { const cat = categories.find(c => c.id === task.category) || categories[0]; const catPastel = PASTEL_COLORS.find(c => c.id === cat.color); const borderColor = catPastel ? catPastel.hex : '#cbd5e1'; return (<div key={task.id} draggable onDragStart={(e) => handleTaskDragStart(e, task)} onClick={() => setSelectedTaskId(task.id)} className={`bg-white p-3 rounded-lg border shadow-sm cursor-grab hover:shadow-md transition-all group relative border-l-4 ${task.status === 'done' ? 'border-l-emerald-400 opacity-75' : 'hover:border-blue-300'}`} style={{ borderLeftColor: task.status === 'done' ? undefined : borderColor }}><button onClick={(e) => { e.stopPropagation(); setConfirmDeleteTaskId(task.id); }} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity z-10"><Trash2 size={12}/></button><p className={`text-xs font-medium leading-tight mb-3 ${task.status === 'done' ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.text}</p><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Avatar member={task.responsible} size="w-5 h-5"/>{task.cost > 0 && <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{formatCurrency(task.cost)}</span>}</div><PriorityBadge level={task.priority}/></div></div>); })}</div></div>); })}</div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start pb-20">
+                                {columns.map(col => { 
+                                    const colTasks = filteredTasks.filter(t => {
+                                        if (viewMode === 'categories') {
+                                            return t.category === col.id;
+                                        } else {
+                                            if (col.id === 'planning') return t.status === 'planning' || t.status === 'todo'; 
+                                            if (col.id === 'in_progress') return t.status === 'in_progress';
+                                            if (col.id === 'review') return t.status === 'review';
+                                            if (col.id === 'done') return t.status === 'done';
+                                            return false;
+                                        }
+                                    });
+                                    // Determina a cor de fundo da coluna se estiver no modo Status
+                                    const columnBg = viewMode === 'status' ? (col.bgSoft || 'bg-gray-50') : 'bg-gray-50/50';
+                                    const style = getCategoryStyles(col.color); 
+                                    
+                                    return (
+                                        <div key={col.id} onDragOver={(e) => handleDragOver(e, col.id)} onDrop={(e) => handleDrop(e, col.id)} className={`${columnBg} rounded-xl p-3 border border-gray-200 flex flex-col min-h-[300px] transition-all ${dragOverColumn === col.id ? 'drag-over shadow-inner' : ''}`}>
+                                            <div className={`flex items-center gap-2 p-3 rounded-xl mb-3 border glass-header shadow-sm backdrop-blur-md`}>
+                                                <div className={`p-1.5 rounded-lg ${style.replace('border', '').replace('bg-', 'bg-opacity-20 ')}`}>
+                                                    {viewMode === 'categories' ? getCategoryIcon(col.icon) : col.icon ? <col.icon size={16} className={style.split(' ')[0]} /> : <Box size={16}/>}
+                                                </div>
+                                                <span className="text-xs font-extrabold text-gray-700 uppercase tracking-wide">{col.title}</span>
+                                                <span className="ml-auto bg-white border border-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">{colTasks.length}</span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {colTasks.map(task => { 
+                                                    const cat = categories.find(c => c.id === task.category) || categories[0]; 
+                                                    const catPastel = PASTEL_COLORS.find(c => c.id === cat.color); 
+                                                    const borderColor = catPastel ? catPastel.hex : '#cbd5e1'; 
+                                                    return (
+                                                        <div key={task.id} draggable onDragStart={(e) => handleTaskDragStart(e, task)} onClick={() => setSelectedTaskId(task.id)} className={`bg-white p-4 rounded-xl border border-gray-100 shadow-sm cursor-grab hover:shadow-lg hover:-translate-y-0.5 transition-all group relative border-l-[3px]`} style={{ borderLeftColor: task.status === 'done' ? '#10b981' : borderColor }}>
+                                                            <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteTaskId(task.id); }} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity z-10"><Trash2 size={12}/></button>
+                                                            <p className={`text-sm font-medium leading-snug mb-3 text-gray-700 ${task.status === 'done' ? 'line-through text-gray-400' : ''}`}>{task.text}</p>
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Avatar member={task.responsible} size="w-6 h-6"/>
+                                                                    {task.cost > 0 && <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">{formatCurrency(task.cost)}</span>}
+                                                                </div>
+                                                                <PriorityBadge level={task.priority} onClick={() => cycleTaskPriority(task)}/>
+                                                            </div>
+                                                        </div>
+                                                    ); 
+                                                })}
+                                            </div>
+                                        </div>
+                                    ); 
+                                })}
+                            </div>
                         </div>
                     </div>
                     <TaskDetailModal task={selectedTask} isOpen={!!selectedTaskId} onClose={() => setSelectedTaskId(null)} members={eventTeam} dbOperations={dbOperations} />
                     <ManageCategoriesModal isOpen={isManageCategoriesOpen} onClose={() => setIsManageCategoriesOpen(false)} categories={categories} onAdd={(c) => { setCategories([...categories, c]); onShowToast("Categoria criada!"); }} onUpdate={(c) => setCategories(categories.map(cat => cat.id === c.id ? c : cat))} onDelete={(id) => setCategories(categories.filter(c => c.id !== id))} />
-                    <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} title="Nova Tarefa"><div className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">O que precisa ser feito?</label><input autoFocus id="newTaskTitle" className="w-full p-2 border rounded-lg outline-none focus:border-blue-500" placeholder="Ex: Reservar hotel..."/></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label><select id="newTaskCategory" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500">{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}</select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Fase</label><select id="newTaskPhase" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500"><option value="pre">Pré-Evento</option><option value="during">Durante</option><option value="post">Pós-Evento</option></select></div><button onClick={() => { const titleInput = document.getElementById('newTaskTitle'); const catInput = document.getElementById('newTaskCategory'); const phaseInput = document.getElementById('newTaskPhase'); if(titleInput.value) { dbOperations.addTask({ text: titleInput.value, category: catInput.value, phase: phaseInput.value, status: 'todo', priority: 'medium', responsible: eventTeam[0] || globalMembers[0], messages: [], subtasks: [] }); setIsAddTaskOpen(false); onShowToast("Tarefa criada com sucesso!"); } }} className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">Criar Tarefa</button></div></Modal>
+                    <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} title="Nova Tarefa"><div className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">O que precisa ser feito?</label><input autoFocus id="newTaskTitle" className="w-full p-2 border rounded-lg outline-none focus:border-blue-500" placeholder="Ex: Reservar hotel..."/></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label><select id="newTaskCategory" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500">{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}</select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Fase</label><select id="newTaskPhase" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500"><option value="pre">Pré-Evento</option><option value="during">Durante</option><option value="post">Pós-Evento</option></select></div><button onClick={() => { const titleInput = document.getElementById('newTaskTitle'); const catInput = document.getElementById('newTaskCategory'); const phaseInput = document.getElementById('newTaskPhase'); if(titleInput.value) { dbOperations.addTask({ text: titleInput.value, category: catInput.value, phase: phaseInput.value, status: 'planning', priority: 'medium', responsible: eventTeam[0] || globalMembers[0], messages: [], subtasks: [] }); setIsAddTaskOpen(false); onShowToast("Tarefa criada com sucesso!"); } }} className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">Criar Tarefa</button></div></Modal>
                     <Modal isOpen={isAddMemberOpen} onClose={() => setIsAddMemberOpen(false)} title="Adicionar Colaborador"><div className="flex border-b border-gray-100"><button onClick={() => setIsAddTempMember(false)} className={`flex-1 p-3 text-sm font-bold ${!isAddTempMember ? 'text-blue-700 border-b-2 border-blue-600' : 'text-gray-500'}`}>Da Equipe Fixa</button><button onClick={() => setIsAddTempMember(true)} className={`flex-1 p-3 text-sm font-bold ${isAddTempMember ? 'text-blue-700 border-b-2 border-blue-600' : 'text-gray-500'}`}>Temporário</button></div>{!isAddTempMember ? (<div className="p-4 space-y-2">{globalMembers.filter(gm => !event.teamIds?.includes(gm.id)).map(m => (<button key={m.id} onClick={() => addTeamMember(m)} className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 text-left transition-colors"><Avatar member={m}/><div><p className="font-bold text-sm text-gray-800">{m.name}</p><p className="text-xs text-gray-500">{m.role}</p></div></button>))}{globalMembers.filter(gm => !event.teamIds?.includes(gm.id)).length === 0 && <p className="text-center text-gray-400 text-sm py-4">Todos os membros fixos já estão no evento.</p>}</div>) : (<div className="p-6 space-y-4"><div className="bg-amber-50 p-3 rounded-lg border border-amber-100 text-xs text-amber-700 mb-2">Colaboradores temporários existem apenas neste evento.</div><input className="w-full p-2 border rounded-lg text-sm" placeholder="Nome do Colaborador" value={tempMemberName} onChange={e => setTempMemberName(e.target.value)}/><input className="w-full p-2 border rounded-lg text-sm" placeholder="Função (Ex: Recepcionista)" value={tempMemberRole} onChange={e => setTempMemberRole(e.target.value)}/><button onClick={addTemporaryMember} disabled={!tempMemberName || !tempMemberRole} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold disabled:opacity-50">Adicionar ao Evento</button></div>)}</Modal>
                     <Modal isOpen={isAgendaModalOpen} onClose={() => setIsAgendaModalOpen(false)} title="Agenda do Evento" fullScreen={true}><div className="flex flex-col h-full bg-gray-50"><div className="flex-1 p-8 overflow-y-auto max-w-5xl mx-auto w-full"><div className="grid grid-cols-1 md:grid-cols-3 gap-8"><div className="md:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><h4 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><Plus size={18} className="text-blue-600"/> Novo Evento</h4><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label><input type="date" value={newAgendaItem.date} onChange={e => setNewAgendaItem({...newAgendaItem, date: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"/></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label><input type="text" placeholder="Ex: Reunião Geral" value={newAgendaItem.title} onChange={e => setNewAgendaItem({...newAgendaItem, title: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"/></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label><textarea placeholder="Detalhes..." rows={3} value={newAgendaItem.description} onChange={e => setNewAgendaItem({...newAgendaItem, description: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors resize-none"></textarea></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cor</label><div className="flex flex-wrap gap-2">{PASTEL_COLORS.map(c => (<button key={c.id} type="button" onClick={() => setNewAgendaItem({...newAgendaItem, color: c.id})} className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${newAgendaItem.color === c.id ? 'border-gray-600 scale-110 shadow-sm' : 'border-transparent'}`} style={{backgroundColor: c.hex}}></button>))}</div></div><button onClick={handleAddAgendaItem} className="w-full bg-blue-900 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 transition-all mt-2">Adicionar à Agenda</button></div></div><div className="md:col-span-2 space-y-6"><div className="flex items-center justify-between mb-4"><h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><CalendarIcon className="text-blue-600"/> {MONTH_NAMES[currentCalendarDate.getMonth()]} {currentCalendarDate.getFullYear()}</h2><div className="flex gap-2"><button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-100 rounded-lg border"><ChevronLeft size={20}/></button><button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-100 rounded-lg border"><ChevronRight size={20}/></button></div></div>{renderCalendar(currentCalendarDate)}</div></div></div></div></Modal>
                     <ConfirmModal isOpen={!!confirmDeleteTaskId} onClose={() => setConfirmDeleteTaskId(null)} onConfirm={() => dbOperations.deleteTask(confirmDeleteTaskId)} title="Excluir Tarefa" message="Tem certeza que deseja excluir esta tarefa permanentemente?" />
@@ -1005,7 +1166,7 @@
             const handleAddMember = async (memberData) => { if(!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), memberData); showToast("Membro adicionado!"); };
             const handleUpdateMember = async (memberData) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', memberData.id), memberData); };
             const handleDeleteMember = async (id) => { if(!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); showToast("Membro removido."); };
-            const handleCreateEvent = async (eventData) => { if(!user) return; const eventRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), eventData); if (eventData.initialTasks && eventData.initialTasks.length > 0) { const batchPromises = eventData.initialTasks.map(task => { return addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { eventId: eventRef.id, text: task.text, category: task.category || 'planning', status: 'todo', priority: 'medium', responsible: eventData.teamIds.length > 0 ? { id: eventData.teamIds[0] } : null, messages: [], subtasks: [] }); }); await Promise.all(batchPromises); } setIsNewEventModalOpen(false); showToast("Evento criado!"); };
+            const handleCreateEvent = async (eventData) => { if(!user) return; const eventRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), eventData); if (eventData.initialTasks && eventData.initialTasks.length > 0) { const batchPromises = eventData.initialTasks.map(task => { return addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { eventId: eventRef.id, text: task.text, category: task.category || 'planning', status: 'planning', priority: 'medium', responsible: eventData.teamIds.length > 0 ? { id: eventData.teamIds[0] } : null, messages: [], subtasks: [] }); }); await Promise.all(batchPromises); } setIsNewEventModalOpen(false); showToast("Evento criado!"); };
             const handleUpdateLogo = async (url) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logoUrl: url }, { merge: true }); };
             const handleUpdateManager = async (managerData) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'manager'), managerData, { merge: true }); showToast("Gestor atualizado!"); };
             const handleUpdateEvent = async (eventId, data) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', eventId), data); };
