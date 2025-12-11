@@ -109,7 +109,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'event-hub-production-v26-workload';
+        const appId = 'event-hub-production-v27-adjustments'; 
 
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
@@ -176,59 +176,83 @@
             const { tasks, totalCost } = contextData;
 
             if (lower.includes('custo') || lower.includes('orçamento')) {
-                return `💰 **(Modo Offline)** Investimento total atual: ${formatCurrency(totalCost)}. \n\n*Para análises mais detalhadas, conecte sua API Key.*`;
+                return `💰 **(Modo Offline)** Investimento total atual: ${formatCurrency(totalCost)}. \n\n*Para análises mais detalhadas, a IA precisa estar online.*`;
             }
             if (lower.includes('tarefa') || lower.includes('status')) {
                 const done = tasks.filter(t => t.status === 'done').length;
-                return `📊 **(Modo Offline)** Temos ${tasks.length} tarefas no total, sendo ${done} concluídas. \n\n*Para insights inteligentes, conecte sua API Key.*`;
+                return `📊 **(Modo Offline)** Temos ${tasks.length} tarefas no total, sendo ${done} concluídas. \n\n*Para insights inteligentes, a IA precisa estar online.*`;
             }
-            return "Estou no modo offline. Para me conectar ao cérebro do Google Gemini, adicione sua API Key no código fonte (linha ~208).";
+            return "Estou no modo offline temporariamente. Tente novamente mais tarde.";
         };
 
         // --- CONEXÃO COM GEMINI API ---
         const callGeminiFlash = async (prompt, context) => {
             // ---------------------------------------------------------
-            // 🔑 INSIRA SUA API KEY DO GOOGLE AI STUDIO ABAIXO
+            // 🔑 ATENÇÃO: Deixe vazio para usar a chave do ambiente seguro
             // ---------------------------------------------------------
-            const apiKey = "AIzaSyAtzB5YBYCayk9ZD0WwrNaDy6UobBzmXXs"; 
+            const apiKey = ""; 
             
-            // Se não tiver chave, usa o modo offline
-            if (!apiKey || apiKey.length < 10) return localAIResponse(prompt, context);
-            
+            // --- ENRIQUECIMENTO DE DADOS PARA A IA ---
+            const tasksByMember = {};
+            context.members.forEach(m => tasksByMember[m.id] = []);
+            context.tasks.forEach(t => {
+                if(t.responsible?.id) {
+                    if (!tasksByMember[t.responsible.id]) tasksByMember[t.responsible.id] = [];
+                    tasksByMember[t.responsible.id].push(t);
+                }
+            });
+
+            const resumoEquipe = context.members.map(m => {
+                const tasks = tasksByMember[m.id] || [];
+                const activeTasks = tasks.filter(t => t.status !== 'done');
+                const completedTasks = tasks.filter(t => t.status === 'done');
+                
+                return {
+                    nome: m.name,
+                    cargo: m.role,
+                    status: activeTasks.length === 0 ? "LIVRE / SEM TAREFAS" : "OCUPADO",
+                    tarefasAtuais: activeTasks.map(t => t.text).join(", "),
+                    totalPendentes: activeTasks.length,
+                    totalConcluidas: completedTasks.length
+                };
+            });
+
+            const custosPorEvento = context.events.map(e => {
+                const eventTasks = context.tasks.filter(t => t.eventId === e.id);
+                const custo = eventTasks.reduce((acc, t) => acc + (parseFloat(t.cost) || 0), 0);
+                return { evento: e.title, custo: formatCurrency(custo), data: e.dateRange };
+            });
+
             const aiContext = {
-                resumo: "Gestão de eventos de marketing",
-                custoTotal: context.totalCost,
-                membrosEquipe: context.members.map(m => ({ nome: m.name, cargo: m.role })),
-                eventos: context.events.map(e => ({ titulo: e.title, data: e.dateRange, local: e.location })),
-                tarefas: context.tasks.map(t => ({ 
-                    texto: t.text, 
-                    status: t.status, 
-                    responsavel: t.responsible?.name || "Sem dono", 
-                    custo: t.cost || 0,
-                    prioridade: t.priority 
-                }))
+                resumoGeral: "Gestão de eventos de marketing",
+                custoTotal: formatCurrency(context.totalCost),
+                analiseEquipe: resumoEquipe, 
+                analiseFinanceira: custosPorEvento,
+                listaEventos: context.events.map(e => ({ titulo: e.title, diasRestantes: getDaysLeft(e) }))
             };
 
             const systemInstructionText = `
                 Você é a IA oficial do 'Event Hub', um painel de gestão de eventos.
-                Você tem acesso total aos dados do projeto em JSON.
+                Você tem acesso total aos dados do projeto.
                 
-                DADOS DO PROJETO: ${JSON.stringify(aiContext)}
+                DADOS PROCESSADOS: ${JSON.stringify(aiContext)}
                 
+                SUAS FUNÇÕES PRINCIPAIS:
+                1. Dizer o que cada pessoa está fazendo (consulte 'analiseEquipe').
+                2. Identificar quem está livre/sem tarefas (consulte 'analiseEquipe' -> status 'LIVRE').
+                3. Informar custos de eventos específicos (consulte 'analiseFinanceira').
+                4. Dar resumos de prazos.
+
                 DIRETRIZES:
-                1. Use formatação Markdown (negrito, listas) para deixar a resposta bonita.
-                2. Seja direto, profissional, mas amigável. Use emojis.
-                3. Se o usuário perguntar "quem faz X", procure na lista de tarefas.
-                4. Se perguntarem sobre dinheiro, analise os custos.
-                5. Se não souber, diga que não encontrou nos dados atuais.
-                
-                Responda sempre em Português do Brasil.
+                - Use formatação Markdown (negrito, listas).
+                - Seja direto. Se perguntarem "Quem está livre?", liste apenas os nomes.
+                - Se perguntarem "O que o Paulo está fazendo?", liste as tarefas atuais dele.
+                - Responda sempre em Português do Brasil.
             `;
 
-            // Lógica de Retry (Tentar Novamente) para erro 503
             const maxRetries = 3;
             let attempt = 0;
-            let delay = 2000; // Começa com 2 segundos
+            let delay = 2000;
 
             while (attempt < maxRetries) {
                 try {
@@ -241,42 +265,27 @@
                         })
                     });
 
-                    // Verifica se o modelo está sobrecarregado (503)
                     if (response.status === 503) {
-                         console.warn(`Modelo Gemini sobrecarregado (503). Tentativa ${attempt + 1} de ${maxRetries}... aguardando ${delay}ms`);
                          attempt++;
                          await new Promise(resolve => setTimeout(resolve, delay));
-                         delay *= 2; // Backoff exponencial (2s, 4s, 8s)
+                         delay *= 2;
                          continue;
                     }
 
                     const data = await response.json();
                     
                     if (data.error) {
-                        console.error("Erro na API Gemini:", data.error);
-                        
-                        // Verifica erro 503 no corpo da resposta também
-                        if (data.error.code === 503 || data.error.status === 'UNAVAILABLE') {
-                             console.warn(`Modelo Gemini indisponível (Body). Tentativa ${attempt + 1}...`);
-                             attempt++;
-                             await new Promise(resolve => setTimeout(resolve, delay));
-                             delay *= 2;
-                             continue;
-                        }
-
+                        console.error("Erro API Gemini:", JSON.stringify(data.error)); 
                         return localAIResponse(prompt, context);
                     }
 
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "Hmm, não consegui processar sua resposta. Tente novamente.";
                     
                 } catch (error) {
-                    console.error("Erro de rede ou fetch:", error);
+                    console.error("Erro Fetch:", error);
                     return localAIResponse(prompt, context);
                 }
             }
-
-            // Se esgotou as tentativas
-            console.warn("Todas as tentativas falharam. Usando resposta local.");
             return localAIResponse(prompt, context);
         };
 
@@ -454,12 +463,18 @@
         };
 
         // --- Workload Detail Modal (NOVO) ---
-        const WorkloadDetailModal = ({ isOpen, onClose, member, memberTasks, dbOperations, allMembers }) => {
+        const WorkloadDetailModal = ({ isOpen, onClose, member, memberTasks, dbOperations, allMembers, events }) => {
             const [actionType, setActionType] = useState(null); // 'delete' or 'reassign'
             const [selectedTask, setSelectedTask] = useState(null);
             const [reassignTo, setReassignTo] = useState("");
             
             if (!isOpen || !member) return null;
+
+            // Helper para achar nome do evento
+            const getEventTitle = (eventId) => {
+                const evt = events.find(e => e.id === eventId);
+                return evt ? evt.title : "Evento Desconhecido";
+            };
 
             const handleRequestDelete = (task) => {
                 setSelectedTask(task);
@@ -513,6 +528,7 @@
                                     <div key={task.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:shadow-sm transition-all group">
                                         <div className="flex-1 min-w-0 pr-4">
                                             <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider border border-gray-200 px-1 rounded">{getEventTitle(task.eventId)}</span>
                                                 <PriorityBadge level={task.priority} />
                                                 {task.status === 'done' && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">Concluída</span>}
                                             </div>
@@ -588,17 +604,106 @@
             );
         };
 
+        // --- NOVO COMPONENTE: MODAL DE EDIÇÃO DE EVENTO ---
+        const EditEventModal = ({ isOpen, onClose, event, members, onUpdate }) => {
+            const [formData, setFormData] = useState({
+                title: '', location: '', startDate: '', endDate: '', responsible: ''
+            });
+
+            useEffect(() => {
+                if (isOpen && event) {
+                    setFormData({
+                        title: event.title || '',
+                        location: event.location || '',
+                        startDate: event.startDate || '',
+                        endDate: event.endDate || '',
+                        responsible: event.responsibleId || ''
+                    });
+                }
+            }, [isOpen, event]);
+
+            const handleSubmit = () => {
+                const formatDate = (dateStr) => {
+                    if (!dateStr) return '';
+                    const [y, m, d] = dateStr.split('-');
+                    return `${d}/${m}/${y}`;
+                };
+
+                const dateRange = `${formatDate(formData.startDate)} - ${formData.endDate ? formatDate(formData.endDate) : formatDate(formData.startDate)}`;
+
+                onUpdate(event.id, {
+                    title: formData.title,
+                    location: formData.location,
+                    startDate: formData.startDate,
+                    endDate: formData.endDate,
+                    dateRange: dateRange,
+                    responsibleId: formData.responsible
+                });
+                onClose();
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Editar Informações do Evento">
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label>
+                            <input className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition-colors" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})}/>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Local</label>
+                            <div className="flex items-center gap-2 border rounded-xl p-3 bg-gray-50 focus-within:bg-white focus-within:border-blue-500 transition-colors">
+                                <MapPin size={18} className="text-gray-400"/>
+                                <input className="flex-1 outline-none text-sm bg-transparent" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})}/>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início</label>
+                                <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})}/>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Fim</label>
+                                <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})}/>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável Principal</label>
+                            <select className="w-full p-3 border rounded-xl bg-gray-50 text-sm outline-none focus:border-blue-500" value={formData.responsible} onChange={e => setFormData({...formData, responsible: e.target.value})}>
+                                <option value="">Selecione um gestor...</option>
+                                {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="pt-4 flex gap-2">
+                             <button onClick={onClose} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200">Cancelar</button>
+                             <button onClick={handleSubmit} className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-900 hover:bg-blue-800">Salvar Alterações</button>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
         const NewEventModal = ({ isOpen, onClose, members, onCreate }) => {
             const [formData, setFormData] = useState({
                 title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null
             });
+            const [isSingleDay, setIsSingleDay] = useState(false); 
             const coverInputRef = useRef(null);
 
             useEffect(() => {
                 if (isOpen) {
                     setFormData(prev => ({ ...prev, selectedTasks: PREDEFINED_TASKS_DATA }));
+                    setIsSingleDay(false);
                 }
             }, [isOpen]);
+
+            // Lógica para sincronizar data fim se for dia único
+            useEffect(() => {
+                if (isSingleDay && formData.startDate) {
+                    setFormData(prev => ({ ...prev, endDate: prev.startDate }));
+                }
+            }, [isSingleDay, formData.startDate]);
 
             if (!isOpen) return null;
 
@@ -625,6 +730,9 @@
             const handleSubmit = () => {
                 if (!formData.title || !formData.startDate || !formData.responsible) return;
                 
+                // Garantir data fim se for dia único
+                const finalEndDate = isSingleDay ? formData.startDate : formData.endDate;
+
                 const formatDate = (dateStr) => {
                     if (!dateStr) return '';
                     const [y, m, d] = dateStr.split('-');
@@ -634,9 +742,9 @@
                 const newEvent = {
                     title: formData.title,
                     location: formData.location || 'Local a definir',
-                    dateRange: `${formatDate(formData.startDate)} - ${formData.endDate ? formatDate(formData.endDate) : formatDate(formData.startDate)}`,
+                    dateRange: `${formatDate(formData.startDate)} - ${finalEndDate ? formatDate(finalEndDate) : formatDate(formData.startDate)}`,
                     startDate: formData.startDate, // Salva a data crua para facilitar contas
-                    endDate: formData.endDate,
+                    endDate: finalEndDate,
                     responsibleId: formData.responsible,
                     teamIds: formData.team,
                     initialTasks: formData.selectedTasks,
@@ -691,14 +799,31 @@
                                         <input className="flex-1 outline-none text-sm bg-transparent" value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} placeholder="Ex: Auditório Principal"/>
                                     </div>
                                 </div>
+                                
+                                <div className="md:col-span-2 flex items-center gap-2 py-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="oneDayEvent"
+                                        checked={isSingleDay} 
+                                        onChange={(e) => setIsSingleDay(e.target.checked)} 
+                                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                                    />
+                                    <label htmlFor="oneDayEvent" className="text-sm font-bold text-gray-700 cursor-pointer">
+                                        É um evento de dia único?
+                                    </label>
+                                </div>
+
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início {isSingleDay && "(Data do Evento)"}</label>
                                     <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})}/>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Fim</label>
-                                    <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})}/>
-                                </div>
+                                
+                                {!isSingleDay && (
+                                    <div className="animate-in">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Fim</label>
+                                        <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})}/>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="space-y-4 border-t pt-4">
@@ -810,7 +935,8 @@
                     senderId: selectedSender.id, 
                     text: messageText, 
                     attachment: chatAttachment, 
-                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                    time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    timestamp: Date.now() // Adicionado timestamp para ordenação global
                 };
                 dbOperations.updateTask(task.id, { messages: [...messages, newMessage] });
                 setMessageText(""); 
@@ -1119,7 +1245,7 @@
 
         const AIAssistant = ({ isOpen, onClose, members, events, tasks, manager, totalCost }) => {
             const [input, setInput] = useState("");
-            const [messages, setMessages] = useState([{ id: 1, sender: 'ai', text: "Olá! Sou sua Assistente de Marketing conectada ao Gemini AI 🧠. Pergunte qualquer coisa sobre seu evento!" }]);
+            const [messages, setMessages] = useState([{ id: 1, sender: 'ai', text: "Olá! Sou sua Assistente de Marketing conectada ao Gemini AI 🧠. Pergunte sobre quem está livre, o que cada um está fazendo ou custos dos eventos!" }]);
             const [isTyping, setIsTyping] = useState(false);
             const messagesEndRef = useRef(null);
             const contextData = { members, events, tasks, manager, totalCost };
@@ -1139,7 +1265,7 @@
                 setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]); 
             };
             
-            const handleQuickAction = (action) => { const queryMap = { 'status': 'Faça um resumo executivo do status atual do projeto', 'costs': 'Faça uma análise financeira detalhada dos maiores custos', 'team': 'Como está a distribuição de tarefas da equipe?', 'dates': 'Qual o próximo evento e quantos dias faltam?' }; setInput(queryMap[action]); };
+            const handleQuickAction = (action) => { const queryMap = { 'status': 'Quem está livre e quem está ocupado agora?', 'costs': 'Faça uma análise financeira detalhada dos custos por evento', 'team': 'O que cada membro da equipe está fazendo exatamente?', 'dates': 'Qual o próximo evento e quantos dias faltam?' }; setInput(queryMap[action]); };
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isTyping]);
             
             if (!isOpen) return null;
@@ -1160,9 +1286,9 @@
                     </div>
                     
                     <div className="bg-gray-50 p-3 flex gap-2 overflow-x-auto border-b hide-scrollbar">
-                        <button onClick={() => handleQuickAction('status')} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">📊 Andamento</button>
+                        <button onClick={() => handleQuickAction('status')} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">📊 Quem está livre?</button>
+                        <button onClick={() => handleQuickAction('team')} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">👥 Tarefas Atuais</button>
                         <button onClick={() => handleQuickAction('costs')} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">💰 Custos</button>
-                        <button onClick={() => handleQuickAction('team')} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-lg text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">👥 Equipe</button>
                     </div>
 
                     <div className="flex-1 bg-gray-50 p-4 overflow-y-auto space-y-4">
@@ -1226,6 +1352,35 @@
             const completedTasks = tasks.filter(t => t.status === 'done').length;
             const globalProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
             const pendingTotal = totalTasks - completedTasks;
+
+            // --- ORDENAÇÃO DE EVENTOS POR DATA (Mais próximo primeiro) ---
+            const sortedEvents = [...events].sort((a, b) => {
+                // Tenta extrair a data de início para comparação
+                const getStartDate = (evt) => {
+                    if (evt.startDate) return new Date(evt.startDate);
+                    if (evt.dateRange) {
+                        const parts = evt.dateRange.split(' - ')[0].split('/');
+                        if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                    }
+                    return new Date(8640000000000000); // Data muito distante se não tiver data definida
+                };
+                return getStartDate(a) - getStartDate(b);
+            });
+
+            // --- LÓGICA DE ATUALIZAÇÕES (COMENTÁRIOS) ---
+            // Pega todas as mensagens de todas as tarefas, ordena e pega as 10 últimas
+            const recentUpdates = tasks
+                .flatMap(t => (t.messages || []).map(m => ({
+                    ...m,
+                    taskText: t.text,
+                    eventId: t.eventId,
+                    rawTime: m.timestamp || Date.now() // Fallback para ordenação simples se não tiver timestamp
+                })))
+                .sort((a, b) => b.rawTime - a.rawTime)
+                .slice(0, 10);
+
+            // Helper para pegar cor/membro
+            const getMemberByName = (name) => members.find(m => m.name === name) || { name: name, photoUrl: null };
 
             return (
                 <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8 animate-in">
@@ -1294,39 +1449,54 @@
                                 <h2 className="text-lg font-bold text-blue-900 flex items-center gap-2"><Clock size={20} /> Próximos Eventos</h2>
                                 <button onClick={onNewEvent} className="bg-blue-900 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg hover:bg-blue-800 transition-colors"><Plus size={16}/> Novo Evento</button>
                             </div>
-                            <div className="space-y-4">
-                                {events.map(event => {
+                            
+                            {/* --- GRID DE EVENTOS (Modificado para exibir em caixas lado a lado) --- */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {sortedEvents.map(event => {
                                     const daysLeft = getDaysLeft(event);
                                     const monthAbbr = getMonthAbbr(event.startDate);
                                     const dayNum = getDayNumber(event.startDate);
                                     
                                     return (
-                                        <div key={event.id} onClick={() => onSelectEvent(event)} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+                                        <div key={event.id} onClick={() => onSelectEvent(event)} className="bg-white rounded-[1.5rem] p-5 border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col relative overflow-hidden h-full">
                                             {event.coverUrl && (
-                                                <div className="absolute inset-0 z-0">
+                                                <div className="absolute inset-0 z-0 h-32">
                                                     <img src={event.coverUrl} className="w-full h-full object-cover opacity-10 group-hover:opacity-20 transition-opacity"/>
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-white via-white/80 to-transparent"></div>
+                                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white"></div>
                                                 </div>
                                             )}
-                                            <div className="flex-shrink-0 w-20 h-20 bg-gray-50 rounded-2xl flex flex-col items-center justify-center border border-gray-100 group-hover:bg-blue-50 transition-colors z-10 relative">
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase">{monthAbbr}</span>
-                                                <span className="text-3xl font-extrabold text-gray-800">{dayNum}</span>
+                                            
+                                            <div className="flex items-start justify-between mb-4 z-10 relative">
+                                                <div className="flex-shrink-0 w-14 h-14 bg-gray-50 rounded-xl flex flex-col items-center justify-center border border-gray-100 group-hover:bg-blue-50 transition-colors">
+                                                    <span className="text-[9px] font-bold text-gray-500 uppercase">{monthAbbr}</span>
+                                                    <span className="text-xl font-extrabold text-gray-800">{dayNum}</span>
+                                                </div>
+                                                
+                                                {daysLeft !== null && (
+                                                    <div className={`text-[10px] font-bold px-2 py-1 rounded-full inline-flex items-center gap-1 ${
+                                                        daysLeft > 15 ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                                        daysLeft > 5 ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                                        'bg-red-50 text-red-700 border border-red-100'
+                                                    }`}>
+                                                        <Timer size={10}/>
+                                                        {daysLeft > 0 ? `${daysLeft} dias` : daysLeft === 0 ? 'Hoje' : 'Fim'}
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex-1 z-10 relative">
-                                                <h3 className="text-xl font-bold text-blue-700 group-hover:text-blue-900">{event.title}</h3>
-                                                <div className="flex flex-col sm:flex-row gap-3 mt-1">
-                                                    <p className="text-sm text-gray-500 flex items-center gap-2"><Truck size={14}/> {event.location}</p>
-                                                    
-                                                    {daysLeft !== null && (
-                                                        <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1 w-fit ${
-                                                            daysLeft > 15 ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                                                            daysLeft > 5 ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                                            'bg-red-50 text-red-700 border border-red-100'
-                                                        }`}>
-                                                            <Timer size={12}/>
-                                                            {daysLeft > 0 ? `Faltam ${daysLeft} dias` : daysLeft === 0 ? 'É Hoje!' : 'Encerrado'}
-                                                        </div>
-                                                    )}
+
+                                            <div className="flex-1 z-10 relative flex flex-col justify-end">
+                                                <h3 className="text-lg font-bold text-blue-900 group-hover:text-blue-700 leading-tight mb-2 line-clamp-2">{event.title}</h3>
+                                                <p className="text-xs text-gray-500 flex items-center gap-2 mb-3"><Truck size={12}/> {event.location}</p>
+                                                
+                                                <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                                                    <div className="flex -space-x-2">
+                                                        {/* Pequena preview da equipe */}
+                                                        {(event.teamIds || []).slice(0, 3).map(mid => {
+                                                            const m = members.find(mem => mem.id === mid);
+                                                            return m ? <div key={m.id} className="w-6 h-6 rounded-full border border-white overflow-hidden"><Avatar member={m} size="w-full h-full"/></div> : null;
+                                                        })}
+                                                    </div>
+                                                    <span className="text-[10px] text-gray-400 font-medium">Ver detalhes →</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1336,7 +1506,37 @@
                         </section>
                     </div>
                     
-                    <div className="xl:col-span-1"><section className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-full"><h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><MessageSquare size={20} /> Atualizações</h2><div className="space-y-6 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-px before:bg-gray-100"><div className="p-4 text-center text-gray-400 text-xs italic">Nenhuma atualização recente.</div></div></section></div>
+                    <div className="xl:col-span-1">
+                        <section className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-full flex flex-col">
+                            <h2 className="text-lg font-bold text-blue-900 mb-6 flex items-center gap-2"><MessageSquare size={20} /> Atualizações</h2>
+                            <div className="space-y-4 flex-1 overflow-y-auto max-h-[600px] pr-2">
+                                {recentUpdates.length === 0 ? (
+                                    <div className="p-4 text-center text-gray-400 text-xs italic">
+                                        Nenhum comentário recente. <br/>Comente nas tarefas para ver aqui!
+                                    </div>
+                                ) : (
+                                    recentUpdates.map((update, idx) => {
+                                        const member = getMemberByName(update.sender);
+                                        return (
+                                            <div key={idx} className="flex gap-3 pb-4 border-b border-gray-50 last:border-0 group">
+                                                <div className="mt-1 flex-shrink-0">
+                                                    <Avatar member={member} size="w-8 h-8"/>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start">
+                                                        <p className="text-xs font-bold text-gray-900">{member.name}</p>
+                                                        <span className="text-[10px] text-gray-400">{update.time}</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-blue-500 font-medium truncate mb-0.5">Em: {update.taskText}</p>
+                                                    <p className="text-xs text-gray-600 line-clamp-2">{update.text}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </section>
+                    </div>
 
                     {/* Modal de Detalhes da Carga de Trabalho */}
                     <WorkloadDetailModal 
@@ -1346,12 +1546,13 @@
                         memberTasks={selectedWorkloadMember?.tasks || []}
                         dbOperations={dbOperations}
                         allMembers={members}
+                        events={events} // PASSANDO OS EVENTOS AQUI
                     />
                 </div>
             );
         };
 
-        const EventDetailView = ({ event, onBack, globalMembers, onShowToast, dbOperations, tasks, onUpdateEvent }) => {
+        const EventDetailView = ({ event, onBack, globalMembers, onShowToast, dbOperations, tasks, onUpdateEvent, onDeleteEvent }) => {
             const [viewMode, setViewMode] = useState('categories');
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -1367,16 +1568,21 @@
             const [isTeamExpanded, setIsTeamExpanded] = useState(true);
             const [memberToRemove, setMemberToRemove] = useState(null);
             const [isAgendaModalOpen, setIsAgendaModalOpen] = useState(false);
+            const [isEditEventOpen, setIsEditEventOpen] = useState(false);
+            const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(false); 
+            
+            // --- Variáveis de Estado Restauradas ---
             const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
             const [agendaItems, setAgendaItems] = useState([{ id: 1, date: new Date(2026, 1, 2), title: "Início do Evento", color: "blue" }, { id: 2, date: new Date(2026, 1, 4), title: "Reunião de Alinhamento", color: "purple" }]);
             const [newAgendaItem, setNewAgendaItem] = useState({ date: '', title: '', color: 'blue' });
-            
-            const eventTasks = tasks.filter(t => t.eventId === event.id);
-            const selectedTask = eventTasks.find(t => t.id === selectedTaskId);
             const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
             const [eventTeam, setEventTeam] = useState([]);
+            const [draggedTask, setDraggedTask] = useState(null);
+            const [dragOverColumn, setDragOverColumn] = useState(null);
+            const [totalCost, setTotalCost] = useState(0);
 
-            // --- Lógica de Contagem Regressiva ---
+            const eventTasks = tasks.filter(t => t.eventId === event.id);
+            const selectedTask = eventTasks.find(t => t.id === selectedTaskId);
             const daysLeft = getDaysLeft(event);
             
             useEffect(() => {
@@ -1393,10 +1599,6 @@
                 }
                 setEventTeam(combinedTeam);
             }, [event, globalMembers]);
-
-            const [draggedTask, setDraggedTask] = useState(null);
-            const [dragOverColumn, setDragOverColumn] = useState(null);
-            const [totalCost, setTotalCost] = useState(0);
 
             useEffect(() => { const total = eventTasks.reduce((acc, t) => acc + (parseFloat(t.cost) || 0), 0); setTotalCost(total); }, [eventTasks]);
 
@@ -1423,9 +1625,9 @@
             const addTemporaryMember = () => { if (!tempMemberName || !tempMemberRole) return; const newTemp = { id: `temp-${Date.now()}`, name: tempMemberName, role: tempMemberRole, isTemporary: true, photoUrl: null }; const newTempTeam = [...(event.temporaryTeam || []), newTemp]; onUpdateEvent(event.id, { temporaryTeam: newTempTeam }); setTempMemberName(''); setTempMemberRole(''); setIsAddMemberOpen(false); onShowToast(`Colaborador temporário adicionado: ${newTemp.name}`); };
             const handleRemoveMemberClick = (memberId) => { setMemberToRemove(memberId); };
             
-            const confirmRemoveMember = () => { 
+            const confirmRemoveMember = async () => { 
                 if (memberToRemove) { 
-                    // Verificação para o caso de "Equipe Implícita" (todos os globais)
+                    // 1. Remove da lista de equipe (Team IDs)
                     const isImplicitTeam = (!event.teamIds || event.teamIds.length === 0) && (!event.temporaryTeam || event.temporaryTeam.length === 0);
                     
                     if (isImplicitTeam) {
@@ -1441,8 +1643,15 @@
                         const newTempTeam = (event.temporaryTeam || []).filter(m => m.id !== memberToRemove); 
                         onUpdateEvent(event.id, { temporaryTeam: newTempTeam }); 
                     } 
+
+                    // 2. NOVO: Desatribuir todas as tarefas deste membro neste evento (Limpeza)
+                    // Isso resolve o problema das "20 tarefas fantasmas"
+                    const memberTasks = tasks.filter(t => t.eventId === event.id && t.responsible?.id === memberToRemove);
+                    const batchPromises = memberTasks.map(t => dbOperations.updateTask(t.id, { responsible: null }));
+                    await Promise.all(batchPromises);
+
                     setMemberToRemove(null); 
-                    onShowToast("Membro removido."); 
+                    onShowToast("Membro removido e tarefas liberadas."); 
                 } 
             };
             
@@ -1478,7 +1687,17 @@
                         <div className="flex items-center gap-6 z-10 relative">
                             <button onClick={onBack} className="p-3 bg-white/80 border border-gray-200 rounded-xl hover:bg-white transition-colors backdrop-blur-sm"><ArrowLeft size={24}/></button>
                             <div>
-                                <h1 className="text-3xl font-extrabold text-gray-900 mb-1">{event.title}</h1>
+                                <h1 className="text-3xl font-extrabold text-gray-900 mb-1 flex items-center gap-3">
+                                    {event.title}
+                                    <div className="flex items-center gap-1">
+                                        <button onClick={() => setIsEditEventOpen(true)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-white/50 rounded-lg transition-colors" title="Editar Evento">
+                                            <Edit2 size={18}/>
+                                        </button>
+                                        <button onClick={() => setConfirmDeleteEvent(true)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-white/50 rounded-lg transition-colors" title="Excluir Evento">
+                                            <Trash2 size={18}/>
+                                        </button>
+                                    </div>
+                                </h1>
                                 <p className="text-gray-500 flex items-center gap-3 text-sm font-medium">
                                     <span className="flex items-center gap-1"><Truck size={16}/> {event.location}</span>
                                     <span className="h-4 w-px bg-gray-300"></span>
@@ -1579,6 +1798,24 @@
                     <Modal isOpen={isAgendaModalOpen} onClose={() => setIsAgendaModalOpen(false)} title="Agenda do Evento" fullScreen={true}><div className="flex flex-col h-full bg-gray-50"><div className="flex-1 p-8 overflow-y-auto max-w-5xl mx-auto w-full"><div className="grid grid-cols-1 md:grid-cols-3 gap-8"><div className="md:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><h4 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><Plus size={18} className="text-blue-600"/> Novo Evento</h4><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label><input type="date" value={newAgendaItem.date} onChange={e => setNewAgendaItem({...newAgendaItem, date: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"/></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label><input type="text" placeholder="Ex: Reunião Geral" value={newAgendaItem.title} onChange={e => setNewAgendaItem({...newAgendaItem, title: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"/></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label><textarea placeholder="Detalhes..." rows={3} value={newAgendaItem.description} onChange={e => setNewAgendaItem({...newAgendaItem, description: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors resize-none"></textarea></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cor</label><div className="flex flex-wrap gap-2">{PASTEL_COLORS.map(c => (<button key={c.id} type="button" onClick={() => setNewAgendaItem({...newAgendaItem, color: c.id})} className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${newAgendaItem.color === c.id ? 'border-gray-600 scale-110 shadow-sm' : 'border-transparent'}`} style={{backgroundColor: c.hex}}></button>))}</div></div><button onClick={handleAddAgendaItem} className="w-full bg-blue-900 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 transition-all mt-2">Adicionar à Agenda</button></div></div><div className="md:col-span-2 space-y-6"><div className="flex items-center justify-between mb-4"><h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><CalendarIcon className="text-blue-600"/> {MONTH_NAMES[currentCalendarDate.getMonth()]} {currentCalendarDate.getFullYear()}</h2><div className="flex gap-2"><button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-100 rounded-lg border"><ChevronLeft size={20}/></button><button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-100 rounded-lg border"><ChevronRight size={20}/></button></div></div>{renderCalendar(currentCalendarDate)}</div></div></div></div></Modal>
                     <ConfirmModal isOpen={!!confirmDeleteTaskId} onClose={() => setConfirmDeleteTaskId(null)} onConfirm={() => dbOperations.deleteTask(confirmDeleteTaskId)} title="Excluir Tarefa" message="Tem certeza que deseja excluir esta tarefa permanentemente?" />
                     <ConfirmModal isOpen={!!memberToRemove} onClose={() => setMemberToRemove(null)} onConfirm={confirmRemoveMember} title="Remover Membro" message="Tem certeza que deseja remover este membro da equipe deste evento?" />
+                    
+                    {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE EVENTO */}
+                    <ConfirmModal 
+                        isOpen={confirmDeleteEvent} 
+                        onClose={() => setConfirmDeleteEvent(false)} 
+                        onConfirm={() => onDeleteEvent(event.id)} 
+                        title="Excluir Evento" 
+                        message="ATENÇÃO: Esta ação é irreversível. O evento e TODAS as suas tarefas serão excluídos permanentemente. Deseja continuar?" 
+                    />
+
+                    {/* MODAL DE EDIÇÃO DE EVENTO */}
+                    <EditEventModal 
+                        isOpen={isEditEventOpen} 
+                        onClose={() => setIsEditEventOpen(false)} 
+                        event={event} 
+                        members={globalMembers}
+                        onUpdate={onUpdateEvent}
+                    />
                 </div>
             );
         };
@@ -1612,10 +1849,51 @@
             const handleAddMember = async (memberData) => { if(!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), memberData); showToast("Membro adicionado!"); };
             const handleUpdateMember = async (memberData) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', memberData.id), memberData); };
             const handleDeleteMember = async (id) => { if(!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); showToast("Membro removido."); };
-            const handleCreateEvent = async (eventData) => { if(!user) return; const eventRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), eventData); if (eventData.initialTasks && eventData.initialTasks.length > 0) { const batchPromises = eventData.initialTasks.map(task => { return addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { eventId: eventRef.id, text: task.text, category: task.category || 'planning', status: 'planning', priority: 'medium', responsible: eventData.teamIds.length > 0 ? { id: eventData.teamIds[0] } : null, messages: [], subtasks: [] }); }); await Promise.all(batchPromises); } setIsNewEventModalOpen(false); showToast("Evento criado!"); };
+            
+            // ALTERADO AQUI: responsible agora inicia como null (sem dono) nas tarefas automáticas
+            const handleCreateEvent = async (eventData) => { 
+                if(!user) return; 
+                const eventRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'events'), eventData); 
+                if (eventData.initialTasks && eventData.initialTasks.length > 0) { 
+                    const batchPromises = eventData.initialTasks.map(task => { 
+                        return addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { 
+                            eventId: eventRef.id, 
+                            text: task.text, 
+                            category: task.category || 'planning', 
+                            status: 'planning', 
+                            priority: 'medium', 
+                            responsible: null, // AGORA SEM DONO AUTOMÁTICO
+                            messages: [], 
+                            subtasks: [] 
+                        }); 
+                    }); 
+                    await Promise.all(batchPromises); 
+                } 
+                setIsNewEventModalOpen(false); 
+                showToast("Evento criado!"); 
+            };
+
             const handleUpdateLogo = async (url) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logoUrl: url }, { merge: true }); };
             const handleUpdateManager = async (managerData) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'manager'), managerData, { merge: true }); showToast("Gestor atualizado!"); };
             const handleUpdateEvent = async (eventId, data) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', eventId), data); };
+            
+            // --- NOVO: FUNÇÃO DE EXCLUIR EVENTO ---
+            const handleDeleteEvent = async (eventId) => {
+                if(!user) return;
+                
+                // 1. Excluir todas as tarefas do evento
+                const eventTasks = tasks.filter(t => t.eventId === eventId);
+                const deleteTasksPromises = eventTasks.map(t => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', t.id)));
+                await Promise.all(deleteTasksPromises);
+
+                // 2. Excluir o evento
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', eventId));
+                
+                setView('dashboard');
+                setSelectedEvent(null);
+                showToast("Evento excluído com sucesso.");
+            };
+
             const dbOperations = { addTask: async (taskData) => { if(!user || !selectedEvent) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), { ...taskData, eventId: selectedEvent.id }); }, updateTask: async (taskId, data) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId), data); }, deleteTask: async (taskId) => { if(!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tasks', taskId)); } };
             const showToast = (msg) => { setToastMessage(msg); };
             const totalCost = tasks.reduce((acc, t) => acc + (parseFloat(t.cost) || 0), 0);
@@ -1628,7 +1906,29 @@
                         <div className="flex items-center gap-6"><div className="flex items-center gap-3 pr-6 border-r border-gray-100 hidden md:flex">{manager ? (<><div className="w-10 h-10 rounded-full bg-gray-200 border border-gray-300 overflow-hidden relative"><Avatar member={manager} size="w-full h-full" showCrown={false} /></div><div className="text-right"><p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">{manager.role}</p><p className="text-sm font-bold text-gray-800 leading-tight">{manager.name}</p></div></>) : (<div className="text-right text-xs text-gray-400 italic">Defina o gestor nas configurações</div>)}</div><div className="flex items-center gap-3 relative"><button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-xl transition-colors relative border border-gray-200 shadow-sm"><Bell size={20}/><span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span></button>{isNotificationsOpen && <NotificationsDropdown onClose={() => setIsNotificationsOpen(false)} notifications={[{ text: "Sistema conectado", date: "Agora" }]} />}<button onClick={() => setIsSettingsOpen(true)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 shadow-sm"><Settings size={20}/></button></div></div>
                     </header>
                     <main className="pt-32 px-8 max-w-[1600px] mx-auto">
-                        {view === 'dashboard' ? (<DashboardView onSelectEvent={(evt) => { setSelectedEvent(evt); setView('event'); }} events={events} members={members} updates={[]} onDeleteUpdate={() => {}} onNewEvent={() => setIsNewEventModalOpen(true)} tasks={tasks} dbOperations={dbOperations} />) : (<EventDetailView event={currentSelectedEvent} onBack={() => setView('dashboard')} globalMembers={members} onShowToast={showToast} dbOperations={dbOperations} tasks={tasks} onUpdateEvent={handleUpdateEvent} />)}
+                        {view === 'dashboard' ? (
+                            <DashboardView 
+                                onSelectEvent={(evt) => { setSelectedEvent(evt); setView('event'); }} 
+                                events={events} 
+                                members={members} 
+                                updates={[]} 
+                                onDeleteUpdate={() => {}} 
+                                onNewEvent={() => setIsNewEventModalOpen(true)} 
+                                tasks={tasks} 
+                                dbOperations={dbOperations} 
+                            />
+                        ) : (
+                            <EventDetailView 
+                                event={currentSelectedEvent} 
+                                onBack={() => setView('dashboard')} 
+                                globalMembers={members} 
+                                onShowToast={showToast} 
+                                dbOperations={dbOperations} 
+                                tasks={tasks} 
+                                onUpdateEvent={handleUpdateEvent} 
+                                onDeleteEvent={handleDeleteEvent} // PASSANDO FUNÇÃO DE EXCLUIR
+                            />
+                        )}
                     </main>
                     <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} events={events} tasks={tasks} manager={manager} totalCost={totalCost} />
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} logo={logo} setLogo={setLogo} onUpdateLogo={handleUpdateLogo} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} manager={manager} onUpdateManager={handleUpdateManager} />
@@ -1644,6 +1944,7 @@
     </script>
 </body>
 </html>
+
 
 
 
