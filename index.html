@@ -87,7 +87,7 @@
             BarChart3, Layout, GripVertical, Flame, Info, Wifi, WifiOff,
             ExternalLink, Lightbulb, BrainCircuit, MoreVertical, Paperclip, FileText,
             Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase, Rocket, Star,
-            PieChart, Timer, UserCheck, RefreshCw
+            PieChart, Timer, UserCheck, RefreshCw, Key
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Firebase Imports ---
@@ -96,7 +96,6 @@
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // --- Configuração Firebase ---
-        // Se houver config injetada pelo ambiente, usa ela; senão, usa a hardcoded.
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
             authDomain: "bolsas-termicas.firebaseapp.com",
@@ -111,7 +110,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // CORREÇÃO: Usar o ID da app fornecido pelo ambiente para garantir permissões corretas
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-hub-production-v27-adjustments';
 
         // --- Utils & Constants ---
@@ -179,18 +177,20 @@
             const { tasks, totalCost } = contextData;
 
             if (lower.includes('custo') || lower.includes('orçamento')) {
-                return `💰 **(Modo Offline)** Investimento total atual: ${formatCurrency(totalCost)}. \n\n*Para análises mais detalhadas, a IA precisa estar online.*`;
+                return `💰 **(Modo Offline)** Investimento total atual: ${formatCurrency(totalCost)}. \n\n*Para análises mais detalhadas, insira uma Chave de API Gemini nas configurações.*`;
             }
             if (lower.includes('tarefa') || lower.includes('status')) {
                 const done = tasks.filter(t => t.status === 'done').length;
-                return `📊 **(Modo Offline)** Temos ${tasks.length} tarefas no total, sendo ${done} concluídas. \n\n*Para insights inteligentes, a IA precisa estar online.*`;
+                return `📊 **(Modo Offline)** Temos ${tasks.length} tarefas no total, sendo ${done} concluídas. \n\n*Para insights inteligentes, insira uma Chave de API Gemini nas configurações.*`;
             }
-            return "Estou no modo offline temporariamente. Tente novamente mais tarde.";
+            return "Estou no modo offline temporariamente. Por favor, adicione uma **Chave API do Gemini** no menu de Configurações (ícone de engrenagem) para ativar minha inteligência completa.";
         };
 
         // --- CONEXÃO COM GEMINI API ---
-        const callGeminiFlash = async (prompt, context) => {
-            const apiKey = ""; // A chave é injetada automaticamente pelo ambiente
+        const callGeminiFlash = async (prompt, context, apiKey) => {
+            if (!apiKey) {
+                return localAIResponse(prompt, context);
+            }
             
             // --- ENRIQUECIMENTO DE DADOS PARA A IA ---
             const tasksByMember = {};
@@ -276,7 +276,7 @@
                     
                     if (data.error) {
                         console.error("Erro API Gemini:", JSON.stringify(data.error)); 
-                        return localAIResponse(prompt, context);
+                        return `Erro na IA: ${data.error.message || 'Chave inválida ou erro de quota.'}`;
                     }
 
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || "Hmm, não consegui processar sua resposta. Tente novamente.";
@@ -604,7 +604,6 @@
             );
         };
 
-        // --- NOVO COMPONENTE: MODAL DE EDIÇÃO DE EVENTO ---
         const EditEventModal = ({ isOpen, onClose, event, members, onUpdate }) => {
             const [formData, setFormData] = useState({
                 title: '', location: '', startDate: '', endDate: '', responsible: '', cover: null
@@ -1175,7 +1174,7 @@
             );
         };
 
-        const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onUpdateLogo, onAddMember, onUpdateMember, onDeleteMember, manager, onUpdateManager }) => {
+        const SettingsModal = ({ isOpen, onClose, members, logo, setLogo, onUpdateLogo, onAddMember, onUpdateMember, onDeleteMember, manager, onUpdateManager, geminiKey, onUpdateGeminiKey }) => {
             const [newMemberName, setNewMemberName] = useState('');
             const [newMemberRole, setNewMemberRole] = useState('');
             const fileInputRef = useRef(null);
@@ -1188,6 +1187,7 @@
             const [editPhoto, setEditPhoto] = useState(null);
             const [newMemberPhoto, setNewMemberPhoto] = useState(null);
             const [confirmDeleteMemberId, setConfirmDeleteMemberId] = useState(null);
+            const [localGeminiKey, setLocalGeminiKey] = useState(geminiKey || '');
             
             const [localManagerName, setLocalManagerName] = useState(manager?.name || '');
             const [localManagerRole, setLocalManagerRole] = useState(manager?.role || 'Gestor da Equipe');
@@ -1198,6 +1198,10 @@
                     setLocalManagerRole(manager.role);
                 }
             }, [manager]);
+
+            useEffect(() => {
+                setLocalGeminiKey(geminiKey || '');
+            }, [geminiKey]);
 
             const handleLogoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(onUpdateLogo); };
             const handleManagerPhotoUpload = (e) => { const file = e.target.files[0]; if(file) compressImage(file, 200).then(url => onUpdateManager({ ...manager, photoUrl: url })); };
@@ -1212,10 +1216,32 @@
                  onUpdateManager({ ...(manager || {}), name: localManagerName || "", role: localManagerRole || "Gestor da Equipe" });
             };
 
+            const saveGeminiKey = () => {
+                onUpdateGeminiKey(localGeminiKey);
+            };
+
             if (!isOpen) return null;
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Configurações" maxWidth="max-w-2xl">
                     <div className="p-6 space-y-8">
+                        <section>
+                            <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><Key size={18} /> Chave API Gemini (IA)</h4>
+                            <div className="bg-white border border-gray-200 rounded-xl p-4">
+                                <p className="text-xs text-gray-500 mb-2">Para ativar a IA, insira sua chave da Google AI Studio aqui.</p>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="password" 
+                                        value={localGeminiKey} 
+                                        onChange={(e) => setLocalGeminiKey(e.target.value)} 
+                                        onBlur={saveGeminiKey}
+                                        className="flex-1 p-2 border rounded-lg text-sm outline-none focus:border-blue-500" 
+                                        placeholder="Cole sua API Key aqui (começa com AIza...)" 
+                                    />
+                                    <button onClick={saveGeminiKey} className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-200">Salvar</button>
+                                </div>
+                            </div>
+                        </section>
+
                         <section>
                             <h4 className="text-blue-900 font-bold flex items-center gap-2 mb-4"><ImageIcon size={18} /> Identidade Visual</h4>
                             <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
@@ -1269,7 +1295,7 @@
             );
         };
 
-        const AIAssistant = ({ isOpen, onClose, members, events, tasks, manager, totalCost }) => {
+        const AIAssistant = ({ isOpen, onClose, members, events, tasks, manager, totalCost, geminiKey }) => {
             const [input, setInput] = useState("");
             const [messages, setMessages] = useState([{ id: 1, sender: 'ai', text: "Olá! Sou sua Assistente de Marketing conectada ao Gemini AI 🧠. Pergunte sobre quem está livre, o que cada um está fazendo ou custos dos eventos!" }]);
             const [isTyping, setIsTyping] = useState(false);
@@ -1285,7 +1311,7 @@
                 setInput(""); 
                 setIsTyping(true);
 
-                const responseText = await callGeminiFlash(userMessage.text, contextData);
+                const responseText = await callGeminiFlash(userMessage.text, contextData, geminiKey);
                 
                 setIsTyping(false);
                 setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'ai', text: responseText }]); 
@@ -1301,11 +1327,13 @@
                         <div className="flex items-center gap-2">
                             <div className="relative">
                                 <Bot size={24} className="text-blue-200"/>
-                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full border border-blue-900 animate-pulse"></span>
+                                <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-blue-900 ${geminiKey ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`}></span>
                             </div>
                             <div>
                                 <span className="font-bold text-sm block">Assistente IA</span>
-                                <span className="text-[10px] text-blue-200 flex items-center gap-1"><Sparkles size={8}/> Gemini Conectado</span>
+                                <span className="text-[10px] text-blue-200 flex items-center gap-1">
+                                    <Sparkles size={8}/> {geminiKey ? 'Gemini Conectado' : 'Modo Offline (Sem Chave)'}
+                                </span>
                             </div>
                         </div>
                         <button onClick={onClose}><X size={18} className="text-blue-200 hover:text-white"/></button>
@@ -1862,6 +1890,7 @@
             const [tasks, setTasks] = useState([]);
             const [manager, setManager] = useState(null);
             const [logo, setLogo] = useState(null);
+            const [geminiKey, setGeminiKey] = useState('');
             const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -1893,7 +1922,10 @@
                 const unsubTasks = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), (snap) => { const data = snap.docs.map(d => ({ id: d.id, ...d.data() })); setTasks(data); });
                 const unsubSettings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'settings'), (snap) => { 
                     snap.docs.forEach(docSnap => { 
-                        if (docSnap.id === 'global') { setLogo(docSnap.data().logoUrl); } 
+                        if (docSnap.id === 'global') { 
+                            setLogo(docSnap.data().logoUrl); 
+                            setGeminiKey(docSnap.data().geminiKey);
+                        } 
                         if (docSnap.id === 'manager') { 
                             // CORREÇÃO: Atribuir um ID fixo ao gestor para facilitar seleção
                             setManager({ id: 'global_manager', ...docSnap.data() }); 
@@ -1936,6 +1968,7 @@
             };
 
             const handleUpdateLogo = async (url) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { logoUrl: url }, { merge: true }); };
+            const handleUpdateGeminiKey = async (key) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'global'), { geminiKey: key }, { merge: true }); showToast("Chave API salva!"); };
             const handleUpdateManager = async (managerData) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'manager'), managerData, { merge: true }); showToast("Gestor atualizado!"); };
             const handleUpdateEvent = async (eventId, data) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'events', eventId), data); };
             
@@ -1994,8 +2027,8 @@
                             />
                         )}
                     </main>
-                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={allAssignableMembers} events={events} tasks={tasks} manager={manager} totalCost={totalCost} />
-                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} logo={logo} setLogo={setLogo} onUpdateLogo={handleUpdateLogo} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} manager={manager} onUpdateManager={handleUpdateManager} />
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={allAssignableMembers} events={events} tasks={tasks} manager={manager} totalCost={totalCost} geminiKey={geminiKey} />
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} logo={logo} setLogo={setLogo} onUpdateLogo={handleUpdateLogo} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} manager={manager} onUpdateManager={handleUpdateManager} geminiKey={geminiKey} onUpdateGeminiKey={handleUpdateGeminiKey} />
                     <NewEventModal isOpen={isNewEventModalOpen} onClose={() => setIsNewEventModalOpen(false)} members={allAssignableMembers} onCreate={handleCreateEvent} />
                     {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
                     <button onClick={() => setIsAIOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center group"><Bot size={28} className="group-hover:animate-bounce"/></button>
@@ -2008,6 +2041,7 @@
     </script>
 </body>
 </html>
+
 
 
 
