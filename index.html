@@ -92,11 +92,12 @@
 
         // --- Firebase Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // --- Configuração Firebase ---
-        const firebaseConfig = {
+        // Se houver config injetada pelo ambiente, usa ela; senão, usa a hardcoded.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
             apiKey: "AIzaSyCOFpqcXhf-TkL9BLhpKTcMK2MO7G7T2mU",
             authDomain: "bolsas-termicas.firebaseapp.com",
             projectId: "bolsas-termicas",
@@ -109,7 +110,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'event-hub-production-v27-adjustments'; 
+        
+        // CORREÇÃO: Usar o ID da app fornecido pelo ambiente para garantir permissões corretas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'event-hub-production-v27-adjustments';
 
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
@@ -187,10 +190,7 @@
 
         // --- CONEXÃO COM GEMINI API ---
         const callGeminiFlash = async (prompt, context) => {
-            // ---------------------------------------------------------
-            // 🔑 ATENÇÃO: Deixe vazio para usar a chave do ambiente seguro
-            // ---------------------------------------------------------
-            const apiKey = ""; 
+            const apiKey = ""; // A chave é injetada automaticamente pelo ambiente
             
             // --- ENRIQUECIMENTO DE DADOS PARA A IA ---
             const tasksByMember = {};
@@ -607,8 +607,9 @@
         // --- NOVO COMPONENTE: MODAL DE EDIÇÃO DE EVENTO ---
         const EditEventModal = ({ isOpen, onClose, event, members, onUpdate }) => {
             const [formData, setFormData] = useState({
-                title: '', location: '', startDate: '', endDate: '', responsible: ''
+                title: '', location: '', startDate: '', endDate: '', responsible: '', cover: null
             });
+            const coverInputRef = useRef(null);
 
             useEffect(() => {
                 if (isOpen && event) {
@@ -617,10 +618,20 @@
                         location: event.location || '',
                         startDate: event.startDate || '',
                         endDate: event.endDate || '',
-                        responsible: event.responsibleId || ''
+                        responsible: event.responsibleId || '',
+                        cover: event.coverUrl || null
                     });
                 }
             }, [isOpen, event]);
+
+            const handleCoverUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    compressImage(file, 800).then(url => {
+                        setFormData(prev => ({ ...prev, cover: url }));
+                    });
+                }
+            };
 
             const handleSubmit = () => {
                 const formatDate = (dateStr) => {
@@ -637,7 +648,8 @@
                     startDate: formData.startDate,
                     endDate: formData.endDate,
                     dateRange: dateRange,
-                    responsibleId: formData.responsible
+                    responsibleId: formData.responsible,
+                    coverUrl: formData.cover
                 });
                 onClose();
             };
@@ -647,6 +659,20 @@
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Editar Informações do Evento">
                     <div className="p-6 space-y-4">
+                        <div className="relative w-full h-40 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden group hover:border-blue-400 transition-colors cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+                            {formData.cover ? (
+                                <img src={formData.cover} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="text-center p-4">
+                                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2"/><p className="text-sm font-bold text-gray-500">Adicionar Capa do Evento</p>
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-white font-bold text-sm"><Camera size={20} className="inline mr-2"/>Alterar Capa</span>
+                            </div>
+                            <input type="file" ref={coverInputRef} onChange={handleCoverUpload} className="hidden" accept="image/*"/>
+                        </div>
+
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label>
                             <input className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition-colors" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})}/>
@@ -1220,11 +1246,11 @@
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 {members.map((member) => (
                                     <div key={member.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:shadow-sm transition-shadow">
-                                        <div className="flex items-center gap-3 w-full">
-                                            {editingId === member.id ? (<div className="relative group cursor-pointer" onClick={() => editPhotoInputRef.current?.click()}><div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">{editPhoto ? <img src={editPhoto} className="w-full h-full object-cover"/> : <Camera size={16} className="text-gray-400"/>}</div><input type="file" ref={editPhotoInputRef} onChange={handleEditPhotoUpload} className="hidden" accept="image/*" /></div>) : (<Avatar member={member} />)}
-                                            <div className="flex-1 min-w-0">{editingId === member.id ? (<div className="flex flex-col gap-1"><input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" placeholder="Nome" /><input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" placeholder="Cargo" /></div>) : (<><p className="font-bold text-gray-800 text-sm truncate">{member.name}</p><p className="text-xs text-gray-500 truncate">{member.role}</p></>)}</div>
-                                        </div>
-                                        <div className="flex gap-1 ml-2">{editingId === member.id ? (<button onClick={() => saveEdit(member.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16}/></button>) : (<button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>)}<button onClick={() => setConfirmDeleteMemberId(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></div>
+                                            <div className="flex items-center gap-3 w-full">
+                                                {editingId === member.id ? (<div className="relative group cursor-pointer" onClick={() => editPhotoInputRef.current?.click()}><div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">{editPhoto ? <img src={editPhoto} className="w-full h-full object-cover"/> : <Camera size={16} className="text-gray-400"/>}</div><input type="file" ref={editPhotoInputRef} onChange={handleEditPhotoUpload} className="hidden" accept="image/*" /></div>) : (<Avatar member={member} />)}
+                                                <div className="flex-1 min-w-0">{editingId === member.id ? (<div className="flex flex-col gap-1"><input value={editName} onChange={e=>setEditName(e.target.value)} className="text-sm border rounded px-1 w-full" placeholder="Nome" /><input value={editRole} onChange={e=>setEditRole(e.target.value)} className="text-xs border rounded px-1 w-full" placeholder="Cargo" /></div>) : (<><p className="font-bold text-gray-800 text-sm truncate">{member.name}</p><p className="text-xs text-gray-500 truncate">{member.role}</p></>)}</div>
+                                            </div>
+                                            <div className="flex gap-1 ml-2">{editingId === member.id ? (<button onClick={() => saveEdit(member.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><Check size={16}/></button>) : (<button onClick={() => startEdit(member)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Edit2 size={16}/></button>)}<button onClick={() => setConfirmDeleteMemberId(member.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button></div>
                                     </div>
                                 ))}
                             </div>
@@ -1587,10 +1613,18 @@
             
             useEffect(() => {
                 let combinedTeam = [];
+                
+                // MUDANÇA: Adiciona o Gestor/Responsável automaticamente à lista da equipe
+                if (event.responsibleId) {
+                    const responsibleMember = globalMembers.find(m => m.id === event.responsibleId);
+                    if (responsibleMember) combinedTeam.push(responsibleMember);
+                }
+
                 if (event && event.teamIds && event.teamIds.length > 0) { 
-                    const globalPart = globalMembers.filter(m => event.teamIds.includes(m.id)); 
+                    const globalPart = globalMembers.filter(m => event.teamIds.includes(m.id) && m.id !== event.responsibleId); // Evita duplicar o gestor
                     combinedTeam = [...combinedTeam, ...globalPart]; 
-                } else if (event && (!event.teamIds || event.teamIds.length === 0) && (!event.temporaryTeam || event.temporaryTeam.length === 0)) {
+                } else if (event && (!event.teamIds || event.teamIds.length === 0) && (!event.temporaryTeam || event.temporaryTeam.length === 0) && !event.responsibleId) {
+                    // Fallback se não tiver time nem gestor definido (raro)
                     combinedTeam = [...globalMembers];
                 }
                 
@@ -1835,7 +1869,22 @@
             const [toastMessage, setToastMessage] = useState(null);
             const [user, setUser] = useState(null);
 
-            useEffect(() => { const unsubAuth = onAuthStateChanged(auth, async (u) => { if (u) { setUser(u); } else { await signInAnonymously(auth); } }); return () => unsubAuth(); }, []);
+            // CORREÇÃO: Autenticação melhorada para evitar erros de permissão
+            useEffect(() => {
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+                
+                const unsubAuth = onAuthStateChanged(auth, (u) => {
+                    if (u) setUser(u);
+                });
+                return () => unsubAuth();
+            }, []);
 
             useEffect(() => {
                 if (!user) return;
@@ -1916,6 +1965,7 @@
                                 onNewEvent={() => setIsNewEventModalOpen(true)} 
                                 tasks={tasks} 
                                 dbOperations={dbOperations} 
+                                manager={manager} 
                             />
                         ) : (
                             <EventDetailView 
@@ -1926,7 +1976,8 @@
                                 dbOperations={dbOperations} 
                                 tasks={tasks} 
                                 onUpdateEvent={handleUpdateEvent} 
-                                onDeleteEvent={handleDeleteEvent} // PASSANDO FUNÇÃO DE EXCLUIR
+                                onDeleteEvent={handleDeleteEvent} 
+                                manager={manager}
                             />
                         )}
                     </main>
