@@ -1891,9 +1891,22 @@
                 const unsubEvents = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'events'), (snap) => { const data = snap.docs.map(d => ({ id: d.id, ...d.data() })); setEvents(data); });
                 const unsubMembers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'members'), (snap) => { const data = snap.docs.map(d => ({ id: d.id, ...d.data() })); setMembers(data); });
                 const unsubTasks = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'tasks'), (snap) => { const data = snap.docs.map(d => ({ id: d.id, ...d.data() })); setTasks(data); });
-                const unsubSettings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'settings'), (snap) => { snap.docs.forEach(docSnap => { if (docSnap.id === 'global') { setLogo(docSnap.data().logoUrl); } if (docSnap.id === 'manager') { setManager(docSnap.data()); } }); });
+                const unsubSettings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'settings'), (snap) => { 
+                    snap.docs.forEach(docSnap => { 
+                        if (docSnap.id === 'global') { setLogo(docSnap.data().logoUrl); } 
+                        if (docSnap.id === 'manager') { 
+                            // CORREÇÃO: Atribuir um ID fixo ao gestor para facilitar seleção
+                            setManager({ id: 'global_manager', ...docSnap.data() }); 
+                        } 
+                    }); 
+                });
                 return () => { unsubEvents(); unsubMembers(); unsubTasks(); unsubSettings(); };
             }, [user]);
+
+            // --- CRIAÇÃO DE LISTA UNIFICADA (GESTOR + MEMBROS) ---
+            const allAssignableMembers = manager 
+                ? [manager, ...members.filter(m => m.id !== manager.id)] 
+                : members;
 
             const handleAddMember = async (memberData) => { if(!user) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'members'), memberData); showToast("Membro adicionado!"); };
             const handleUpdateMember = async (memberData) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', memberData.id), memberData); };
@@ -1959,7 +1972,7 @@
                             <DashboardView 
                                 onSelectEvent={(evt) => { setSelectedEvent(evt); setView('event'); }} 
                                 events={events} 
-                                members={members} 
+                                members={allAssignableMembers} // CORREÇÃO: Passando lista com Gestor
                                 updates={[]} 
                                 onDeleteUpdate={() => {}} 
                                 onNewEvent={() => setIsNewEventModalOpen(true)} 
@@ -1971,7 +1984,7 @@
                             <EventDetailView 
                                 event={currentSelectedEvent} 
                                 onBack={() => setView('dashboard')} 
-                                globalMembers={members} 
+                                globalMembers={allAssignableMembers} // CORREÇÃO: Passando lista com Gestor
                                 onShowToast={showToast} 
                                 dbOperations={dbOperations} 
                                 tasks={tasks} 
@@ -1981,9 +1994,9 @@
                             />
                         )}
                     </main>
-                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={members} events={events} tasks={tasks} manager={manager} totalCost={totalCost} />
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={allAssignableMembers} events={events} tasks={tasks} manager={manager} totalCost={totalCost} />
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} logo={logo} setLogo={setLogo} onUpdateLogo={handleUpdateLogo} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} manager={manager} onUpdateManager={handleUpdateManager} />
-                    <NewEventModal isOpen={isNewEventModalOpen} onClose={() => setIsNewEventModalOpen(false)} members={members} onCreate={handleCreateEvent} />
+                    <NewEventModal isOpen={isNewEventModalOpen} onClose={() => setIsNewEventModalOpen(false)} members={allAssignableMembers} onCreate={handleCreateEvent} />
                     {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
                     <button onClick={() => setIsAIOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center group"><Bot size={28} className="group-hover:animate-bounce"/></button>
                 </div>
@@ -1995,7 +2008,6 @@
     </script>
 </body>
 </html>
-
 
 
 
