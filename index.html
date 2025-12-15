@@ -709,7 +709,7 @@
             );
         };
 
-        const NewEventModal = ({ isOpen, onClose, members, onCreate }) => {
+        const NewEventModal = ({ isOpen, onClose, members, onCreate, categories }) => {
             const [formData, setFormData] = useState({
                 title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null
             });
@@ -753,7 +753,11 @@
             };
 
             const handleSubmit = () => {
-                if (!formData.title || !formData.startDate || !formData.responsible) return;
+                // CORREÇÃO: Adicionada validação explícita com alerta
+                if (!formData.title || !formData.startDate || !formData.responsible) {
+                    alert("Por favor, preencha todos os campos obrigatórios: Nome, Data de Início e Responsável.");
+                    return;
+                }
                 
                 // Garantir data fim se for dia único
                 const finalEndDate = isSingleDay ? formData.startDate : formData.endDate;
@@ -780,11 +784,15 @@
                 setFormData({ title: '', location: '', startDate: '', endDate: '', responsible: '', team: [], selectedTasks: [], cover: null });
             };
 
+            // Agrupar tarefas predefinidas pelas categorias PERSISTIDAS
             const groupedTasks = PREDEFINED_TASKS_DATA.reduce((acc, task) => {
                 if (!acc[task.category]) acc[task.category] = [];
                 acc[task.category].push(task);
                 return acc;
             }, {});
+
+            // CORREÇÃO: Verificação completa para desabilitar botão
+            const isFormValid = formData.title && formData.startDate && formData.responsible;
 
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Criar Novo Evento" maxWidth="max-w-4xl" hideHeader={true}>
@@ -814,7 +822,7 @@
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento <span className="text-red-500">*</span></label>
                                     <input className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition-colors" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Convenção 2026"/>
                                 </div>
                                 <div className="md:col-span-2">
@@ -839,7 +847,7 @@
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início {isSingleDay && "(Data do Evento)"}</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data Início {isSingleDay && "(Data do Evento)"} <span className="text-red-500">*</span></label>
                                     <input type="date" className="w-full p-3 border rounded-xl text-sm bg-gray-50 focus:bg-white outline-none focus:border-blue-500" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})}/>
                                 </div>
                                 
@@ -853,11 +861,12 @@
 
                             <div className="space-y-4 border-t pt-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável Principal</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável Principal <span className="text-red-500">*</span></label>
                                     <select className="w-full p-3 border rounded-xl bg-gray-50 text-sm outline-none focus:border-blue-500" value={formData.responsible} onChange={e => setFormData({...formData, responsible: e.target.value})}>
                                         <option value="">Selecione um gestor...</option>
                                         {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                     </select>
+                                    {members.length === 0 && <p className="text-xs text-red-500 mt-1">Adicione membros nas configurações para selecionar.</p>}
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe do Evento</label>
@@ -885,7 +894,11 @@
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-40 overflow-y-auto p-1">
                                     {Object.keys(groupedTasks).map(catId => {
-                                        const cat = DEFAULT_CATEGORIES.find(c => c.id === catId);
+                                        // Busca a categoria nas props (persistidas) ou usa padrão se não achar
+                                        const cat = categories.find(c => c.id === catId) || DEFAULT_CATEGORIES.find(c => c.id === catId);
+                                        // Se a categoria não existir em lugar nenhum (ex: foi deletada), não mostra o grupo
+                                        if (!cat) return null;
+
                                         return (
                                             <div key={catId} className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                                                 <h5 className={`text-xs font-bold mb-2 flex items-center gap-1 ${getCategoryStyles(cat?.color || 'gray').split(' ')[0]}`}>{getCategoryIcon(cat?.icon)} {cat?.title}</h5>
@@ -909,7 +922,7 @@
                             </div>
 
                             <div className="flex justify-end pt-6 border-t mt-4">
-                                <button onClick={handleSubmit} disabled={!formData.title} className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 animate-shine flex items-center justify-center gap-2 shadow-blue-500/30">
+                                <button onClick={handleSubmit} disabled={!isFormValid} className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 animate-shine flex items-center justify-center gap-2 shadow-blue-500/30 disabled:cursor-not-allowed">
                                     <Rocket size={20} /> Lançar Evento
                                 </button>
                             </div>
@@ -1606,7 +1619,7 @@
             );
         };
 
-        const EventDetailView = ({ event, onBack, globalMembers, onShowToast, dbOperations, tasks, onUpdateEvent, onDeleteEvent }) => {
+        const EventDetailView = ({ event, onBack, globalMembers, onShowToast, dbOperations, tasks, onUpdateEvent, onDeleteEvent, manager, categories, onAddCategory, onUpdateCategory, onDeleteCategory }) => {
             const [viewMode, setViewMode] = useState('categories');
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -1629,7 +1642,7 @@
             const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
             const [agendaItems, setAgendaItems] = useState([{ id: 1, date: new Date(2026, 1, 2), title: "Início do Evento", color: "blue" }, { id: 2, date: new Date(2026, 1, 4), title: "Reunião de Alinhamento", color: "purple" }]);
             const [newAgendaItem, setNewAgendaItem] = useState({ date: '', title: '', color: 'blue' });
-            const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+            // Categories now come from props
             const [eventTeam, setEventTeam] = useState([]);
             const [draggedTask, setDraggedTask] = useState(null);
             const [dragOverColumn, setDragOverColumn] = useState(null);
@@ -1854,7 +1867,7 @@
                         </div>
                     </div>
                     <TaskDetailModal task={selectedTask} isOpen={!!selectedTaskId} onClose={() => setSelectedTaskId(null)} members={eventTeam} dbOperations={dbOperations} />
-                    <ManageCategoriesModal isOpen={isManageCategoriesOpen} onClose={() => setIsManageCategoriesOpen(false)} categories={categories} onAdd={(c) => { setCategories([...categories, c]); onShowToast("Categoria criada!"); }} onUpdate={(c) => setCategories(categories.map(cat => cat.id === c.id ? c : cat))} onDelete={(id) => setCategories(categories.filter(c => c.id !== id))} />
+                    <ManageCategoriesModal isOpen={isManageCategoriesOpen} onClose={() => setIsManageCategoriesOpen(false)} categories={categories} onAdd={(c) => { onAddCategory(c); onShowToast("Categoria criada!"); }} onUpdate={(c) => onUpdateCategory(c)} onDelete={(id) => onDeleteCategory(id)} />
                     <Modal isOpen={isAddTaskOpen} onClose={() => setIsAddTaskOpen(false)} title="Nova Tarefa"><div className="p-6 space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">O que precisa ser feito?</label><input autoFocus id="newTaskTitle" className="w-full p-2 border rounded-lg outline-none focus:border-blue-500" placeholder="Ex: Reservar hotel..."/></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label><select id="newTaskCategory" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500">{categories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}</select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Fase</label><select id="newTaskPhase" className="w-full p-2 border rounded-lg bg-white outline-none focus:border-blue-500"><option value="pre">Pré-Evento</option><option value="during">Durante</option><option value="post">Pós-Evento</option></select></div><button onClick={() => { const titleInput = document.getElementById('newTaskTitle'); const catInput = document.getElementById('newTaskCategory'); const phaseInput = document.getElementById('newTaskPhase'); if(titleInput.value) { dbOperations.addTask({ text: titleInput.value, category: catInput.value, phase: phaseInput.value, status: 'planning', priority: 'medium', responsible: eventTeam[0] || globalMembers[0], messages: [], subtasks: [] }); setIsAddTaskOpen(false); onShowToast("Tarefa criada com sucesso!"); } }} className="w-full bg-blue-900 text-white py-2 rounded-lg font-bold">Criar Tarefa</button></div></Modal>
                     <Modal isOpen={isAddMemberOpen} onClose={() => setIsAddMemberOpen(false)} title="Adicionar Colaborador"><div className="flex border-b border-gray-100"><button onClick={() => setIsAddTempMember(false)} className={`flex-1 p-3 text-sm font-bold ${!isAddTempMember ? 'text-blue-700 border-b-2 border-blue-600' : 'text-gray-500'}`}>Da Equipe Fixa</button><button onClick={() => setIsAddTempMember(true)} className={`flex-1 p-3 text-sm font-bold ${isAddTempMember ? 'text-blue-700 border-b-2 border-blue-600' : 'text-gray-500'}`}>Temporário</button></div>{!isAddTempMember ? (<div className="p-4 space-y-2">{globalMembers.filter(gm => !event.teamIds?.includes(gm.id)).map(m => (<button key={m.id} onClick={() => addTeamMember(m)} className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-200 text-left transition-colors"><Avatar member={m}/><div><p className="font-bold text-sm text-gray-800">{m.name}</p><p className="text-xs text-gray-500">{m.role}</p></div></button>))}{globalMembers.filter(gm => !event.teamIds?.includes(gm.id)).length === 0 && <p className="text-center text-gray-400 text-sm py-4">Todos os membros fixos já estão no evento.</p>}</div>) : (<div className="p-6 space-y-4"><div className="bg-amber-50 p-3 rounded-lg border border-amber-100 text-xs text-amber-700 mb-2">Colaboradores temporários existem apenas neste evento.</div><input className="w-full p-2 border rounded-lg text-sm" placeholder="Nome do Colaborador" value={tempMemberName} onChange={e => setTempMemberName(e.target.value)}/><input className="w-full p-2 border rounded-lg text-sm" placeholder="Função (Ex: Recepcionista)" value={tempMemberRole} onChange={e => setTempMemberRole(e.target.value)}/><button onClick={addTemporaryMember} disabled={!tempMemberName || !tempMemberRole} className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold disabled:opacity-50">Adicionar ao Evento</button></div>)}</Modal>
                     <Modal isOpen={isAgendaModalOpen} onClose={() => setIsAgendaModalOpen(false)} title="Agenda do Evento" fullScreen={true}><div className="flex flex-col h-full bg-gray-50"><div className="flex-1 p-8 overflow-y-auto max-w-5xl mx-auto w-full"><div className="grid grid-cols-1 md:grid-cols-3 gap-8"><div className="md:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100"><h4 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><Plus size={18} className="text-blue-600"/> Novo Evento</h4><div className="space-y-4"><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label><input type="date" value={newAgendaItem.date} onChange={e => setNewAgendaItem({...newAgendaItem, date: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"/></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título</label><input type="text" placeholder="Ex: Reunião Geral" value={newAgendaItem.title} onChange={e => setNewAgendaItem({...newAgendaItem, title: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"/></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label><textarea placeholder="Detalhes..." rows={3} value={newAgendaItem.description} onChange={e => setNewAgendaItem({...newAgendaItem, description: e.target.value})} className="w-full p-3 bg-gray-50 border rounded-xl text-sm outline-none focus:border-blue-500 transition-colors resize-none"></textarea></div><div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cor</label><div className="flex flex-wrap gap-2">{PASTEL_COLORS.map(c => (<button key={c.id} type="button" onClick={() => setNewAgendaItem({...newAgendaItem, color: c.id})} className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${newAgendaItem.color === c.id ? 'border-gray-600 scale-110 shadow-sm' : 'border-transparent'}`} style={{backgroundColor: c.hex}}></button>))}</div></div><button onClick={handleAddAgendaItem} className="w-full bg-blue-900 text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/20 hover:shadow-blue-900/40 transition-all mt-2">Adicionar à Agenda</button></div></div><div className="md:col-span-2 space-y-6"><div className="flex items-center justify-between mb-4"><h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2"><CalendarIcon className="text-blue-600"/> {MONTH_NAMES[currentCalendarDate.getMonth()]} {currentCalendarDate.getFullYear()}</h2><div className="flex gap-2"><button onClick={() => changeMonth(-1)} className="p-2 hover:bg-gray-100 rounded-lg border"><ChevronLeft size={20}/></button><button onClick={() => changeMonth(1)} className="p-2 hover:bg-gray-100 rounded-lg border"><ChevronRight size={20}/></button></div></div>{renderCalendar(currentCalendarDate)}</div></div></div></div></Modal>
@@ -1891,6 +1904,7 @@
             const [manager, setManager] = useState(null);
             const [logo, setLogo] = useState(null);
             const [geminiKey, setGeminiKey] = useState('');
+            const [categories, setCategories] = useState([]); // Inicia vazio para saber se já carregou
             const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -1927,12 +1941,31 @@
                             setGeminiKey(docSnap.data().geminiKey);
                         } 
                         if (docSnap.id === 'manager') { 
-                            // CORREÇÃO: Atribuir um ID fixo ao gestor para facilitar seleção
                             setManager({ id: 'global_manager', ...docSnap.data() }); 
                         } 
                     }); 
                 });
-                return () => { unsubEvents(); unsubMembers(); unsubTasks(); unsubSettings(); };
+
+                // NOVO: Carregar Categorias
+                const unsubCategories = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), async (snap) => {
+                    if (snap.empty) {
+                        // Se estiver vazio, vamos popular com as categorias padrão para garantir que funcione
+                        // Isso resolve o problema de "não salvar" na primeira vez, pois inicializa o banco.
+                        // Usamos Promise.all para ser rápido.
+                        const batchPromises = DEFAULT_CATEGORIES.map(cat => 
+                            setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', cat.id), cat)
+                        );
+                        await Promise.all(batchPromises);
+                    } else {
+                        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        // Ordenação opcional se tiver campo order, ou alfabética, ou por ID fixo
+                        // Por enquanto, vamos manter a ordem que vem ou usar uma lógica simples
+                        // Como os IDs padrão são fixos, podemos forçar a ordem deles primeiro se quisermos
+                        setCategories(data);
+                    }
+                });
+
+                return () => { unsubEvents(); unsubMembers(); unsubTasks(); unsubSettings(); unsubCategories(); };
             }, [user]);
 
             // --- CRIAÇÃO DE LISTA UNIFICADA (GESTOR + MEMBROS) ---
@@ -1944,6 +1977,11 @@
             const handleUpdateMember = async (memberData) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', memberData.id), memberData); };
             const handleDeleteMember = async (id) => { if(!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', id)); showToast("Membro removido."); };
             
+            // --- Handlers de Categoria (Persistentes) ---
+            const handleAddCategory = async (cat) => { if(!user) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', cat.id), cat); };
+            const handleUpdateCategory = async (cat) => { if(!user) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', cat.id), cat); };
+            const handleDeleteCategory = async (id) => { if(!user) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', id)); showToast("Categoria excluída."); };
+
             // ALTERADO AQUI: responsible agora inicia como null (sem dono) nas tarefas automáticas
             const handleCreateEvent = async (eventData) => { 
                 if(!user) return; 
@@ -1994,6 +2032,10 @@
             const totalCost = tasks.reduce((acc, t) => acc + (parseFloat(t.cost) || 0), 0);
             const currentSelectedEvent = events.find(e => e.id === selectedEvent?.id) || selectedEvent;
 
+            // Se as categorias ainda não carregaram do banco (array vazio), usamos o padrão para não quebrar a UI
+            // Mas o useEffect já vai cuidar de popular o banco se estiver vazio.
+            const displayCategories = categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
             return (
                 <div className="min-h-screen pb-12">
                      <header className="fixed top-0 left-0 right-0 bg-white h-24 border-b border-gray-100 z-40 px-8 flex items-center justify-between shadow-sm">
@@ -2005,7 +2047,7 @@
                             <DashboardView 
                                 onSelectEvent={(evt) => { setSelectedEvent(evt); setView('event'); }} 
                                 events={events} 
-                                members={allAssignableMembers} // CORREÇÃO: Passando lista com Gestor
+                                members={allAssignableMembers} 
                                 updates={[]} 
                                 onDeleteUpdate={() => {}} 
                                 onNewEvent={() => setIsNewEventModalOpen(true)} 
@@ -2017,19 +2059,23 @@
                             <EventDetailView 
                                 event={currentSelectedEvent} 
                                 onBack={() => setView('dashboard')} 
-                                globalMembers={allAssignableMembers} // CORREÇÃO: Passando lista com Gestor
+                                globalMembers={allAssignableMembers} 
                                 onShowToast={showToast} 
                                 dbOperations={dbOperations} 
                                 tasks={tasks} 
                                 onUpdateEvent={handleUpdateEvent} 
                                 onDeleteEvent={handleDeleteEvent} 
                                 manager={manager}
+                                categories={displayCategories} // Passando categorias persistidas
+                                onAddCategory={handleAddCategory}
+                                onUpdateCategory={handleUpdateCategory}
+                                onDeleteCategory={handleDeleteCategory}
                             />
                         )}
                     </main>
                     <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} members={allAssignableMembers} events={events} tasks={tasks} manager={manager} totalCost={totalCost} geminiKey={geminiKey} />
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} logo={logo} setLogo={setLogo} onUpdateLogo={handleUpdateLogo} onAddMember={handleAddMember} onUpdateMember={handleUpdateMember} onDeleteMember={handleDeleteMember} manager={manager} onUpdateManager={handleUpdateManager} geminiKey={geminiKey} onUpdateGeminiKey={handleUpdateGeminiKey} />
-                    <NewEventModal isOpen={isNewEventModalOpen} onClose={() => setIsNewEventModalOpen(false)} members={allAssignableMembers} onCreate={handleCreateEvent} />
+                    <NewEventModal isOpen={isNewEventModalOpen} onClose={() => setIsNewEventModalOpen(false)} members={allAssignableMembers} onCreate={handleCreateEvent} categories={displayCategories} />
                     {toastMessage && <Toast message={toastMessage} onClose={() => setToastMessage(null)} />}
                     <button onClick={() => setIsAIOpen(true)} className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:scale-110 transition-transform z-40 flex items-center justify-center group"><Bot size={28} className="group-hover:animate-bounce"/></button>
                 </div>
@@ -2041,8 +2087,6 @@
     </script>
 </body>
 </html>
-
-
 
 
 
