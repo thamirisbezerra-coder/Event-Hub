@@ -100,6 +100,19 @@
         import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
+        // --- Firebase Configuration & Initialization ---
+        
+        // 1. Configuração Fixa fornecida pelo usuário
+        const userFirebaseConfig = {
+            apiKey: "AIzaSyD976h76Lt8FZVq3K6wlmtKJgy6QAOsaVA",
+            authDomain: "eventhub-c03e4.firebaseapp.com",
+            projectId: "eventhub-c03e4",
+            storageBucket: "eventhub-c03e4.firebasestorage.app",
+            messagingSenderId: "288236914912",
+            appId: "1:288236914912:web:940ee18e9d84c651ab2885",
+            measurementId: "G-ZE8C5JKQ44"
+        };
+
         // --- Firebase Initialization Strategy (Robust) ---
         let app = null;
         let db = null;
@@ -107,18 +120,17 @@
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
 
-        // Tenta inicializar. Se falhar (falta de config), o App renderiza a tela de Setup.
+        // Tenta inicializar.
         try {
-            let configToUse = null;
-            // 1. Tenta pegar do localStorage (se o usuário já configurou antes)
-            const localConfig = localStorage.getItem('event_hub_firebase_config');
-            
-            if (localConfig) {
-                configToUse = JSON.parse(localConfig);
-            } 
-            // 2. Se não, tenta pegar do ambiente (Canvas)
-            else if (typeof __firebase_config !== 'undefined') {
+            let configToUse = userFirebaseConfig; // Padrão: Usa a config fixa
+
+            // 2. Se houver variável de ambiente (Canvas), usa ela (prioridade para desenvolvimento interno)
+            if (typeof __firebase_config !== 'undefined') {
                 configToUse = JSON.parse(__firebase_config);
+            } 
+            // 3. Fallback para localStorage se existir uma config manual salva anteriormente e não houver fixa
+            else if (!userFirebaseConfig.apiKey && localStorage.getItem('event_hub_firebase_config')) {
+                configToUse = JSON.parse(localStorage.getItem('event_hub_firebase_config'));
             }
 
             if (configToUse && configToUse.apiKey) {
@@ -127,7 +139,7 @@
                 auth = getAuth(app);
             }
         } catch (e) {
-            console.warn("Firebase Init pendente:", e);
+            console.warn("Firebase Init Error:", e);
         }
 
         // Helper to get collection path (Safely)
