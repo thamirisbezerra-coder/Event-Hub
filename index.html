@@ -210,10 +210,10 @@
         const ICON_KEYS = Object.keys(ICON_MAP);
 
         const DEFAULT_CATEGORIES = [
-            { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue' },
-            { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber' },
-            { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple' },
-            { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald' }
+            { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue', phases: ['pre', 'during', 'post'] },
+            { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber', phases: ['pre', 'during'] },
+            { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple', phases: ['pre', 'during'] },
+            { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald', phases: ['post'] }
         ];
 
         const AGENDA_COLORS = [
@@ -443,15 +443,34 @@
 
         const ManageCategoriesModal = ({ isOpen, onClose, categories, onUpdateCategories }) => {
             const [cats, setCats] = useState(categories);
-            const [newCat, setNewCat] = useState({ title: '', color: 'blue', icon: 'box' });
+            const [newCat, setNewCat] = useState({ title: '', color: 'blue', icon: 'box', phases: ['pre','during','post'] });
             const [editingId, setEditingId] = useState(null);
             
             useEffect(() => { setCats(categories); }, [categories]);
             
             const handleUpdate = (id, field, val) => { setCats(prev => prev.map(c => c.id === id ? { ...c, [field]: val } : c)); };
             const handleDelete = (id) => { if (confirm("Tem a certeza?")) setCats(prev => prev.filter(c => c.id !== id)); };
-            const handleAdd = () => { if (!newCat.title.trim()) return; setCats(prev => [...prev, { id: Date.now().toString(), ...newCat }]); setNewCat({ title: '', color: 'blue', icon: 'box' }); };
+            const handleAdd = () => { if (!newCat.title.trim()) return; setCats(prev => [...prev, { id: Date.now().toString(), ...newCat }]); setNewCat({ title: '', color: 'blue', icon: 'box', phases: ['pre','during','post'] }); };
             const save = () => { onUpdateCategories(cats); onClose(); };
+
+            const toggleNewCatPhase = (p) => {
+                setNewCat(prev => {
+                    const current = prev.phases || [];
+                    if(current.includes(p)) return {...prev, phases: current.filter(x=>x!==p)};
+                    return {...prev, phases: [...current, p]};
+                })
+            }
+            
+            const toggleEditCatPhase = (id, p) => {
+                 setCats(prev => prev.map(c => {
+                    if(c.id !== id) return c;
+                    const current = c.phases || ['pre','during','post'];
+                    let newPhases;
+                    if(current.includes(p)) newPhases = current.filter(x=>x!==p);
+                    else newPhases = [...current, p];
+                    return {...c, phases: newPhases};
+                 }));
+            }
 
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Ajustes de Categorias">
@@ -461,6 +480,29 @@
                             <h4 className="text-xs font-bold text-blue-800 uppercase mb-3">Nova Categoria</h4>
                             <div className="flex flex-col gap-3">
                                 <input className="w-full p-2 border rounded-lg text-sm bg-white" placeholder="Nome da Categoria..." value={newCat.title} onChange={e=>setNewCat({...newCat, title: e.target.value})}/>
+                                
+                                {/* Seleção de Fases para Nova Categoria */}
+                                <div>
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Fases do Evento:</span>
+                                    <div className="flex gap-3 flex-wrap">
+                                        {[
+                                            {id: 'pre', label: 'Pré-Evento'}, 
+                                            {id: 'during', label: 'Durante'}, 
+                                            {id: 'post', label: 'Pós-Evento'}
+                                        ].map(phase => (
+                                            <label key={phase.id} className="flex items-center gap-1.5 text-xs bg-white px-2 py-1 rounded border border-blue-200 cursor-pointer">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={newCat.phases?.includes(phase.id)} 
+                                                    onChange={() => toggleNewCatPhase(phase.id)}
+                                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                                />
+                                                {phase.label}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div className="flex gap-2 items-center">
                                     <span className="text-[10px] font-bold text-gray-500 uppercase">Cor:</span>
                                     {PASTEL_COLORS.map(c => (
@@ -482,7 +524,7 @@
                             </div>
                         </div>
 
-                        {/* Lista de Categorias - FIX for 'cat is not defined' */}
+                        {/* Lista de Categorias */}
                         <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
                             {cats.map(cat => (
                                 <div key={cat.id} className="bg-white p-3 rounded-xl border border-gray-200">
@@ -494,7 +536,14 @@
                                             {editingId === cat.id ? (
                                                 <input className="font-bold text-sm bg-gray-50 border rounded px-1" value={cat.title} onChange={e=>handleUpdate(cat.id, 'title', e.target.value)} />
                                             ) : (
-                                                <span className="font-bold text-sm text-gray-800">{cat.title}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-sm text-gray-800">{cat.title}</span>
+                                                    <span className="text-[10px] text-gray-400">
+                                                        {(cat.phases && cat.phases.length > 0 && cat.phases.length < 3) 
+                                                            ? cat.phases.map(p => p==='pre'?'Pré':p==='during'?'Durante':'Pós').join(', ') 
+                                                            : 'Todas as Fases'}
+                                                    </span>
+                                                </div>
                                             )}
                                         </div>
                                         <div className="flex gap-1">
@@ -509,6 +558,31 @@
                                     
                                     {editingId === cat.id && (
                                         <div className="mt-3 pt-3 border-t border-gray-100 space-y-3 animate-in">
+                                             {/* Edição de Fases */}
+                                             <div>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Fases:</span>
+                                                <div className="flex gap-3 flex-wrap">
+                                                    {[
+                                                        {id: 'pre', label: 'Pré'}, 
+                                                        {id: 'during', label: 'Durante'}, 
+                                                        {id: 'post', label: 'Pós'}
+                                                    ].map(phase => {
+                                                        const isChecked = (cat.phases || ['pre','during','post']).includes(phase.id);
+                                                        return (
+                                                            <label key={phase.id} className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded border cursor-pointer ${isChecked ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-500'}`}>
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={isChecked} 
+                                                                    onChange={() => toggleEditCatPhase(cat.id, phase.id)}
+                                                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                                                />
+                                                                {phase.label}
+                                                            </label>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+
                                             <div className="flex gap-2 items-center">
                                                 <span className="text-[10px] font-bold text-gray-400 uppercase">Cor:</span>
                                                 {PASTEL_COLORS.map(c => (
@@ -875,8 +949,8 @@
 
             const toggleSupport = (memberId) => {
                 const currentSupport = currentTask.support || [];
-                const newSupport = currentSupport.some(m => m.id === memberId)
-                    ? currentSupport.filter(m => m.id !== memberId)
+                const newSupport = currentSupport.some(m => m.id === memberId) 
+                    ? currentSupport.filter(m => m.id !== memberId) 
                     : [...currentSupport, members.find(m => m.id === memberId)];
                 dbOperations.updateTask(currentTask.id, { support: newSupport });
             };
@@ -940,8 +1014,15 @@
         const Dashboard = ({ events, tasks, members, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId }) => {
             const [eventViewMode, setEventViewMode] = useState('active'); // 'active' or 'completed'
             
-            const activeEvents = events.filter(e => !isEventFinished(e));
-            const finishedEvents = events.filter(e => isEventFinished(e));
+            // SORTING LOGIC ADDED HERE: Ascending for Active, Descending for Finished
+            const activeEvents = events
+                .filter(e => !isEventFinished(e))
+                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            const finishedEvents = events
+                .filter(e => isEventFinished(e))
+                .sort((a, b) => new Date(b.endDate || b.startDate) - new Date(a.endDate || a.startDate));
+                
             const activeEventIds = activeEvents.map(e => e.id);
             
             const workload = members.map(m => {
@@ -1109,7 +1190,15 @@
                 ...members.filter(m => event.teamIds?.includes(m.id) && m.id !== event.responsibleId)
             ].filter(Boolean);
 
-            const columns = viewGrouping === 'status' ? STATUS_COLUMNS : (event.categories || DEFAULT_CATEGORIES);
+            // FILTER COLUMNS BASED ON PHASE
+            const columns = useMemo(() => {
+                if (viewGrouping === 'status') return STATUS_COLUMNS;
+                const cats = event.categories || DEFAULT_CATEGORIES;
+                if (filterPhase === 'all') return cats;
+                // Only return categories that apply to the selected phase (or have no phase defined -> default all)
+                return cats.filter(c => !c.phases || c.phases.length === 0 || c.phases.includes(filterPhase));
+            }, [viewGrouping, event.categories, filterPhase]);
+
             const totalEventCost = filteredTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
 
             // ADDED: Define daysLeft and daysLeftText and formatDate here to fix ReferenceError
@@ -1448,6 +1537,7 @@
     </script>
 </body>
 </html>
+
 
 
 
