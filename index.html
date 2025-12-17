@@ -643,12 +643,12 @@
 
             useEffect(() => {
                 if(event) { 
-                    setTitle(event.title); 
-                    setStartDate(event.startDate); 
-                    setEndDate(event.endDate || ''); // Sync endDate
-                    setLocation(event.location || ''); // Sync location
-                    setCover(event.coverUrl); 
-                    setResponsible(event.responsibleId);
+                    setTitle(event.title || ''); 
+                    setStartDate(event.startDate || ''); 
+                    setEndDate(event.endDate || ''); 
+                    setLocation(event.location || ''); 
+                    setCover(event.coverUrl || ''); 
+                    setResponsible(event.responsibleId || '');
                 }
             }, [event]);
 
@@ -674,22 +674,16 @@
             const daysLeft = getLocalDaysLeft();
             const daysLeftText = daysLeft < 0 ? `Terminou há ${Math.abs(daysLeft)} dias` : daysLeft === 0 ? "É hoje!" : `Faltam ${daysLeft} dias`;
             
-            // Helper for date display
-            const formatDate = (dateStr) => {
-                if(!dateStr) return '';
-                const [y, m, d] = dateStr.split('-');
-                return `${d}/${m}/${y}`;
-            };
-
+            const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; };
 
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Editar Evento">
-                      {/* Add Countdown Banner with Dates and Location */}
-                    <div className={`mb-4 p-3 rounded-xl text-center text-sm font-bold flex flex-col gap-1 ${daysLeft < 0 ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-blue-700'}`}>
-                        <span className="text-lg">{daysLeftText}</span>
-                        <span className="text-xs opacity-80 font-normal">
-                           {startDate && formatDate(startDate)} {endDate && endDate !== startDate && ` até ${formatDate(endDate)}`}
-                           {location && ` • ${location}`}
+                      {/* Add Countdown Banner */}
+                    <div className={`mb-4 p-3 rounded-xl text-center flex flex-col gap-1 ${daysLeft < 0 ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-blue-700'}`}>
+                        <span className="text-lg font-bold">{daysLeftText}</span>
+                        <span className="text-xs font-normal opacity-80">
+                            {formatDate(startDate)} {endDate && endDate !== startDate ? ` - ${formatDate(endDate)}` : ''}
+                            {location ? ` • ${location}` : ''}
                         </span>
                     </div>
 
@@ -1118,6 +1112,11 @@
             const columns = viewGrouping === 'status' ? STATUS_COLUMNS : (event.categories || DEFAULT_CATEGORIES);
             const totalEventCost = filteredTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
 
+            // ADDED: Define daysLeft and daysLeftText and formatDate here to fix ReferenceError
+            const daysLeft = getDaysLeft(event);
+            const daysLeftText = daysLeft < 0 ? `Terminou há ${Math.abs(daysLeft)} dias` : daysLeft === 0 ? "É hoje!" : `Faltam ${daysLeft} dias`;
+            const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; };
+
             return (
                 <div className="min-h-screen bg-[#F8FAFC] pb-24 animate-in">
                     <div className="h-48 bg-blue-900 relative">
@@ -1125,7 +1124,14 @@
                         <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] to-transparent"></div>
                         <div className="absolute bottom-4 left-6">
                             <h1 className="text-2xl font-extrabold text-blue-950">{event.title}</h1>
-                            <p className="text-sm font-bold text-gray-500 mt-1">Custo Total: {formatCurrency(totalEventCost)}</p>
+                            {/* Added Info Block in Header */}
+                            <div className="flex flex-col mt-1">
+                                 <span className="text-xs font-bold text-blue-900 bg-white/50 px-2 py-1 rounded inline-flex items-center gap-1 w-fit mb-1">
+                                    <Clock size={12}/> {daysLeftText} • {formatDate(event.startDate)} {event.endDate ? `- ${formatDate(event.endDate)}` : ''}
+                                 </span>
+                                 <span className="text-xs text-blue-950/70 font-medium flex items-center gap-1"><MapPin size={12}/> {event.location || 'Local não definido'}</span>
+                            </div>
+                            <p className="text-xs font-bold text-emerald-600 mt-1 flex items-center gap-1"><DollarSign size={12}/> Custo Total: {formatCurrency(totalEventCost)}</p>
                         </div>
                         <button onClick={onBack} className="absolute top-4 left-4 p-2 bg-white/20 rounded-full hover:bg-white/40 text-white"><ArrowLeft/></button>
                         <button onClick={() => setIsEditEventOpen(true)} className="absolute top-4 right-4 p-2 bg-white/20 rounded-full hover:bg-white/40 text-white"><Edit2/></button>
