@@ -11,9 +11,16 @@
     <!-- Fonte Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Import Map: Resolve "react" para URLs ESM compatíveis -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react-dom": "https://esm.sh/react-dom@18.2.0"
+      }
+    }
+    </script>
     
     <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -48,12 +55,32 @@
     </script>
 </head>
 <body>
+    <!-- Container Principal -->
     <div id="root"></div>
 
+    <!-- Container de Erro Global (Fallback) -->
+    <div id="global-error" style="display:none; padding: 20px; color: #ef4444; background: #fee2e2; margin: 20px; border-radius: 8px; font-family: sans-serif;">
+        <h2 style="font-weight: bold; margin-bottom: 10px;">Ocorreu um erro ao carregar a aplicação:</h2>
+        <pre id="error-message" style="white-space: pre-wrap; font-size: 14px;"></pre>
+        <button onclick="localStorage.clear(); window.location.reload()" style="margin-top:15px; padding:8px 16px; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer;">Limpar Dados e Recarregar</button>
+    </div>
+
+    <script>
+        // Captura erros globais antes do React carregar para evitar tela branca total
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.getElementById('root').style.display = 'none';
+            document.getElementById('global-error').style.display = 'block';
+            document.getElementById('error-message').textContent = message + '\n\nSource: ' + source + ':' + lineno;
+        };
+    </script>
+
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef } from 'https://esm.sh/react@18.2.0';
-        import { createPortal } from 'https://esm.sh/react-dom@18.2.0';
-        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        // --- Imports Modernos (ESM via Import Map) ---
+        import React, { useState, useEffect, useRef, useMemo } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { createPortal } from 'react-dom';
+
+        // Ícones Lucide (ESM Puro)
         import { 
             Calendar as CalendarIcon, Users, CheckSquare, Flag, Plus, X, Clock, 
             Edit2, Trash2, ChevronLeft, ChevronRight, Truck, ArrowLeft, 
@@ -73,22 +100,24 @@
         import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
-        // --- Firebase Initialization Strategy (Prevents White Screen) ---
+        // --- Firebase Initialization Strategy (Robust) ---
         let app = null;
         let db = null;
         let auth = null;
-        let firebaseError = null;
-
+        
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
 
+        // Tenta inicializar. Se falhar (falta de config), o App renderiza a tela de Setup.
         try {
-            // Priority: 1. LocalStorage (User set manually), 2. Environment (Canvas)
             let configToUse = null;
+            // 1. Tenta pegar do localStorage (se o usuário já configurou antes)
             const localConfig = localStorage.getItem('event_hub_firebase_config');
             
             if (localConfig) {
                 configToUse = JSON.parse(localConfig);
-            } else if (typeof __firebase_config !== 'undefined') {
+            } 
+            // 2. Se não, tenta pegar do ambiente (Canvas)
+            else if (typeof __firebase_config !== 'undefined') {
                 configToUse = JSON.parse(__firebase_config);
             }
 
@@ -96,13 +125,9 @@
                 app = initializeApp(configToUse);
                 db = getFirestore(app);
                 auth = getAuth(app);
-            } else {
-                // No config found - App will render Setup Screen
-                console.warn("Firebase config missing. Waiting for user input.");
             }
         } catch (e) {
-            console.error("Firebase Init Error:", e);
-            firebaseError = e.message;
+            console.warn("Firebase Init pendente:", e);
         }
 
         // Helper to get collection path (Safely)
@@ -155,18 +180,7 @@
             return end < new Date();
         };
 
-        const getMonthAbbr = (dateStr) => {
-            if (!dateStr) return 'DEZ';
-            const date = new Date(dateStr + 'T00:00:00');
-            return date.toLocaleString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '');
-        };
-        const getDayNumber = (dateStr) => {
-            if (!dateStr) return '02';
-            const date = new Date(dateStr + 'T00:00:00');
-            return String(date.getDate()).padStart(2, '0');
-        };
-
-        // --- Initial Data (UPDATED WITH PAULO) ---
+        // --- Initial Data (UPDATED) ---
         const INITIAL_MEMBERS = [
             { id: '1', name: 'Paulo Mokarzel', role: 'Head de Eventos', photoUrl: null },
             { id: '2', name: 'Matheus Silva', role: 'Marketing', photoUrl: null },
@@ -175,7 +189,6 @@
             { id: '5', name: 'Thalita Carmo', role: 'Marketing', photoUrl: null }
         ];
 
-        // REMOVIDO EVENTO DE EXEMPLO
         const INITIAL_EVENTS = [];
         const INITIAL_TASKS = [];
 
