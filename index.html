@@ -524,7 +524,13 @@
             
             const handleUpdate = (id, field, val) => { setCats(prev => prev.map(c => c.id === id ? { ...c, [field]: val } : c)); };
             const handleDelete = (id) => { if (confirm("Tem a certeza?")) setCats(prev => prev.filter(c => c.id !== id)); };
-            const handleAdd = () => { if (!newCat.title.trim()) return; setCats(prev => [...prev, { id: Date.now().toString(), ...newCat }]); setNewCat({ title: '', color: 'blue', icon: 'box', phases: ['pre','during','post'] }); };
+            // Melhoria na geração de ID para evitar conflitos
+            const handleAdd = () => { 
+                if (!newCat.title.trim()) return; 
+                const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                setCats(prev => [...prev, { id: uniqueId, ...newCat }]); 
+                setNewCat({ title: '', color: 'blue', icon: 'box', phases: ['pre','during','post'] }); 
+            };
             const save = () => { onUpdateCategories(cats); onClose(); };
 
             const toggleNewCatPhase = (p) => {
@@ -733,7 +739,7 @@
                                 </select>
                             </div>
                         </section>
-                        <section><h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><Users size={16} className="text-blue-600"/> Equipe Global</h4><div className="space-y-3 mb-4">{members.map(m => (<div key={m.id} className="flex justify-between items-center bg-white p-3 border rounded-xl"><div className="flex items-center gap-3"><div className="relative group cursor-pointer"><Avatar member={m}/><div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Camera size={12}/></div><input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleMemberPhotoUpdate(e, m.id)}/></div><div>{editingMemberId === m.id ? <div className="flex flex-col gap-1"><input className="border p-1 text-sm rounded" value={editName} onChange={e=>setEditName(e.target.value)}/><input className="border p-1 text-xs rounded" value={editRole} onChange={e=>setEditRole(e.target.value)}/></div> : <div><p className="text-sm font-bold text-gray-800">{m.name}</p><p className="text-xs text-gray-500">{m.role}</p></div>}</div></div><div className="flex gap-2">{editingMemberId === m.id ? <button onClick={saveMember} className="text-green-600"><Check size={16}/></button> : <button onClick={() => startEditingMember(m)} className="text-gray-400 hover:text-blue-500"><Edit2 size={16}/></button>}</div></div>))}</div><div className="bg-gray-50 p-4 rounded-xl border border-gray-200"><h5 className="text-xs font-bold uppercase text-gray-500 mb-3">Novo Membro</h5><div className="flex gap-3 items-end"><div className="flex flex-col items-center gap-2"><div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 overflow-hidden" onClick={() => memberPhotoInputRef.current.click()}>{newMemberPhoto ? <img src={newMemberPhoto} className="w-full h-full object-cover"/> : <Camera size={16} className="text-gray-500"/>}</div><span className="text-[9px] text-gray-500">Carregar Foto</span><input type="file" ref={memberPhotoInputRef} className="hidden" accept="image/*" onChange={handleNewMemberPhoto}/></div><div className="flex-1 space-y-2"><input className="w-full p-2 text-sm border rounded-lg" placeholder="Nome" value={newMemberName} onChange={e=>setNewMemberName(e.target.value)}/><input className="w-full p-2 text-sm border rounded-lg" placeholder="Cargo (Ex: Marketing)" value={newMemberRole} onChange={e=>setNewMemberRole(e.target.value)}/></div></div><button onClick={handleAddMemberAction} className="w-full mt-3 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold">Adicionar Membro</button></div></section>
+                        <section><h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><Users size={16} className="text-blue-600"/> Equipe Global</h4><div className="space-y-3 mb-4">{members.filter(m => m.role !== 'Temporário').map(m => (<div key={m.id} className="flex justify-between items-center bg-white p-3 border rounded-xl"><div className="flex items-center gap-3"><div className="relative group cursor-pointer"><Avatar member={m}/><div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Camera size={12}/></div><input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleMemberPhotoUpdate(e, m.id)}/></div><div>{editingMemberId === m.id ? <div className="flex flex-col gap-1"><input className="border p-1 text-sm rounded" value={editName} onChange={e=>setEditName(e.target.value)}/><input className="border p-1 text-xs rounded" value={editRole} onChange={e=>setEditRole(e.target.value)}/></div> : <div><p className="text-sm font-bold text-gray-800">{m.name}</p><p className="text-xs text-gray-500">{m.role}</p></div>}</div></div><div className="flex gap-2">{editingMemberId === m.id ? <button onClick={saveMember} className="text-green-600"><Check size={16}/></button> : <button onClick={() => startEditingMember(m)} className="text-gray-400 hover:text-blue-500"><Edit2 size={16}/></button>}</div></div>))}</div><div className="bg-gray-50 p-4 rounded-xl border border-gray-200"><h5 className="text-xs font-bold uppercase text-gray-500 mb-3">Novo Membro</h5><div className="flex gap-3 items-end"><div className="flex flex-col items-center gap-2"><div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-300 overflow-hidden" onClick={() => memberPhotoInputRef.current.click()}>{newMemberPhoto ? <img src={newMemberPhoto} className="w-full h-full object-cover"/> : <Camera size={16} className="text-gray-500"/>}</div><span className="text-[9px] text-gray-500">Carregar Foto</span><input type="file" ref={memberPhotoInputRef} className="hidden" accept="image/*" onChange={handleNewMemberPhoto}/></div><div className="flex-1 space-y-2"><input className="w-full p-2 text-sm border rounded-lg" placeholder="Nome" value={newMemberName} onChange={e=>setNewMemberName(e.target.value)}/><input className="w-full p-2 text-sm border rounded-lg" placeholder="Cargo (Ex: Marketing)" value={newMemberRole} onChange={e=>setNewMemberRole(e.target.value)}/></div></div><button onClick={handleAddMemberAction} className="w-full mt-3 bg-blue-600 text-white py-2 rounded-lg text-sm font-bold">Adicionar Membro</button></div></section>
                     </div>
                 </Modal>
             );
@@ -752,25 +758,50 @@
             if (!isOpen) return null;
             const toggleTask = (taskId) => { if (selectedOptionalTasks.includes(taskId)) setSelectedOptionalTasks(prev => prev.filter(id => id !== taskId)); else setSelectedOptionalTasks(prev => [...prev, taskId]); };
             const toggleTeamMember = (memberId) => { if (team.includes(memberId)) setTeam(prev => prev.filter(id => id !== memberId)); else setTeam(prev => [...prev, memberId]); };
+            
             const handleSubmit = () => {
                 if (!title || !startDate || !responsible) { alert("Preencha Nome, Data e Responsável."); return; }
-                const initialTasksToCreate = OPTIONAL_STARTUP_TASKS.filter(t => selectedOptionalTasks.includes(t.id)).map(t => ({ 
-                    text: t.text, 
-                    category: t.category, 
-                    phase: t.phase, 
-                    priority: 'medium', 
-                    status: 'planning', 
-                    cost: 0, 
-                    responsible: members.find(m => m.id === responsible) || null, // FIX
-                    messages: [], 
-                    support: [], 
-                    subtasks: [] 
-                }));
+                
+                // 1. Gerar ID do Evento agora para usar nas tarefas
+                const newEventId = Date.now().toString();
+
+                // 2. Preparar Tarefas Iniciais com IDs e vínculo ao evento
+                const initialTasksToCreate = OPTIONAL_STARTUP_TASKS
+                    .filter(t => selectedOptionalTasks.includes(t.id))
+                    .map((t, index) => ({ 
+                        id: (Date.now() + index + 1).toString(), // Gera ID único para a tarefa
+                        eventId: newEventId, // Vínculo importante!
+                        text: t.text, 
+                        category: t.category, 
+                        phase: t.phase, 
+                        priority: 'medium', 
+                        status: 'planning', 
+                        cost: 0, 
+                        responsible: members.find(m => m.id === responsible) || null,
+                        messages: [], 
+                        support: [], 
+                        subtasks: [] 
+                    }));
+
                 const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
                 const dateRange = isSingleDay || !endDate ? formatDate(startDate) : `${formatDate(startDate)} - ${formatDate(endDate)}`;
-                onCreate({ id: Date.now().toString(), title, location: location || 'Local a definir', startDate, endDate: isSingleDay ? startDate : endDate, dateRange, responsibleId: responsible, teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [] }, initialTasksToCreate);
+                
+                onCreate({ 
+                    id: newEventId, 
+                    title, 
+                    location: location || 'Local a definir', 
+                    startDate, 
+                    endDate: isSingleDay ? startDate : endDate, 
+                    dateRange, 
+                    responsibleId: responsible, 
+                    teamIds: team, 
+                    categories: DEFAULT_CATEGORIES, 
+                    agenda: [] 
+                }, initialTasksToCreate);
+                
                 onClose(); 
             };
+
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Novo Evento" hideHeader={true} maxWidth="max-w-3xl">
                     <div className="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 p-8 text-white relative overflow-hidden"><div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4"><Rocket size={120} /></div><h2 className="text-3xl font-extrabold mb-2 flex items-center gap-3 relative z-10"><Sparkles className="text-amber-400 animate-pulse" /> Criar Novo Evento</h2><p className="text-blue-100 text-sm max-w-md relative z-10 opacity-90">Prepare o terreno para um evento inesquecível. Comece definindo os detalhes principais abaixo.</p></div>
@@ -1127,7 +1158,9 @@
                 
             const activeEventIds = activeEvents.map(e => e.id);
             
-            const workload = members.map(m => {
+            const workload = members
+                .filter(m => m.role !== 'Temporário')
+                .map(m => {
                 // Consider tasks from ALL active events for workload calculation
                 const memberTasks = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id);
                 const pending = memberTasks.filter(t => t.status !== 'done').length;
@@ -1268,7 +1301,7 @@
         const EventDetail = ({ event, onBack, tasks, members, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember, onDeleteEvent, onCreateMember }) => {
             const [selectedDate, setSelectedDate] = useState(null);
             const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-            const [selectedTaskId, setSelectedTaskId] = useState(null); 
+            const [selectedTaskId, setSelectedTaskId] = useState(null); // Changed to ID
             const [filterPhase, setFilterPhase] = useState('all');
             const [viewGrouping, setViewGrouping] = useState('category'); 
             const [isEditEventOpen, setIsEditEventOpen] = useState(false);
@@ -1278,13 +1311,39 @@
             const [isCreatingMember, setIsCreatingMember] = useState(false);
             const [tempMemberName, setTempMemberName] = useState('');
 
+            // NOVOS ESTADOS DE FILTRO
+            const [searchQuery, setSearchQuery] = useState('');
+            const [memberFilter, setMemberFilter] = useState('');
+
             // Derived state for the modal
             const selectedTask = tasks.find(t => t.id === selectedTaskId);
 
             const handleDragStart = (e, task) => { e.dataTransfer.setData("taskId", task.id); };
             const handleDragOver = (e) => e.preventDefault();
             const handleDrop = (e, targetId) => { const taskId = e.dataTransfer.getData("taskId"); if (viewGrouping === 'status') onUpdateTask(parseInt(taskId), { status: targetId }); else onUpdateTask(parseInt(taskId), { category: targetId }); };
-            const filteredTasks = tasks.filter(t => t.eventId === event.id && (filterPhase === 'all' || t.phase === filterPhase));
+            
+            // LÓGICA DE FILTRAGEM ATUALIZADA
+            const filteredTasks = tasks.filter(t => {
+                // 1. Filtro de Evento
+                if (t.eventId !== event.id) return false;
+                
+                // 2. Filtro de Fase
+                if (filterPhase !== 'all' && t.phase !== filterPhase) return false;
+                
+                // 3. Filtro de Texto (Título e Subtarefas)
+                if (searchQuery) {
+                    const query = searchQuery.toLowerCase();
+                    const textMatch = t.text.toLowerCase().includes(query);
+                    const subtaskMatch = t.subtasks && t.subtasks.some(sub => sub.text.toLowerCase().includes(query));
+                    if (!textMatch && !subtaskMatch) return false;
+                }
+
+                // 4. Filtro de Membro Responsável
+                if (memberFilter && t.responsible?.id !== memberFilter) return false;
+
+                return true;
+            });
+
             const handleAddAgenda = (item) => onUpdateEvent(event.id, { agenda: [...(event.agenda||[]), item] });
             const handleDeleteAgenda = (id) => onUpdateEvent(event.id, { agenda: (event.agenda||[]).filter(a=>a.id!==id) });
             const handleUpdateAgenda = (id, newItem) => { const newAgenda = (event.agenda || []).map(a => a.id === id ? { ...a, ...newItem } : a); onUpdateEvent(event.id, { agenda: newAgenda }); };
@@ -1388,21 +1447,62 @@
                                 </div>
                             </div>
                         </div>
-                        <div className="lg:col-span-3 space-y-6">
-                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-4">
-                                <div className="flex bg-gray-100 p-1 rounded-lg">{['all', 'pre', 'during', 'post'].map(ph => (<button key={ph} onClick={()=>setFilterPhase(ph)} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filterPhase===ph ? 'bg-white shadow text-blue-900' : 'text-gray-500'}`}>{ph === 'all' ? 'Todos' : ph === 'pre' ? 'Pré' : ph === 'during' ? 'Durante' : 'Pós'}</button>))}</div>
-                                <div className="flex items-center gap-2"><div className="flex bg-gray-100 p-1 rounded-lg mr-2"><button onClick={() => setViewGrouping('category')} className={`p-2 rounded-md ${viewGrouping === 'category' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Categoria"><Grid size={16}/></button><button onClick={() => setViewGrouping('status')} className={`p-2 rounded-md ${viewGrouping === 'status' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Status"><Columns size={16}/></button></div><button onClick={onOpenCategorySettings} className="p-2 border rounded-lg text-gray-500 hover:bg-gray-50" title="Ajustes de Categoria"><Settings size={16}/></button><button onClick={onAddTask} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-2"><Plus size={14}/> Nova Tarefa</button></div>
+                        <div className="lg:col-span-3 space-y-6 overflow-hidden flex flex-col">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col xl:flex-row justify-between gap-4 items-start xl:items-center shrink-0">
+                                {/* Barra de Filtros Esquerda: Fases */}
+                                <div className="flex bg-gray-100 p-1 rounded-lg shrink-0 overflow-x-auto max-w-full">
+                                    {['all', 'pre', 'during', 'post'].map(ph => (
+                                        <button key={ph} onClick={()=>setFilterPhase(ph)} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap ${filterPhase===ph ? 'bg-white shadow text-blue-900' : 'text-gray-500'}`}>
+                                            {ph === 'all' ? 'Todos' : ph === 'pre' ? 'Pré' : ph === 'during' ? 'Durante' : 'Pós'}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Barra Central: Busca e Membro */}
+                                <div className="flex-1 flex flex-col sm:flex-row gap-3 w-full">
+                                    <div className="relative flex-1">
+                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                                        <input 
+                                            className="w-full pl-9 pr-3 py-1.5 text-xs border rounded-lg bg-gray-50 focus:bg-white outline-none focus:border-blue-300 transition-colors" 
+                                            placeholder="Buscar tarefa ou complemento..." 
+                                            value={searchQuery} 
+                                            onChange={e=>setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+                                    <select 
+                                        className="p-1.5 text-xs border rounded-lg bg-gray-50 outline-none min-w-[140px] text-gray-700 cursor-pointer hover:bg-white transition-colors" 
+                                        value={memberFilter} 
+                                        onChange={e=>setMemberFilter(e.target.value)}
+                                    >
+                                        <option value="">Todos Responsáveis</option>
+                                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    </select>
+                                </div>
+
+                                {/* Barra Direita: Ações */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="flex bg-gray-100 p-1 rounded-lg mr-2">
+                                        <button onClick={() => setViewGrouping('category')} className={`p-2 rounded-md ${viewGrouping === 'category' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Categoria"><Grid size={16}/></button>
+                                        <button onClick={() => setViewGrouping('status')} className={`p-2 rounded-md ${viewGrouping === 'status' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Status"><Columns size={16}/></button>
+                                    </div>
+                                    <button onClick={onOpenCategorySettings} className="p-2 border rounded-lg text-gray-500 hover:bg-gray-50" title="Ajustes de Categoria"><Settings size={16}/></button>
+                                    <button onClick={onAddTask} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-2 shadow-sm shadow-blue-200"><Plus size={14}/> Nova Tarefa</button>
+                                </div>
                             </div>
-                            <div className="flex flex-wrap gap-4 items-start">
+                            
+                            {/* KANBAN BOARD COM SCROLL HORIZONTAL */}
+                            <div className="flex overflow-x-auto gap-4 items-start pb-4 hide-scrollbar snap-x">
                                 {columns.map(col => {
                                     const colTasks = filteredTasks.filter(t => viewGrouping === 'status' ? t.status === col.id : t.category === col.id);
                                     return (
-                                        <div key={col.id} className="min-w-[280px] flex-1 bg-gray-100/50 rounded-xl p-2 border border-gray-200 flex flex-col" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id)}>
+                                        <div key={col.id} className="min-w-[300px] w-[300px] shrink-0 bg-gray-100/50 rounded-xl p-2 border border-gray-200 flex flex-col snap-start" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id)}>
                                             <div className="flex items-center justify-between p-3 mb-2"><span className={`text-xs font-bold uppercase flex items-center gap-2 ${col.color ? `text-${col.color}-700` : 'text-gray-700'}`}>{col.icon && React.createElement(ICON_MAP[col.icon] || Box, { size: 14 })} {col.title}</span><span className="bg-white text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded border">{colTasks.length}</span></div>
                                             <div className="space-y-3 flex-1">{colTasks.map(task => (<div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task)} onClick={() => { setSelectedTaskId(task.id); setIsTaskModalOpen(true); }} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md cursor-pointer group relative"><div className="flex justify-between items-start mb-2"><FlagPriority level={task.priority} onClick={()=>cyclePriority(task)}/><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button className="text-gray-400 hover:text-blue-600"><Edit2 size={12}/></button></div></div><p className="text-sm font-medium text-gray-800 mb-3">{task.text}</p><div className="flex items-center justify-between pt-2 border-t border-gray-50"><div className="flex items-center gap-2"><Avatar member={task.responsible} size="w-5 h-5"/><span className="text-[10px] text-gray-500">{task.responsible?.name.split(' ')[0]}</span></div>{task.cost > 0 && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded">{formatCurrency(task.cost)}</span>}</div></div>))}</div>
                                         </div>
                                     );
                                 })}
+                                {/* Espaçador para garantir scroll suave no final */}
+                                <div className="min-w-[20px] shrink-0"></div>
                             </div>
                         </div>
                     </div>
@@ -1413,10 +1513,10 @@
         };
 
         const GlobalAgendaView = ({ events, tasks, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem }) => {
-            const items = [
-                ...events.flatMap(e => (e.agenda||[]).map(a => ({...a, eventName: e.title}))),
-                ...tasks.filter(t => t.date).map(t => ({ id: `t-${t.id}`, title: t.text, date: t.date, color: 'green', eventName: 'Tarefa' }))
-            ];
+            // Safer implementation without spread syntax in array literal
+            const agendaItems = events.flatMap(e => (e.agenda || []).map(a => ({...a, eventName: e.title})));
+            const taskItems = tasks.filter(t => t.date).map(t => ({ id: `t-${t.id}`, title: t.text, date: t.date, color: 'green', eventName: 'Tarefa' }));
+            const items = agendaItems.concat(taskItems);
             
             return (
                 <div className="p-6 pb-24 bg-[#F8FAFC] min-h-screen">
@@ -1429,7 +1529,7 @@
         const GlobalTeamView = ({ members, onEdit }) => (
             <div className="p-6 pb-24 bg-[#F8FAFC] min-h-screen">
                 <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold text-blue-950">Equipe</h1><button onClick={onEdit} className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100">Gerenciar</button></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{members.map(m => (<div key={m.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"><div className="w-16 h-16 rounded-full overflow-hidden"><Avatar member={m} size="w-full h-full"/></div><div><p className="font-bold text-gray-900 text-lg">{m.name}</p><p className="text-sm text-gray-500">{m.role}</p></div></div>))}</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{members.filter(m => m.role !== 'Temporário').map(m => (<div key={m.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"><div className="w-16 h-16 rounded-full overflow-hidden"><Avatar member={m} size="w-full h-full"/></div><div><p className="font-bold text-gray-900 text-lg">{m.name}</p><p className="text-sm text-gray-500">{m.role}</p></div></div>))}</div>
             </div>
         );
 
@@ -1686,10 +1786,6 @@
     </script>
 </body>
 </html>
-
-
-
-
 
 
 
