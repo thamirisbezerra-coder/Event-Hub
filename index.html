@@ -1265,14 +1265,18 @@
             );
         };
 
-        const EventDetail = ({ event, onBack, tasks, members, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember, onDeleteEvent }) => {
+        const EventDetail = ({ event, onBack, tasks, members, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember, onDeleteEvent, onCreateMember }) => {
             const [selectedDate, setSelectedDate] = useState(null);
             const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-            const [selectedTaskId, setSelectedTaskId] = useState(null); // Changed to ID
+            const [selectedTaskId, setSelectedTaskId] = useState(null); 
             const [filterPhase, setFilterPhase] = useState('all');
             const [viewGrouping, setViewGrouping] = useState('category'); 
             const [isEditEventOpen, setIsEditEventOpen] = useState(false);
             const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
+            
+            // Novos estados para criar membro temporário
+            const [isCreatingMember, setIsCreatingMember] = useState(false);
+            const [tempMemberName, setTempMemberName] = useState('');
 
             // Derived state for the modal
             const selectedTask = tasks.find(t => t.id === selectedTaskId);
@@ -1291,6 +1295,22 @@
                 members.find(m => m.id === event.responsibleId),
                 ...members.filter(m => event.teamIds?.includes(m.id) && m.id !== event.responsibleId)
             ].filter(Boolean);
+
+            // Create Temp Member Handler
+            const handleCreateTempMember = () => {
+                if(!tempMemberName.trim()) return;
+                const newId = Date.now().toString();
+                const newMember = { id: newId, name: tempMemberName, role: 'Temporário', photoUrl: null };
+                
+                // 1. Cria no banco global
+                onCreateMember(newMember);
+                
+                // 2. Adiciona ao time deste evento automaticamente
+                onAddTeamMember(event.id, newId);
+                
+                setTempMemberName('');
+                setIsCreatingMember(false);
+            };
 
             // FILTER COLUMNS BASED ON PHASE
             const columns = useMemo(() => {
@@ -1331,8 +1351,34 @@
                     <div className="max-w-[1800px] mx-auto px-6 mt-4 grid grid-cols-1 lg:grid-cols-4 gap-8">
                         <div className="lg:col-span-1 space-y-6">
                             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={16}/> Equipe do Evento</h3><button onClick={()=>setIsAddTeamOpen(!isAddTeamOpen)} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={16}/></button></div>
-                                {isAddTeamOpen && (<div className="mb-3 p-2 bg-gray-50 rounded-lg max-h-32 overflow-y-auto animate-in">{members.filter(m => !eventTeam.some(et => et.id === m.id)).map(m => (<div key={m.id} className="flex justify-between items-center p-1 hover:bg-gray-100 rounded cursor-pointer" onClick={() => { onAddTeamMember(event.id, m.id); setIsAddTeamOpen(false); }}><span className="text-xs">{m.name}</span><Plus size={12}/></div>))}</div>)}
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={16}/> Equipe do Evento</h3>
+                                    <div className="flex gap-1">
+                                        <button onClick={()=>setIsAddTeamOpen(!isAddTeamOpen)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded bg-blue-50/50" title="Adicionar existente"><UserPlus size={16}/></button>
+                                        <button onClick={()=>setIsCreatingMember(!isCreatingMember)} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded bg-emerald-50/50" title="Criar Novo"><Plus size={16}/></button>
+                                    </div>
+                                </div>
+                                
+                                {/* Criar Novo Membro (Temporário) Inline */}
+                                {isCreatingMember && (
+                                    <div className="mb-3 p-2 bg-emerald-50 rounded-lg border border-emerald-100 animate-in">
+                                        <p className="text-[10px] font-bold text-emerald-700 uppercase mb-1">Novo Colaborador</p>
+                                        <div className="flex gap-1">
+                                            <input 
+                                                className="flex-1 p-1.5 text-xs border rounded outline-none" 
+                                                placeholder="Nome..." 
+                                                value={tempMemberName}
+                                                onChange={e => setTempMemberName(e.target.value)}
+                                                autoFocus
+                                            />
+                                            <button onClick={handleCreateTempMember} className="bg-emerald-600 text-white px-2 rounded text-xs font-bold"><Check size={14}/></button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Adicionar Existente Inline */}
+                                {isAddTeamOpen && (<div className="mb-3 p-2 bg-blue-50 rounded-lg max-h-32 overflow-y-auto animate-in border border-blue-100">{members.filter(m => !eventTeam.some(et => et.id === m.id)).map(m => (<div key={m.id} className="flex justify-between items-center p-1 hover:bg-white rounded cursor-pointer transition-colors" onClick={() => { onAddTeamMember(event.id, m.id); setIsAddTeamOpen(false); }}><div className="flex items-center gap-2"><Avatar member={m} size="w-5 h-5"/><span className="text-xs font-medium text-gray-700">{m.name}</span></div><Plus size={12} className="text-blue-500"/></div>))} {members.filter(m => !eventTeam.some(et => et.id === m.id)).length === 0 && <p className="text-[10px] text-gray-400 text-center">Todos já estão no time.</p>}</div>)}
+                                
                                 <div className="space-y-3">{eventTeam.map(m => (<div key={m.id} className="flex items-center gap-3 group"><Avatar member={m}/><div className="flex-1 min-w-0"><p className="text-xs font-bold truncate">{m.name}</p><p className="text-[10px] text-gray-500 truncate">{m.role}</p></div>{m.id === event.responsibleId ? <Crown size={14} className="text-amber-500"/> : <button onClick={() => onRemoveTeamMember(event.id, m.id)} className="text-red-400 opacity-0 group-hover:opacity-100"><X size={14}/></button>}</div>))}</div>
                             </div>
                             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
@@ -1603,6 +1649,7 @@
                             onAddTeamMember={handleAddTeamMember}
                             onRemoveTeamMember={handleRemoveTeamMember}
                             onDeleteEvent={handleDeleteEvent}
+                            onCreateMember={handleAddMember} 
                         />
                     )}
                     {view === 'agenda' && <GlobalAgendaView events={events} tasks={tasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
