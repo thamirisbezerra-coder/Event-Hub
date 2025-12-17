@@ -290,10 +290,19 @@
 
         // --- AI Assistant ---
         const AIAssistant = ({ isOpen, onClose, context, apiKey }) => {
-            const [messages, setMessages] = useState([{ sender: 'ai', text: "Olá! Eu sou o assistente de IA do Event Hub. Posso analisar seus eventos, custos e a carga de trabalho da equipe. Como posso ajudar?" }]);
+            const [messages, setMessages] = useState([{ sender: 'ai', text: "Olá! Eu sou o assistente de IA do Event Hub. Selecione uma opção abaixo ou digite sua pergunta." }]);
             const [input, setInput] = useState("");
             const [isTyping, setIsTyping] = useState(false);
             const messagesEndRef = useRef(null);
+
+            // Perguntas pré-definidas para acesso rápido
+            const QUICK_QUESTIONS = [
+                "📅 Resumo dos Eventos",
+                "💰 Custo Total",
+                "👥 Carga da Equipe",
+                "✅ Minhas Tarefas",
+                "🚨 Urgências"
+            ];
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
 
@@ -331,36 +340,47 @@
                 const eventsSummary = events.map(e => {
                     const evtTasks = tasks.filter(t => t.eventId === e.id);
                     const cost = evtTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
-                    return `ID: ${e.id} | Evento: ${e.title} | Data: ${e.startDate} a ${e.endDate || e.startDate} | Local: ${e.location} | Responsável: ${members.find(m => m.id === e.responsibleId)?.name || 'N/A'} | Custo Total: R$${cost}`;
+                    const pendingCount = evtTasks.filter(t => t.status !== 'done').length;
+                    return `• ID: ${e.id}, Evento: "${e.title}", Data: ${e.startDate}, Local: ${e.location}, Responsável: ${members.find(m => m.id === e.responsibleId)?.name || 'N/A'}, Custo: R$${cost}, Tarefas Pendentes: ${pendingCount}`;
                 }).join('\n');
 
                 const tasksSummary = tasks.map(t => {
-                    return `Tarefa: ${t.text} | Status: ${t.status} | Fase: ${t.phase} | Responsável: ${t.responsible?.name || 'N/A'} | Custo: R$${t.cost || 0} | Evento ID: ${t.eventId}`;
+                    return `• Tarefa: "${t.text}", Status: ${t.status}, Prioridade: ${t.priority}, Responsável: ${t.responsible?.name || 'N/A'}, Custo: R$${t.cost || 0}`;
                 }).join('\n');
 
-                const membersSummary = members.map(m => `Nome: ${m.name} (${m.role})`).join('\n');
+                const membersSummary = members.map(m => `• Nome: ${m.name} (${m.role})`).join('\n');
 
                 const systemPrompt = `
-                    Você é um assistente especialista em gestão de eventos do sistema "Event Hub".
-                    Sua função é fornecer resumos, análises financeiras e status de atividades baseados EXATAMENTE nos dados abaixo.
-
-                    DADOS DO SISTEMA:
+                    Você é um assistente pessoal inteligente do sistema "Event Hub".
                     
+                    OBJETIVO:
+                    Responder perguntas sobre a gestão dos eventos com clareza absoluta, usando os dados fornecidos abaixo.
+
+                    DADOS ATUAIS DO SISTEMA:
+                    ---
                     [EQUIPE]
                     ${membersSummary}
-
+                    ---
                     [EVENTOS]
                     ${eventsSummary}
-
-                    [TAREFAS GERAIS]
+                    ---
+                    [TODAS AS TAREFAS]
                     ${tasksSummary}
+                    ---
 
-                    INSTRUÇÕES DE RESPOSTA:
-                    1. Se perguntarem "resumo dos eventos", liste os eventos com suas datas e status.
-                    2. Se perguntarem sobre "custos", some os valores informados nas tarefas.
-                    3. Se perguntarem sobre "atividades de [Pessoa]", liste o que ela tem pendente e concluído.
-                    4. Seja conciso, direto e profissional. Use formatação Markdown (negrito, listas) para facilitar a leitura.
-                    5. Se não houver dados sobre algo, diga que não encontrou a informação.
+                    REGRAS DE RESPOSTA (IMPORTANTE):
+                    1. CLAREZA: Use linguagem simples e direta. Evite frases longas.
+                    2. FORMATAÇÃO: Use SEMPRE **negrito** para destacar nomes de eventos, pessoas e valores (ex: **R$ 5.000**).
+                    3. LISTAS: Use listas (bullet points) para enumerar eventos ou tarefas. É mais fácil de ler.
+                    4. RESUMO: Se pedirem um "Resumo", mostre: Nome do Evento, Data e um breve status (ex: "5 tarefas pendentes").
+                    5. FINANCEIRO: Se perguntarem de custos, mostre o total geral e, se possível, quebre por evento.
+                    6. PESSOAL: Se perguntarem "Minhas Tarefas", assuma que estão perguntando de forma genérica sobre a carga de trabalho de todos ou peça para especificar o nome.
+                    7. URGÊNCIAS: Se perguntarem por urgências, procure tarefas com prioridade 'high' (alta) que não estão 'done' (concluídas).
+
+                    Exemplo de formato de resposta desejado:
+                    "Aqui está o resumo dos seus eventos:
+                    * 📅 **Lançamento 2026**: R$ 10.000 gastos, 3 pendências.
+                    * 📅 **Workshop**: R$ 2.000 gastos, tudo concluído."
                 `;
 
                 let responseText = "Desculpe, não consegui processar a resposta no momento.";
@@ -380,8 +400,9 @@
                 await processQuery(txt);
             };
 
-            const handleQuickAction = (action) => {
-                processQuery(action);
+            const handleQuickAction = (question) => {
+                // Remove o emoji para a query real, se desejar, ou mantenha para contexto
+                processQuery(question); 
             };
 
             if(!isOpen) return null;
@@ -401,6 +422,20 @@
                         {isTyping && <div className="flex justify-start"><div className="bg-white border border-gray-100 p-3 rounded-xl rounded-tl-none shadow-sm flex gap-1"><div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div><div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div><div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div></div></div>}
                         <div ref={messagesEndRef}></div>
                     </div>
+                    
+                    {/* Área de Perguntas Rápidas */}
+                    <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 overflow-x-auto flex gap-2 hide-scrollbar">
+                        {QUICK_QUESTIONS.map((q, i) => (
+                            <button 
+                                key={i} 
+                                onClick={() => handleQuickAction(q)}
+                                className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-200 rounded-full text-xs font-medium text-blue-700 hover:bg-blue-50 transition-colors shadow-sm"
+                            >
+                                {q}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="p-3 bg-white border-t flex gap-2">
                         <input className="flex-1 bg-gray-100 border-none outline-none rounded-lg px-3 py-2 text-sm" placeholder="Digite sua pergunta..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleSend()}/>
                         <button onClick={handleSend} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"><Send size={18}/></button>
