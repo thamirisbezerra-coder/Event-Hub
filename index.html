@@ -66,6 +66,7 @@
     </div>
 
     <script>
+        // Captura erros globais antes do React carregar para evitar tela branca total
         window.onerror = function(message, source, lineno, colno, error) {
             document.getElementById('root').style.display = 'none';
             document.getElementById('global-error').style.display = 'block';
@@ -695,20 +696,19 @@
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload}/>
                         </div>
                         <input className="w-full p-3 border rounded-xl" placeholder="Nome" value={title} onChange={e=>setTitle(e.target.value)}/>
-                        <input type="date" className="w-full p-3 border rounded-xl" value={startDate} onChange={e=>setStartDate(e.target.value)}/>
                         
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável</label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <input type="date" className="w-full p-3 border rounded-xl" value={startDate} onChange={e=>setStartDate(e.target.value)}/>
                             <select 
-                                className="w-full p-3 border rounded-xl bg-gray-50 text-sm font-bold" 
+                                className="w-full p-3 border rounded-xl bg-white" 
                                 value={responsible} 
                                 onChange={(e) => setResponsible(e.target.value)}
                             >
-                                <option value="">Selecione...</option>
+                                <option value="">Selecione Responsável</option>
                                 {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                             </select>
                         </div>
-
+                        
                         <div className="flex gap-2">
                             <button onClick={handleSave} className="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition-colors">Salvar Alterações</button>
                             {onDelete && (
@@ -917,24 +917,98 @@
             );
         };
 
+        // --- Setup Screen Component ---
+        const SetupScreen = () => {
+            const [configJson, setConfigJson] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSave = () => {
+                try {
+                    // Validate JSON
+                    const parsed = JSON.parse(configJson);
+                    if (!parsed.apiKey || !parsed.projectId) {
+                        throw new Error("Configuração inválida. Verifique se copiou todo o objeto do Firebase.");
+                    }
+                    localStorage.setItem('event_hub_firebase_config', configJson);
+                    window.location.reload();
+                } catch (e) {
+                    setError("Erro ao salvar: " + e.message);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-900 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full animate-in">
+                        <div className="flex flex-col items-center mb-6">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-600">
+                                <Database size={32} />
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-900 text-center">Conectar Banco de Dados</h1>
+                            <p className="text-sm text-gray-500 text-center mt-2">Para usar o Event Hub, precisamos conectar ao seu Firebase.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800">
+                                <p className="font-bold mb-1">Como obter a configuração?</p>
+                                <ol className="list-decimal list-inside space-y-1 opacity-80">
+                                    <li>Vá ao Console do Firebase > Project Settings</li>
+                                    <li>Role até "Your apps" e selecione "Web"</li>
+                                    <li>Copie o objeto <code>firebaseConfig</code> (apenas o conteúdo entre as chaves <code>{`{...}`}</code>)</li>
+                                </ol>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cole o JSON aqui</label>
+                                <textarea 
+                                    className="w-full h-32 p-3 border rounded-xl text-xs font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder='{ "apiKey": "...", "authDomain": "...", ... }'
+                                    value={configJson}
+                                    onChange={e => setConfigJson(e.target.value)}
+                                ></textarea>
+                            </div>
+
+                            {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2"><AlertTriangle size={16}/> {error}</div>}
+
+                            <button 
+                                onClick={handleSave}
+                                disabled={!configJson}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
+                            >
+                                Conectar e Iniciar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- Dashboard & Event Views ---
 
         const Dashboard = ({ events, tasks, members, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId }) => {
+            const [eventViewMode, setEventViewMode] = useState('active'); // 'active' or 'completed'
+            
             const activeEvents = events.filter(e => !isEventFinished(e));
             const finishedEvents = events.filter(e => isEventFinished(e));
             const activeEventIds = activeEvents.map(e => e.id);
+            
             const workload = members.map(m => {
-                const count = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id && t.status !== 'done').length;
-                return { ...m, count };
+                // Consider tasks from ALL active events for workload calculation
+                const memberTasks = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id);
+                const pending = memberTasks.filter(t => t.status !== 'done').length;
+                const done = memberTasks.filter(t => t.status === 'done').length;
+                return { ...m, pending, done, total: pending + done };
             });
+            
             const allAgendaItems = events.flatMap(e => (e.agenda || []).map(a => ({...a, eventName: e.title})));
             const manager = members.find(m => m.id === managerId) || members[0];
 
-            // New logic for global status - only active events
+            // Logic for global status - only active events
             const activeTasks = tasks.filter(t => activeEventIds.includes(t.eventId));
             const completedActiveTasks = activeTasks.filter(t => t.status === 'done').length;
             const totalActiveTasks = activeTasks.length;
             const progress = totalActiveTasks > 0 ? Math.round((completedActiveTasks / totalActiveTasks) * 100) : 0;
+
+            const eventsToDisplay = eventViewMode === 'active' ? activeEvents : finishedEvents;
 
             return (
                 <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24">
@@ -951,457 +1025,109 @@
 
                     <div className="grid grid-cols-1 gap-8">
                         <div>
-                            {/* Stats Row */}
+                            {/* Stats Row - Enhanced UI */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-40">
-                                    <div className="relative w-28 h-28 flex-shrink-0"><svg className="w-full h-full -rotate-90"><circle cx="56" cy="56" r="48" stroke="#F3F4F6" strokeWidth="10" fill="none"/><circle cx="56" cy="56" r="48" stroke="#1e3a8a" strokeWidth="10" fill="none" strokeDasharray="301" strokeDashoffset={301 - (301*progress)/100} strokeLinecap="round"/></svg><div className="absolute inset-0 flex items-center justify-center font-bold text-xl text-blue-900">{progress}%</div></div>
-                                    <div className="ml-6 flex-1"><h3 className="font-bold text-gray-900 mb-2">Status Global (Ativos)</h3><div className="text-xs space-y-1"><p className="text-emerald-600 font-bold flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> {completedActiveTasks} Feitas</p><p className="text-amber-600 font-bold flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> {totalActiveTasks - completedActiveTasks} Pendentes</p></div></div>
+                                {/* Global Status */}
+                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-auto min-h-[14rem]">
+                                    <div className="relative w-32 h-32 flex-shrink-0"><svg className="w-full h-full -rotate-90"><circle cx="64" cy="64" r="54" stroke="#F3F4F6" strokeWidth="12" fill="none"/><circle cx="64" cy="64" r="54" stroke="#1e3a8a" strokeWidth="12" fill="none" strokeDasharray="339" strokeDashoffset={339 - (339*progress)/100} strokeLinecap="round"/></svg><div className="absolute inset-0 flex items-center justify-center font-bold text-2xl text-blue-900">{progress}%</div></div>
+                                    <div className="ml-8 flex-1">
+                                        <h3 className="font-bold text-gray-900 mb-3 text-lg">Status Global (Ativos)</h3>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                                                <span className="text-xs font-bold text-emerald-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Concluídas</span>
+                                                <span className="text-sm font-extrabold text-emerald-800">{completedActiveTasks}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between bg-amber-50 p-2 rounded-lg border border-amber-100">
+                                                <span className="text-xs font-bold text-amber-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Pendentes</span>
+                                                <span className="text-sm font-extrabold text-amber-800">{totalActiveTasks - completedActiveTasks}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col justify-center h-40 overflow-y-auto">
-                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm"><Users size={16}/> Carga de Trabalho (Eventos Ativos)</h3>
-                                    <div className="flex gap-4 overflow-x-auto pb-2 items-center">
+                                
+                                {/* Workload - Enhanced UI (Grid instead of Scroll) */}
+                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col justify-center h-auto min-h-[14rem]">
+                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Users size={18} className="text-blue-600"/> Carga de Trabalho (Eventos Ativos)</h3>
+                                    
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                         {workload.map(m => (
-                                            <div key={m.id} onClick={() => onMemberClick(m)} className="flex flex-col items-center gap-2 cursor-pointer hover:-translate-y-1 transition-transform group relative p-2">
-                                                <div className="relative"><Avatar member={m} size="w-12 h-12"/>{m.count > 0 && (<div className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white ${m.count > 5 ? 'bg-red-500' : 'bg-blue-500'}`}>{m.count}</div>)}</div>
-                                                <span className="text-[10px] font-bold text-gray-600 truncate w-16 text-center">{m.name.split(' ')[0]}</span>
+                                            <div key={m.id} onClick={() => onMemberClick(m)} className="flex items-center gap-3 p-2 rounded-xl border border-gray-50 hover:bg-gray-50 hover:border-gray-200 transition-all cursor-pointer group bg-white shadow-sm">
+                                                <div className="relative shrink-0">
+                                                    <Avatar member={m} size="w-10 h-10"/>
+                                                    {m.total > 0 && (<div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-white font-bold border border-white ${m.total > 5 ? 'bg-blue-600' : 'bg-blue-400'}`}>{m.total}</div>)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[11px] font-bold text-gray-800 truncate">{m.name.split(' ')[0]}</p>
+                                                    <div className="flex gap-2 mt-0.5">
+                                                        <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5" title="Pendentes"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> {m.pending}</span>
+                                                        <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5" title="Concluídas"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {m.done}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             </div>
 
-                            <h2 className="text-lg font-bold text-blue-950 flex items-center gap-2 mb-4"><Clock size={20}/> Eventos Ativos</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                                {activeEvents.length === 0 ? (
-                                    <div className="col-span-full flex flex-col items-center justify-center py-10 opacity-50">
-                                        <div className="bg-gray-100 p-4 rounded-full mb-3"><Rocket size={32} className="text-gray-400"/></div>
-                                        <p className="text-sm font-bold text-gray-500">Nenhum evento ativo no momento.</p>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-blue-950 flex items-center gap-2">
+                                    {eventViewMode === 'active' ? <Clock size={24}/> : <CheckSquare size={24}/>} 
+                                    {eventViewMode === 'active' ? 'Eventos em Andamento' : 'Eventos Concluídos'}
+                                </h2>
+                                <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+                                    <button 
+                                        onClick={() => setEventViewMode('active')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'active' ? 'bg-blue-100 text-blue-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <Clock size={14}/> Em Andamento
+                                    </button>
+                                    <button 
+                                        onClick={() => setEventViewMode('completed')}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'completed' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}
+                                    >
+                                        <CheckSquare size={14}/> Concluídos
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10 min-h-[200px]">
+                                {eventsToDisplay.length === 0 ? (
+                                    <div className="col-span-full flex flex-col items-center justify-center py-12 opacity-50 bg-white rounded-2xl border border-dashed border-gray-200">
+                                        <div className="bg-gray-50 p-4 rounded-full mb-3 text-gray-400">
+                                            {eventViewMode === 'active' ? <Rocket size={32}/> : <Archive size={32}/>}
+                                        </div>
+                                        <p className="text-sm font-bold text-gray-500">
+                                            {eventViewMode === 'active' ? 'Nenhum evento ativo no momento.' : 'Nenhum evento concluído ainda.'}
+                                        </p>
                                     </div>
                                 ) : (
-                                    activeEvents.map(evt => (
-                                        <div key={evt.id} onClick={() => onSelectEvent(evt)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden aspect-square flex flex-col">
+                                    eventsToDisplay.map(evt => (
+                                        <div key={evt.id} onClick={() => onSelectEvent(evt)} className={`bg-white rounded-xl border shadow-sm hover:shadow-md transition-all cursor-pointer group overflow-hidden aspect-square flex flex-col relative transform hover:-translate-y-1 ${eventViewMode === 'completed' ? 'grayscale border-gray-200' : 'border-gray-100'}`}>
                                             <div className="flex-1 bg-gray-100 relative overflow-hidden">
                                                 {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>}
-                                                <div className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded-lg text-xs font-bold shadow-sm">{getDaysLeft(evt)} dias</div>
+                                                {eventViewMode === 'active' && (
+                                                    <div className="absolute top-2 right-2 bg-white/90 px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm text-blue-900">{getDaysLeft(evt)} dias</div>
+                                                )}
+                                                {eventViewMode === 'completed' && (
+                                                    <div className="absolute inset-0 bg-white/10 flex items-center justify-center">
+                                                        <div className="bg-emerald-500 text-white p-2 rounded-full shadow-lg"><Check size={20}/></div>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="p-4 shrink-0">
-                                                <h3 className="font-bold text-gray-900 mb-1 truncate text-lg">{evt.title}</h3>
-                                                <p className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={12}/> {evt.location}</p>
+                                            <div className="p-3 shrink-0 bg-white border-t border-gray-50">
+                                                <h3 className="font-bold text-gray-900 mb-0.5 truncate text-sm">{evt.title}</h3>
+                                                <p className="text-[10px] text-gray-500 flex items-center gap-1"><MapPin size={10}/> {evt.location || 'Local a definir'}</p>
                                             </div>
                                         </div>
                                     ))
                                 )}
                             </div>
-
-                            {finishedEvents.length > 0 && (
-                                <>
-                                    <h2 className="text-lg font-bold text-emerald-700 flex items-center gap-2 mb-4"><CheckSquare size={20}/> Eventos Finalizados com Sucesso</h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity">
-                                        {finishedEvents.map(evt => (
-                                            <div key={evt.id} onClick={() => onSelectEvent(evt)} className="bg-gray-50 rounded-2xl border border-gray-200 shadow-sm cursor-pointer group overflow-hidden grayscale hover:grayscale-0 transition-all aspect-square flex flex-col">
-                                                <div className="flex-1 bg-gray-200 relative overflow-hidden">{evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover opacity-50"/>}</div>
-                                                <div className="p-4 shrink-0"><h3 className="font-bold text-gray-700 mb-1 truncate text-lg">{evt.title}</h3><p className="text-xs text-gray-500 flex items-center gap-1"><Check size={12}/> Concluído</p></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        const EventDetail = ({ event, onBack, tasks, members, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember, onDeleteEvent }) => {
-            const [selectedDate, setSelectedDate] = useState(null);
-            const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-            const [selectedTaskId, setSelectedTaskId] = useState(null); // Changed to ID
-            const [filterPhase, setFilterPhase] = useState('all');
-            const [viewGrouping, setViewGrouping] = useState('category'); 
-            const [isEditEventOpen, setIsEditEventOpen] = useState(false);
-            const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
-
-            // Derived state for the modal
-            const selectedTask = tasks.find(t => t.id === selectedTaskId);
-
-            const handleDragStart = (e, task) => { e.dataTransfer.setData("taskId", task.id); };
-            const handleDragOver = (e) => e.preventDefault();
-            const handleDrop = (e, targetId) => { const taskId = e.dataTransfer.getData("taskId"); if (viewGrouping === 'status') onUpdateTask(parseInt(taskId), { status: targetId }); else onUpdateTask(parseInt(taskId), { category: targetId }); };
-            const filteredTasks = tasks.filter(t => t.eventId === event.id && (filterPhase === 'all' || t.phase === filterPhase));
-            const handleAddAgenda = (item) => onUpdateEvent(event.id, { agenda: [...(event.agenda||[]), item] });
-            const handleDeleteAgenda = (id) => onUpdateEvent(event.id, { agenda: (event.agenda||[]).filter(a=>a.id!==id) });
-            const handleUpdateAgenda = (id, newItem) => { const newAgenda = (event.agenda || []).map(a => a.id === id ? { ...a, ...newItem } : a); onUpdateEvent(event.id, { agenda: newAgenda }); };
-            const cyclePriority = (task) => { const map = { low: 'medium', medium: 'high', high: 'low' }; onUpdateTask(task.id, { priority: map[task.priority || 'low'] }); };
-            
-            // FIX: Prevent duplicate responsible person in team list
-            const responsibleMember = members.find(m => m.id === event.responsibleId);
-            const teamMembers = members.filter(m => event.teamIds?.includes(m.id) && m.id !== event.responsibleId);
-            const eventTeam = [responsibleMember, ...teamMembers].filter(Boolean);
-
-            const columns = viewGrouping === 'status' ? STATUS_COLUMNS : (event.categories || DEFAULT_CATEGORIES);
-            const totalEventCost = filteredTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
-            
-            // Format dates for display
-            const formatDate = (dateStr) => {
-                if (!dateStr) return '';
-                const [y, m, d] = dateStr.split('-');
-                return `${d}/${m}/${y}`;
-            };
-            const dateDisplay = event.endDate && event.endDate !== event.startDate 
-                ? `${formatDate(event.startDate)} - ${formatDate(event.endDate)}`
-                : formatDate(event.startDate);
-
-            const daysLeft = getDaysLeft(event);
-            const daysLeftText = daysLeft < 0 ? `${Math.abs(daysLeft)} dias atrás` : daysLeft === 0 ? "Hoje!" : `${daysLeft} dias restantes`;
-
-            return (
-                <div className="min-h-screen bg-[#F8FAFC] pb-24 animate-in">
-                    <div className="h-64 bg-blue-900 relative group overflow-hidden">
-                        {/* Background Image with Dark Overlay */}
-                        {event.coverUrl && <img src={event.coverUrl} className="w-full h-full object-cover absolute inset-0 transition-transform duration-1000 group-hover:scale-105"/>}
-                        <div className="absolute inset-0 bg-gradient-to-t from-blue-950 via-blue-900/40 to-transparent"></div>
-                        
-                        {/* Content */}
-                        <div className="absolute bottom-6 left-6 right-6 text-white">
-                            <div className="flex flex-wrap items-center gap-3 mb-3">
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm ${daysLeft < 0 ? 'bg-gray-600' : daysLeft <= 7 ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`}>
-                                    {daysLeftText}
-                                </span>
-                                {isEventFinished(event) && <span className="bg-emerald-500 px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm">Concluído</span>}
-                            </div>
-                            
-                            <h1 className="text-3xl md:text-4xl font-extrabold mb-3 text-shadow-lg tracking-tight leading-tight">{event.title}</h1>
-                            
-                            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-blue-100/90">
-                                <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                                    <CalendarIcon size={16} className="text-blue-300" />
-                                    <span>{dateDisplay}</span>
-                                </div>
-                                <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                                    <MapPin size={16} className="text-red-400" />
-                                    <span>{event.location || 'Local não definido'}</span>
-                                </div>
-                                <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                                    <DollarSign size={16} className="text-emerald-400" />
-                                    <span>Investimento: {formatCurrency(totalEventCost)}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Navigation Buttons */}
-                        <button onClick={onBack} className="absolute top-6 left-6 p-2.5 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/25 text-white transition-all border border-white/20 shadow-lg group-btn">
-                            <ArrowLeft size={20}/>
-                        </button>
-                        <button onClick={() => setIsEditEventOpen(true)} className="absolute top-6 right-6 p-2.5 bg-white/10 backdrop-blur-md rounded-full hover:bg-white/25 text-white transition-all border border-white/20 shadow-lg flex items-center gap-2 px-4">
-                            <Edit2 size={16}/> <span className="text-xs font-bold">Editar</span>
-                        </button>
-                    </div>
-
-                    <div className="max-w-[1800px] mx-auto px-6 mt-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-1 space-y-6">
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={16}/> Equipe do Evento</h3><button onClick={()=>setIsAddTeamOpen(!isAddTeamOpen)} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={16}/></button></div>
-                                {isAddTeamOpen && (<div className="mb-3 p-2 bg-gray-50 rounded-lg max-h-32 overflow-y-auto animate-in">{members.filter(m => !eventTeam.some(et => et.id === m.id)).map(m => (<div key={m.id} className="flex justify-between items-center p-1 hover:bg-gray-100 rounded cursor-pointer" onClick={() => { onAddTeamMember(event.id, m.id); setIsAddTeamOpen(false); }}><span className="text-xs">{m.name}</span><Plus size={12}/></div>))}</div>)}
-                                <div className="space-y-3">{eventTeam.map(m => (<div key={m.id} className="flex items-center gap-3 group"><Avatar member={m}/><div className="flex-1 min-w-0"><p className="text-xs font-bold truncate">{m.name}</p><p className="text-[10px] text-gray-500 truncate">{m.role}</p></div>{m.id === event.responsibleId ? <Crown size={14} className="text-amber-500"/> : <button onClick={() => onRemoveTeamMember(event.id, m.id)} className="text-red-400 opacity-0 group-hover:opacity-100"><X size={14}/></button>}</div>))}</div>
-                            </div>
-                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
-                                <div className="p-4 border-b bg-gray-50/50 font-bold text-gray-700 flex items-center gap-2"><CalendarIcon size={16}/> Agenda do Evento</div>
-                                <div className="flex-1 overflow-visible">
-                                    <AgendaComponent agendaItems={event.agenda || []} selectedDateFilter={null} onAdd={handleAddAgenda} onDelete={handleDeleteAgenda} onUpdate={handleUpdateAgenda} contextTitle="" scrollable={true} />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="lg:col-span-3 space-y-6">
-                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-4">
-                                <div className="flex bg-gray-100 p-1 rounded-lg">{['all', 'pre', 'during', 'post'].map(ph => (<button key={ph} onClick={()=>setFilterPhase(ph)} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filterPhase===ph ? 'bg-white shadow text-blue-900' : 'text-gray-500'}`}>{ph === 'all' ? 'Todos' : ph === 'pre' ? 'Pré' : ph === 'during' ? 'Durante' : 'Pós'}</button>))}</div>
-                                <div className="flex items-center gap-2"><div className="flex bg-gray-100 p-1 rounded-lg mr-2"><button onClick={() => setViewGrouping('category')} className={`p-2 rounded-md ${viewGrouping === 'category' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Categoria"><Grid size={16}/></button><button onClick={() => setViewGrouping('status')} className={`p-2 rounded-md ${viewGrouping === 'status' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Status"><Columns size={16}/></button></div><button onClick={onOpenCategorySettings} className="p-2 border rounded-lg text-gray-500 hover:bg-gray-50" title="Ajustes de Categoria"><Settings size={16}/></button><button onClick={onAddTask} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-2"><Plus size={14}/> Nova Tarefa</button></div>
-                            </div>
-                            <div className="flex flex-wrap gap-4 items-start">
-                                {columns.map(col => {
-                                    const colTasks = filteredTasks.filter(t => viewGrouping === 'status' ? t.status === col.id : t.category === col.id);
-                                    return (
-                                        <div key={col.id} className="min-w-[280px] flex-1 bg-gray-100/50 rounded-xl p-2 border border-gray-200 flex flex-col" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id)}>
-                                            <div className="flex items-center justify-between p-3 mb-2"><span className={`text-xs font-bold uppercase flex items-center gap-2 ${col.color ? `text-${col.color}-700` : 'text-gray-700'}`}>{col.icon && React.createElement(ICON_MAP[col.icon] || Box, { size: 14 })} {col.title}</span><span className="bg-white text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded border">{colTasks.length}</span></div>
-                                            <div className="space-y-3 flex-1">{colTasks.map(task => (<div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task)} onClick={() => { setSelectedTaskId(task.id); setIsTaskModalOpen(true); }} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md cursor-pointer group relative"><div className="flex justify-between items-start mb-2"><FlagPriority level={task.priority} onClick={()=>cyclePriority(task)}/><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button className="text-gray-400 hover:text-blue-600"><Edit2 size={12}/></button></div></div><p className="text-sm font-medium text-gray-800 mb-3">{task.text}</p><div className="flex items-center justify-between pt-2 border-t border-gray-50"><div className="flex items-center gap-2"><Avatar member={task.responsible} size="w-5 h-5"/><span className="text-[10px] text-gray-500">{task.responsible?.name.split(' ')[0]}</span></div>{task.cost > 0 && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded">{formatCurrency(task.cost)}</span>}</div></div>))}</div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                    {selectedTask && <TaskDetailModal isOpen={isTaskModalOpen} onClose={() => { setIsTaskModalOpen(false); setSelectedTaskId(null); }} task={selectedTask} members={members} dbOperations={{ updateTask: (id, updates) => onUpdateTask(id, updates) }} deleteTask={onDeleteTask} />}
-                    <EditEventModal isOpen={isEditEventOpen} onClose={() => setIsEditEventOpen(false)} event={event} onUpdate={onUpdateEvent} members={members} onDelete={onDeleteEvent} />
-                </div>
-            );
-        };
-
-        const GlobalAgendaView = ({ events, tasks, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem }) => {
-            const items = [
-                ...events.flatMap(e => (e.agenda||[]).map(a => ({...a, eventName: e.title}))),
-                ...tasks.filter(t => t.date).map(t => ({ id: `t-${t.id}`, title: t.text, date: t.date, color: 'green', eventName: 'Tarefa' }))
-            ];
-            
-            return (
-                <div className="p-6 pb-24 bg-[#F8FAFC] min-h-screen">
-                    <h1 className="text-2xl font-bold text-blue-950 mb-6 flex items-center gap-2"><CalendarIcon/> Agenda Geral</h1>
-                    <div className="h-[600px]"><AgendaComponent agendaItems={items} selectedDateFilter={null} onAdd={(item) => onAddAgendaItem('global', item)} onDelete={onDeleteAgendaItem} onUpdate={onUpdateAgendaItem} contextTitle="Todos os Compromissos" events={events} scrollable={true} /></div>
-                </div>
-            );
-        };
-
-        const GlobalTeamView = ({ members, onEdit }) => (
-            <div className="p-6 pb-24 bg-[#F8FAFC] min-h-screen">
-                <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold text-blue-950">Equipe</h1><button onClick={onEdit} className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100">Gerenciar</button></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{members.map(m => (<div key={m.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"><div className="w-16 h-16 rounded-full overflow-hidden"><Avatar member={m} size="w-full h-full"/></div><div><p className="font-bold text-gray-900 text-lg">{m.name}</p><p className="text-sm text-gray-500">{m.role}</p></div></div>))}</div>
-            </div>
-        );
-
-        // --- App ---
-        const App = () => {
-            const [view, setView] = useState('dashboard');
-            const [selectedEvent, setSelectedEvent] = useState(null);
-            
-            // --- FIREBASE STATE ---
-            const [events, setEvents] = useState([]);
-            const [tasks, setTasks] = useState([]);
-            const [members, setMembers] = useState([]);
-            const [user, setUser] = useState(null);
-            const [needsConfig, setNeedsConfig] = useState(false);
-            // ----------------------
-            
-            const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-            const [isNewEventOpen, setIsNewEventOpen] = useState(false);
-            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            const [isCatSettingsOpen, setIsCatSettingsOpen] = useState(false);
-            const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
-            const [isAIOpen, setIsAIOpen] = useState(false);
-            const [selectedWorkloadMember, setSelectedWorkloadMember] = useState(null);
-            const [logo, setLogo] = useState(null);
-            const [managerId, setManagerId] = useState('1'); 
-            const [geminiKey, setGeminiKey] = useState('');
-
-            // Auth & Listeners
-            useEffect(() => {
-                if (!app) {
-                    setNeedsConfig(true);
-                    return;
-                }
-
-                const initAuth = async () => {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (e) {
-                        console.error("Authentication Failed", e);
-                    }
-                };
-                initAuth();
-
-                return onAuthStateChanged(auth, (u) => {
-                    setUser(u);
-                });
-            }, []);
-
-            useEffect(() => {
-                if(!user || !db) return;
-
-                // Listen Events
-                const unsubEvents = onSnapshot(getColPath('events'), (snap) => {
-                    if (snap.empty && !localStorage.getItem('db_initialized')) {
-                        // Seed initial data if DB is empty (REMOVED INITIAL EVENTS TO BE EMPTY AS REQUESTED)
-                        INITIAL_MEMBERS.forEach(m => setDoc(getDocPath('members', m.id), m));
-                        setDoc(getDocPath('config', 'main'), { managerId: '1' });
-                        localStorage.setItem('db_initialized', 'true');
-                    } else {
-                        setEvents(snap.docs.map(d => d.data()));
-                    }
-                });
-
-                // Listen Tasks
-                const unsubTasks = onSnapshot(getColPath('tasks'), (snap) => {
-                    setTasks(snap.docs.map(d => d.data()));
-                });
-
-                // Listen Members
-                const unsubMembers = onSnapshot(getColPath('members'), (snap) => {
-                    setMembers(snap.docs.map(d => d.data()));
-                });
-
-                // Listen Settings
-                const unsubSettings = onSnapshot(getDocPath('config', 'main'), (snap) => {
-                    if(snap.exists()) {
-                        const data = snap.data();
-                        if(data.logo) setLogo(data.logo);
-                        if(data.managerId) setManagerId(data.managerId);
-                        if(data.geminiKey) setGeminiKey(data.geminiKey);
-                    }
-                });
-
-                return () => {
-                    unsubEvents();
-                    unsubTasks();
-                    unsubMembers();
-                    unsubSettings();
-                };
-            }, [user]);
-
-            // --- Handlers modified to use Firestore ---
-
-            const handleUpdateTask = (id, updates) => {
-                updateDoc(getDocPath('tasks', id), updates);
-            };
-
-            const handleDeleteTask = (id) => {
-                deleteDoc(getDocPath('tasks', id));
-            };
-
-            const handleCreateTask = (newTask) => {
-                setDoc(getDocPath('tasks', newTask.id), newTask);
-            };
-
-            const handleUpdateEvent = (id, updates) => {
-                updateDoc(getDocPath('events', id), updates);
-            };
-
-            const handleCreateEvent = (newEvent, newTasks) => {
-                setDoc(getDocPath('events', newEvent.id), newEvent);
-                newTasks.forEach(t => setDoc(getDocPath('tasks', t.id), t));
-            };
-
-            const handleDeleteEvent = (eventId) => {
-                if(confirm("Tem certeza que deseja excluir este evento e todas as suas tarefas?")) {
-                    deleteDoc(getDocPath('events', eventId));
-                    // Delete associated tasks
-                    const associatedTasks = tasks.filter(t => t.eventId === eventId);
-                    associatedTasks.forEach(t => deleteDoc(getDocPath('tasks', t.id)));
-                    
-                    setView('dashboard');
-                    setSelectedEvent(null);
-                }
-            };
-
-            const handleUpdateMember = (id, updates) => {
-                updateDoc(getDocPath('members', id), updates);
-            };
-
-            const handleAddMember = (newMember) => {
-                setDoc(getDocPath('members', newMember.id), newMember);
-            };
-
-            const handleUpdateLogo = (url) => {
-                setDoc(getDocPath('config', 'main'), { logo: url }, { merge: true });
-            };
-
-            const handleUpdateManager = (id) => {
-                setDoc(getDocPath('config', 'main'), { managerId: id }, { merge: true });
-            };
-            
-            const handleUpdateGeminiKey = (key) => {
-                setDoc(getDocPath('config', 'main'), { geminiKey: key }, { merge: true });
-            };
-            
-            const handleGlobalAddAgenda = (type, item) => {
-                if(item.eventId) {
-                    const evt = events.find(e => e.id === item.eventId);
-                    if(evt) handleUpdateEvent(evt.id, { agenda: [...(evt.agenda||[]), item] });
-                } else if (events.length > 0) {
-                    const evt = events[0]; 
-                    handleUpdateEvent(evt.id, { agenda: [...(evt.agenda||[]), item] });
-                }
-            };
-
-            const handleGlobalDeleteAgenda = (id) => { 
-                // We need to find which event has this agenda item since structure is nested
-                const evt = events.find(e => (e.agenda || []).some(a => a.id === id));
-                if (evt) {
-                    handleUpdateEvent(evt.id, { agenda: evt.agenda.filter(a => a.id !== id) });
-                }
-            };
-
-            const handleGlobalUpdateAgenda = (id, newItem) => {
-                const evt = events.find(e => (e.agenda || []).some(a => a.id === id));
-                if (evt) {
-                    const newAgenda = evt.agenda.map(a => a.id === id ? { ...a, ...newItem } : a);
-                    handleUpdateEvent(evt.id, { agenda: newAgenda });
-                }
-            };
-            
-            const handleUpdateEventCategories = (newCats) => {
-                if(selectedEvent) {
-                    handleUpdateEvent(selectedEvent.id, { categories: newCats });
-                    setSelectedEvent(prev => ({ ...prev, categories: newCats }));
-                }
-            };
-
-            const handleAddTeamMember = (eventId, memberId) => {
-                const event = events.find(e => e.id === eventId);
-                if (event && !event.teamIds?.includes(memberId)) {
-                    const newTeam = [...(event.teamIds || []), memberId];
-                    handleUpdateEvent(eventId, { teamIds: newTeam });
-                }
-            };
-
-            const handleRemoveTeamMember = (eventId, memberId) => {
-                 const event = events.find(e => e.id === eventId);
-                 if(event) {
-                      const newTeam = (event.teamIds || []).filter(id => id !== memberId);
-                      handleUpdateEvent(eventId, { teamIds: newTeam });
-                 }
-            };
-
-            const currentSelectedEvent = selectedEvent ? events.find(e => e.id === selectedEvent.id) : null;
-
-            if (needsConfig) {
-                return <SetupScreen />;
-            }
-
-            return (
-                <>
-                    {view === 'dashboard' && <Dashboard events={events} tasks={tasks} members={members} onSelectEvent={(e) => { setSelectedEvent(e); setView('detail'); }} onNewEvent={() => setIsNewEventOpen(true)} onMemberClick={setSelectedWorkloadMember} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda} globalLogo={logo} managerId={managerId}/>}
-                    {view === 'detail' && currentSelectedEvent && (
-                        <EventDetail 
-                            event={currentSelectedEvent} onBack={() => setView('dashboard')} 
-                            tasks={tasks} members={members} categories={currentSelectedEvent.categories || DEFAULT_CATEGORIES}
-                            onUpdateTask={handleUpdateTask} onUpdateEvent={handleUpdateEvent} onDeleteTask={handleDeleteTask}
-                            onOpenCategorySettings={() => setIsCatSettingsOpen(true)}
-                            onAddTask={() => setIsNewTaskOpen(true)}
-                            onAddTeamMember={handleAddTeamMember}
-                            onRemoveTeamMember={handleRemoveTeamMember}
-                            onDeleteEvent={handleDeleteEvent}
-                        />
-                    )}
-                    {view === 'agenda' && <GlobalAgendaView events={events} tasks={tasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
-                    {view === 'team' && <GlobalTeamView members={members} onEdit={() => setIsSettingsOpen(true)} />}
-                    {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>}
-                    
-                    <BottomNav activeTab={view} onChangeTab={(v) => { if(v === 'settings') setIsSettingsOpen(true); else setView(v); }} onAdd={() => setIsNewEventOpen(true)} />
-                    
-                    <button 
-                        onClick={() => setIsAIOpen(!isAIOpen)}
-                        className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-xl shadow-blue-600/30 flex items-center justify-center text-white z-[150] hover:scale-110 transition-transform duration-300 animate-in"
-                    >
-                        {isAIOpen ? <X size={24}/> : <Sparkles size={24}/>}
-                    </button>
-
-                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: tasks.reduce((a,b)=>a+(b.cost||0),0), tasks, members, events}} apiKey={geminiKey} />
-
-                    <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
-                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>
-                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} />
-                    <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
-                    {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
-                </>
-            );
-        };
-
-        const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
 
 
 
