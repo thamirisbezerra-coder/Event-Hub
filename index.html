@@ -119,8 +119,9 @@
             return String(date.getDate()).padStart(2, '0');
         };
 
+        // --- Initial Data (UPDATED WITH PAULO) ---
         const INITIAL_MEMBERS = [
-            { id: '1', name: 'Felipe Paiva', role: 'Marketing', photoUrl: null },
+            { id: '1', name: 'Paulo Mokarzel', role: 'Head de Eventos', photoUrl: null },
             { id: '2', name: 'Matheus Silva', role: 'Marketing', photoUrl: null },
             { id: '3', name: 'Larissa Tomé', role: 'Marketing', photoUrl: null },
             { id: '4', name: 'Suzana Santos', role: 'Marketing', photoUrl: null },
@@ -151,6 +152,7 @@
             { id: 3, eventId: '1', text: 'Desenvolver KV', status: 'planning', priority: 'high', responsible: INITIAL_MEMBERS[2], support: [], category: 'planning', phase: 'pre', cost: 5000, date: '2025-10-02', subtasks: [], messages: [] }
         ];
 
+        // --- Constants & Configs ---
         const PASTEL_COLORS = [
             { id: 'blue', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', hex: '#DBEAFE' },
             { id: 'green', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', hex: '#D1FAE5' },
@@ -602,6 +604,37 @@
             );
         };
 
+        const EditEventModal = ({ isOpen, onClose, event, onUpdate, members }) => {
+            const [title, setTitle] = useState(event?.title || '');
+            const [startDate, setStartDate] = useState(event?.startDate || '');
+            const [cover, setCover] = useState(event?.coverUrl || '');
+            const fileInputRef = useRef(null);
+
+            useEffect(() => {
+                if(event) { setTitle(event.title); setStartDate(event.startDate); setCover(event.coverUrl); }
+            }, [event]);
+
+            if(!isOpen || !event) return null;
+
+            const handleSave = () => { onUpdate(event.id, { title, startDate, coverUrl: cover }); onClose(); };
+            const handleCoverUpload = async (e) => { if(e.target.files[0]) { const url = await compressImage(e.target.files[0], 800); setCover(url); } };
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Editar Evento">
+                    <div className="p-6 space-y-4">
+                        <div onClick={()=>fileInputRef.current.click()} className="h-32 bg-gray-100 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative group">
+                            {cover ? <img src={cover} className="w-full h-full object-cover"/> : <span className="text-gray-400 font-bold">Alterar Capa</span>}
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold"><Camera size={24}/></div>
+                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload}/>
+                        </div>
+                        <input className="w-full p-3 border rounded-xl" placeholder="Nome" value={title} onChange={e=>setTitle(e.target.value)}/>
+                        <input type="date" className="w-full p-3 border rounded-xl" value={startDate} onChange={e=>setStartDate(e.target.value)}/>
+                        <button onClick={handleSave} className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Salvar Alterações</button>
+                    </div>
+                </Modal>
+            );
+        };
+
         const NewTaskModal = ({ isOpen, onClose, eventCategories, onCreate, members, eventId }) => {
             const [text, setText] = useState('');
             const [category, setCategory] = useState(eventCategories[0]?.id || '');
@@ -654,37 +687,6 @@
             );
         };
 
-        const EditEventModal = ({ isOpen, onClose, event, onUpdate, members }) => {
-            const [title, setTitle] = useState(event?.title || '');
-            const [startDate, setStartDate] = useState(event?.startDate || '');
-            const [cover, setCover] = useState(event?.coverUrl || '');
-            const fileInputRef = useRef(null);
-
-            useEffect(() => {
-                if(event) { setTitle(event.title); setStartDate(event.startDate); setCover(event.coverUrl); }
-            }, [event]);
-
-            if(!isOpen || !event) return null;
-
-            const handleSave = () => { onUpdate(event.id, { title, startDate, coverUrl: cover }); onClose(); };
-            const handleCoverUpload = async (e) => { if(e.target.files[0]) { const url = await compressImage(e.target.files[0], 800); setCover(url); } };
-
-            return (
-                <Modal isOpen={isOpen} onClose={onClose} title="Editar Evento">
-                    <div className="p-6 space-y-4">
-                        <div onClick={()=>fileInputRef.current.click()} className="h-32 bg-gray-100 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative group">
-                            {cover ? <img src={cover} className="w-full h-full object-cover"/> : <span className="text-gray-400 font-bold">Alterar Capa</span>}
-                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold"><Camera size={24}/></div>
-                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload}/>
-                        </div>
-                        <input className="w-full p-3 border rounded-xl" placeholder="Nome" value={title} onChange={e=>setTitle(e.target.value)}/>
-                        <input type="date" className="w-full p-3 border rounded-xl" value={startDate} onChange={e=>setStartDate(e.target.value)}/>
-                        <button onClick={handleSave} className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Salvar Alterações</button>
-                    </div>
-                </Modal>
-            );
-        };
-
         // --- Bottom Navigation ---
         const BottomNav = ({ activeTab, onChangeTab, onAdd }) => (
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 flex justify-between items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
@@ -711,6 +713,7 @@
 
             if (!isOpen || !currentTask) return null;
 
+            // Scroll to bottom on new message
             useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [currentTask.messages]);
 
             const handleSendMessage = () => {
@@ -723,6 +726,7 @@
                     image: chatAttachment,
                     timestamp: new Date().toISOString()
                 };
+                // IMPORTANT: Create a new array and update via parent
                 const updatedMessages = [...(currentTask.messages || []), newMessage];
                 dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
                 setMessageText("");
@@ -1122,6 +1126,7 @@
     </script>
 </body>
 </html>
+
 
 
 
