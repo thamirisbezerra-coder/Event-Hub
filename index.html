@@ -68,6 +68,24 @@
             Home, List, Grid, Smile, LogOut, Repeat, Columns
         } from 'https://esm.sh/lucide-react@0.294.0';
 
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+
+        // --- Firebase Config & Setup ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // Helper to get collection path
+        const getColPath = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
+        const getDocPath = (colName, docId) => doc(db, 'artifacts', appId, 'public', 'data', colName, String(docId));
+
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
             return new Promise((resolve) => {
@@ -128,29 +146,9 @@
             { id: '5', name: 'Thalita Carmo', role: 'Marketing', photoUrl: null }
         ];
 
-        const INITIAL_EVENTS = [
-            { 
-                id: '1', 
-                title: 'Convenção Nacional 2025', 
-                location: 'São Paulo, SP', 
-                startDate: '2025-10-15', 
-                endDate: '2025-10-18', 
-                dateRange: '15/10/2025 - 18/10/2025', 
-                responsibleId: '1', 
-                coverUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=1000',
-                agenda: [
-                    { id: 101, title: 'Reunião de Kick-off', date: '2025-10-01', color: 'blue' },
-                    { id: 102, title: 'Visita Técnica', date: '2025-10-10', color: 'orange' }
-                ],
-                teamIds: ['2', '3']
-            }
-        ];
+        const INITIAL_EVENTS = [];
 
-        const INITIAL_TASKS = [
-            { id: 1, eventId: '1', text: 'Definir tema do evento', status: 'done', priority: 'high', responsible: INITIAL_MEMBERS[0], support: [], category: 'planning', phase: 'pre', cost: 0, date: '2025-10-05', subtasks: [], messages: [] },
-            { id: 2, eventId: '1', text: 'Contratar buffet', status: 'in_progress', priority: 'medium', responsible: INITIAL_MEMBERS[1], support: [INITIAL_MEMBERS[2]], category: 'logistics', phase: 'pre', cost: 15000, date: '2025-10-12', subtasks: [{id: 1, text: 'Pedir orçamentos', completed: true}], messages: [] },
-            { id: 3, eventId: '1', text: 'Desenvolver KV', status: 'planning', priority: 'high', responsible: INITIAL_MEMBERS[2], support: [], category: 'planning', phase: 'pre', cost: 5000, date: '2025-10-02', subtasks: [], messages: [] }
-        ];
+        const INITIAL_TASKS = [];
 
         // --- Constants & Configs ---
         const PASTEL_COLORS = [
@@ -327,7 +325,7 @@
 
                 setMessages(prev => [...prev, { sender: 'ai', text: responseText }]);
                 setIsTyping(false);
-            }
+            };
 
             const handleSend = async () => {
                 if(!input.trim()) return;
@@ -604,7 +602,7 @@
             );
         };
 
-        const EditEventModal = ({ isOpen, onClose, event, onUpdate, members }) => {
+        const EditEventModal = ({ isOpen, onClose, event, onUpdate, onDelete, members }) => {
             const [title, setTitle] = useState(event?.title || '');
             const [startDate, setStartDate] = useState(event?.startDate || '');
             const [cover, setCover] = useState(event?.coverUrl || '');
@@ -629,7 +627,19 @@
                         </div>
                         <input className="w-full p-3 border rounded-xl" placeholder="Nome" value={title} onChange={e=>setTitle(e.target.value)}/>
                         <input type="date" className="w-full p-3 border rounded-xl" value={startDate} onChange={e=>setStartDate(e.target.value)}/>
-                        <button onClick={handleSave} className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Salvar Alterações</button>
+                        
+                        <div className="flex gap-2">
+                            <button onClick={handleSave} className="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition-colors">Salvar Alterações</button>
+                            {onDelete && (
+                                <button 
+                                    onClick={() => onDelete(event.id)} 
+                                    className="bg-red-100 text-red-600 p-3 rounded-xl font-bold hover:bg-red-200 transition-colors"
+                                    title="Excluir Evento"
+                                >
+                                    <Trash2 size={20}/>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </Modal>
             );
@@ -839,6 +849,12 @@
             const allAgendaItems = events.flatMap(e => (e.agenda || []).map(a => ({...a, eventName: e.title})));
             const manager = members.find(m => m.id === managerId) || members[0];
 
+            // New logic for global status - only active events
+            const activeTasks = tasks.filter(t => activeEventIds.includes(t.eventId));
+            const completedActiveTasks = activeTasks.filter(t => t.status === 'done').length;
+            const totalActiveTasks = activeTasks.length;
+            const progress = totalActiveTasks > 0 ? Math.round((completedActiveTasks / totalActiveTasks) * 100) : 0;
+
             return (
                 <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24">
                     <div className="flex justify-between items-center mb-8">
@@ -848,7 +864,7 @@
                         </div>
                         <div className="flex items-center gap-3 bg-white p-2 rounded-full shadow-sm border border-gray-100 pr-4 hover:shadow-md transition-all cursor-pointer group">
                             <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-white relative"><Avatar member={manager} size="w-full h-full"/></div>
-                            <div className="text-left hidden sm:block"><p className="text-xs font-bold text-gray-800">{manager.name}</p><p className="text-[10px] text-blue-600 font-bold uppercase flex items-center gap-1"><Crown size={10} fill="currentColor" /> Gestor da Equipe</p></div>
+                            <div className="text-left hidden sm:block"><p className="text-xs font-bold text-gray-800">{manager?.name}</p><p className="text-[10px] text-blue-600 font-bold uppercase flex items-center gap-1"><Crown size={10} fill="currentColor" /> Gestor da Equipe</p></div>
                         </div>
                     </div>
 
@@ -857,8 +873,8 @@
                             {/* Stats Row */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-40">
-                                    <div className="relative w-28 h-28 flex-shrink-0"><svg className="w-full h-full -rotate-90"><circle cx="56" cy="56" r="48" stroke="#F3F4F6" strokeWidth="10" fill="none"/><circle cx="56" cy="56" r="48" stroke="#1e3a8a" strokeWidth="10" fill="none" strokeDasharray="301" strokeDashoffset={301 - (301*75)/100} strokeLinecap="round"/></svg><div className="absolute inset-0 flex items-center justify-center font-bold text-xl text-blue-900">75%</div></div>
-                                    <div className="ml-6 flex-1"><h3 className="font-bold text-gray-900 mb-2">Status Global (Ativos)</h3><div className="text-xs space-y-1"><p className="text-emerald-600 font-bold flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> {tasks.filter(t=>activeEventIds.includes(t.eventId) && t.status==='done').length} Feitas</p><p className="text-amber-600 font-bold flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> {tasks.filter(t=>activeEventIds.includes(t.eventId) && t.status!=='done').length} Pendentes</p></div></div>
+                                    <div className="relative w-28 h-28 flex-shrink-0"><svg className="w-full h-full -rotate-90"><circle cx="56" cy="56" r="48" stroke="#F3F4F6" strokeWidth="10" fill="none"/><circle cx="56" cy="56" r="48" stroke="#1e3a8a" strokeWidth="10" fill="none" strokeDasharray="301" strokeDashoffset={301 - (301*progress)/100} strokeLinecap="round"/></svg><div className="absolute inset-0 flex items-center justify-center font-bold text-xl text-blue-900">{progress}%</div></div>
+                                    <div className="ml-6 flex-1"><h3 className="font-bold text-gray-900 mb-2">Status Global (Ativos)</h3><div className="text-xs space-y-1"><p className="text-emerald-600 font-bold flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> {completedActiveTasks} Feitas</p><p className="text-amber-600 font-bold flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> {totalActiveTasks - completedActiveTasks} Pendentes</p></div></div>
                                 </div>
                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col justify-center h-40 overflow-y-auto">
                                     <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2 text-sm"><Users size={16}/> Carga de Trabalho (Eventos Ativos)</h3>
@@ -908,7 +924,7 @@
             );
         };
 
-        const EventDetail = ({ event, onBack, tasks, members, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember }) => {
+        const EventDetail = ({ event, onBack, tasks, members, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember, onDeleteEvent }) => {
             const [selectedDate, setSelectedDate] = useState(null);
             const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
             const [selectedTaskId, setSelectedTaskId] = useState(null); // Changed to ID
@@ -978,7 +994,7 @@
                         </div>
                     </div>
                     {selectedTask && <TaskDetailModal isOpen={isTaskModalOpen} onClose={() => { setIsTaskModalOpen(false); setSelectedTaskId(null); }} task={selectedTask} members={members} dbOperations={{ updateTask: (id, updates) => onUpdateTask(id, updates) }} deleteTask={onDeleteTask} />}
-                    <EditEventModal isOpen={isEditEventOpen} onClose={() => setIsEditEventOpen(false)} event={event} onUpdate={onUpdateEvent} members={members}/>
+                    <EditEventModal isOpen={isEditEventOpen} onClose={() => setIsEditEventOpen(false)} event={event} onUpdate={onUpdateEvent} members={members} onDelete={onDeleteEvent} />
                 </div>
             );
         };
@@ -1008,9 +1024,14 @@
         const App = () => {
             const [view, setView] = useState('dashboard');
             const [selectedEvent, setSelectedEvent] = useState(null);
-            const [events, setEvents] = useState(INITIAL_EVENTS);
-            const [tasks, setTasks] = useState(INITIAL_TASKS);
-            const [members, setMembers] = useState(INITIAL_MEMBERS);
+            
+            // --- FIREBASE STATE ---
+            const [events, setEvents] = useState([]);
+            const [tasks, setTasks] = useState([]);
+            const [members, setMembers] = useState([]);
+            const [user, setUser] = useState(null);
+            // ----------------------
+            
             const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
             const [isNewEventOpen, setIsNewEventOpen] = useState(false);
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -1022,27 +1043,121 @@
             const [managerId, setManagerId] = useState('1'); 
             const [geminiKey, setGeminiKey] = useState('');
 
-            // Persistence
+            // Auth & Listeners
             useEffect(() => {
-                const savedEvents = localStorage.getItem('events');
-                const savedTasks = localStorage.getItem('tasks');
-                const savedMembers = localStorage.getItem('members');
-                if(savedEvents) setEvents(JSON.parse(savedEvents));
-                if(savedTasks) setTasks(JSON.parse(savedTasks));
-                if(savedMembers) setMembers(JSON.parse(savedMembers));
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+                initAuth();
+
+                return onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                });
             }, []);
 
             useEffect(() => {
-                localStorage.setItem('events', JSON.stringify(events));
-                localStorage.setItem('tasks', JSON.stringify(tasks));
-                localStorage.setItem('members', JSON.stringify(members));
-            }, [events, tasks, members]);
+                if(!user) return;
 
-            const handleUpdateTask = (id, updates) => setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-            const handleDeleteTask = (id) => setTasks(prev => prev.filter(t => t.id !== id));
-            const handleCreateTask = (newTask) => setTasks(prev => [...prev, newTask]);
-            const handleUpdateEvent = (id, updates) => setEvents(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-            const handleUpdateMember = (id, updates) => setMembers(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+                // Listen Events
+                const unsubEvents = onSnapshot(getColPath('events'), (snap) => {
+                    if (snap.empty && !localStorage.getItem('db_initialized')) {
+                        // Seed initial data if DB is empty
+                        INITIAL_EVENTS.forEach(e => setDoc(getDocPath('events', e.id), e));
+                        INITIAL_TASKS.forEach(t => setDoc(getDocPath('tasks', t.id), t));
+                        INITIAL_MEMBERS.forEach(m => setDoc(getDocPath('members', m.id), m));
+                        setDoc(getDocPath('config', 'main'), { managerId: '1' });
+                        localStorage.setItem('db_initialized', 'true');
+                    } else {
+                        setEvents(snap.docs.map(d => d.data()));
+                    }
+                });
+
+                // Listen Tasks
+                const unsubTasks = onSnapshot(getColPath('tasks'), (snap) => {
+                    setTasks(snap.docs.map(d => d.data()));
+                });
+
+                // Listen Members
+                const unsubMembers = onSnapshot(getColPath('members'), (snap) => {
+                    setMembers(snap.docs.map(d => d.data()));
+                });
+
+                // Listen Settings
+                const unsubSettings = onSnapshot(getDocPath('config', 'main'), (snap) => {
+                    if(snap.exists()) {
+                        const data = snap.data();
+                        if(data.logo) setLogo(data.logo);
+                        if(data.managerId) setManagerId(data.managerId);
+                        if(data.geminiKey) setGeminiKey(data.geminiKey);
+                    }
+                });
+
+                return () => {
+                    unsubEvents();
+                    unsubTasks();
+                    unsubMembers();
+                    unsubSettings();
+                };
+            }, [user]);
+
+            // --- Handlers modified to use Firestore ---
+
+            const handleUpdateTask = (id, updates) => {
+                updateDoc(getDocPath('tasks', id), updates);
+            };
+
+            const handleDeleteTask = (id) => {
+                deleteDoc(getDocPath('tasks', id));
+            };
+
+            const handleCreateTask = (newTask) => {
+                setDoc(getDocPath('tasks', newTask.id), newTask);
+            };
+
+            const handleUpdateEvent = (id, updates) => {
+                updateDoc(getDocPath('events', id), updates);
+            };
+
+            const handleCreateEvent = (newEvent, newTasks) => {
+                setDoc(getDocPath('events', newEvent.id), newEvent);
+                newTasks.forEach(t => setDoc(getDocPath('tasks', t.id), t));
+            };
+
+            const handleDeleteEvent = (eventId) => {
+                if(confirm("Tem certeza que deseja excluir este evento e todas as suas tarefas?")) {
+                    deleteDoc(getDocPath('events', eventId));
+                    // Delete associated tasks
+                    const associatedTasks = tasks.filter(t => t.eventId === eventId);
+                    associatedTasks.forEach(t => deleteDoc(getDocPath('tasks', t.id)));
+                    
+                    setView('dashboard');
+                    setSelectedEvent(null);
+                }
+            };
+
+            const handleUpdateMember = (id, updates) => {
+                updateDoc(getDocPath('members', id), updates);
+            };
+
+            const handleAddMember = (newMember) => {
+                setDoc(getDocPath('members', newMember.id), newMember);
+            };
+
+            const handleUpdateLogo = (url) => {
+                setDoc(getDocPath('config', 'main'), { logo: url }, { merge: true });
+            };
+
+            const handleUpdateManager = (id) => {
+                setDoc(getDocPath('config', 'main'), { managerId: id }, { merge: true });
+            };
+            
+            const handleUpdateGeminiKey = (key) => {
+                setDoc(getDocPath('config', 'main'), { geminiKey: key }, { merge: true });
+            };
             
             const handleGlobalAddAgenda = (type, item) => {
                 if(item.eventId) {
@@ -1053,9 +1168,21 @@
                     handleUpdateEvent(evt.id, { agenda: [...(evt.agenda||[]), item] });
                 }
             };
-            const handleGlobalDeleteAgenda = (id) => { setEvents(prev => prev.map(e => ({ ...e, agenda: (e.agenda || []).filter(a => a.id !== id) }))); };
+
+            const handleGlobalDeleteAgenda = (id) => { 
+                // We need to find which event has this agenda item since structure is nested
+                const evt = events.find(e => (e.agenda || []).some(a => a.id === id));
+                if (evt) {
+                    handleUpdateEvent(evt.id, { agenda: evt.agenda.filter(a => a.id !== id) });
+                }
+            };
+
             const handleGlobalUpdateAgenda = (id, newItem) => {
-                setEvents(prev => prev.map(e => ({ ...e, agenda: (e.agenda || []).map(a => a.id === id ? { ...a, ...newItem } : a) })));
+                const evt = events.find(e => (e.agenda || []).some(a => a.id === id));
+                if (evt) {
+                    const newAgenda = evt.agenda.map(a => a.id === id ? { ...a, ...newItem } : a);
+                    handleUpdateEvent(evt.id, { agenda: newAgenda });
+                }
             };
             
             const handleUpdateEventCategories = (newCats) => {
@@ -1076,8 +1203,8 @@
             const handleRemoveTeamMember = (eventId, memberId) => {
                  const event = events.find(e => e.id === eventId);
                  if(event) {
-                     const newTeam = (event.teamIds || []).filter(id => id !== memberId);
-                     handleUpdateEvent(eventId, { teamIds: newTeam });
+                      const newTeam = (event.teamIds || []).filter(id => id !== memberId);
+                      handleUpdateEvent(eventId, { teamIds: newTeam });
                  }
             };
 
@@ -1095,11 +1222,12 @@
                             onAddTask={() => setIsNewTaskOpen(true)}
                             onAddTeamMember={handleAddTeamMember}
                             onRemoveTeamMember={handleRemoveTeamMember}
+                            onDeleteEvent={handleDeleteEvent}
                         />
                     )}
                     {view === 'agenda' && <GlobalAgendaView events={events} tasks={tasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
                     {view === 'team' && <GlobalTeamView members={members} onEdit={() => setIsSettingsOpen(true)} />}
-                    {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={(m)=>setMembers([...members, m])} onUpdateLogo={setLogo} currentLogo={logo} managerId={managerId} onUpdateManager={setManagerId} onUpdateGeminiKey={setGeminiKey}/>}
+                    {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>}
                     
                     <BottomNav activeTab={view} onChangeTab={(v) => { if(v === 'settings') setIsSettingsOpen(true); else setView(v); }} onAdd={() => setIsNewEventOpen(true)} />
                     
@@ -1112,8 +1240,8 @@
 
                     <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: tasks.reduce((a,b)=>a+(b.cost||0),0), tasks, members, events}} apiKey={geminiKey} />
 
-                    <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={(evt, newTasks) => { setEvents([...events, evt]); setTasks([...tasks, ...newTasks]); }} members={members} />
-                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={(m)=>setMembers([...members, m])} onUpdateLogo={setLogo} currentLogo={logo} managerId={managerId} onUpdateManager={setManagerId} onUpdateGeminiKey={setGeminiKey}/>
+                    <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>
                     <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} />
                     <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
                     {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
