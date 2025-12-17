@@ -31,15 +31,7 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .animate-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes shine { 0% { background-position: 200% center; } 100% { background-position: -200% center; } }
-        .animate-shine { background-size: 200% auto; animation: shine 3s linear infinite; }
         .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
-        
-        /* AI Typing Indicator */
-        .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
     </style>
 
     <script>
@@ -66,7 +58,7 @@
     </div>
 
     <script>
-        // Captura erros globais antes do React carregar para evitar tela branca total
+        // Captura erros globais antes do React carregar
         window.onerror = function(message, source, lineno, colno, error) {
             document.getElementById('root').style.display = 'none';
             document.getElementById('global-error').style.display = 'block';
@@ -168,44 +160,22 @@
         const getDaysLeft = (evt) => {
             if (!evt || !evt.startDate) return 0;
             const [year, month, day] = evt.startDate.split('-').map(Number);
-            const target = new Date(year, month - 1, day); // Meia-noite local
+            const target = new Date(year, month - 1, day);
             const today = new Date();
-            today.setHours(0,0,0,0); // Meia-noite local hoje
+            today.setHours(0,0,0,0);
             const diff = target - today;
             return Math.ceil(diff / (86400000));
         };
 
-        // Lógica atualizada para ser rigorosa com a data local
         const isEventFinished = (evt) => {
             if (!evt.endDate && !evt.startDate) return false;
-            
-            // Usa a data de término, ou início se não houver término
             const dateStr = evt.endDate || evt.startDate;
-            
-            // Decompõe a string YYYY-MM-DD para garantir uso do fuso local
             const [year, month, day] = dateStr.split('-').map(Number);
-            
-            // Cria objeto Date para o ÚLTIMO MIILESEGUNDO do dia do evento (Local Time)
-            // Mês é 0-indexado no construtor Date (Janeiro = 0)
             const eventEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
-            
-            // Se o final do dia do evento for menor que AGORA, o evento acabou.
             return eventEnd < new Date();
         };
 
-        const getMonthAbbr = (dateStr) => {
-            if (!dateStr) return 'DEZ';
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const date = new Date(year, month - 1, day);
-            return date.toLocaleString('pt-BR', { month: 'short' }).toUpperCase().replace('.', '');
-        };
-        const getDayNumber = (dateStr) => {
-            if (!dateStr) return '02';
-            const [year, month, day] = dateStr.split('-').map(Number);
-            return String(day).padStart(2, '0');
-        };
-
-        // --- Dados Iniciais (Vazio conforme pedido) ---
+        // --- Dados Iniciais (Vazio) ---
         const INITIAL_MEMBERS = [
             { id: '1', name: 'Paulo Mokarzel', role: 'Head de Eventos', photoUrl: null },
             { id: '2', name: 'Matheus Silva', role: 'Marketing', photoUrl: null },
@@ -221,12 +191,7 @@
         const PASTEL_COLORS = [
             { id: 'blue', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', hex: '#DBEAFE' },
             { id: 'green', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', hex: '#D1FAE5' },
-            { id: 'yellow', bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', hex: '#FEF3C7' },
-            { id: 'red', bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-200', hex: '#FFE4E6' },
-            { id: 'purple', bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', hex: '#F3E8FF' },
-            { id: 'orange', bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200', hex: '#FFEDD5' },
-            { id: 'teal', bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', hex: '#CCFBF1' },
-            { id: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200', hex: '#E0E7FF' },
+            // ... outros
         ];
 
         const STATUS_COLUMNS = [
@@ -336,13 +301,7 @@
                         body: JSON.stringify({
                             contents: [{
                                 parts: [{
-                                    text: `Você é um assistente de gestão de eventos. Aqui estão os dados atuais: 
-                                    Eventos: ${JSON.stringify((context.events || []).map(e => ({ title: e.title, status: isEventFinished(e) ? 'Finalizado' : 'Ativo', dateRange: e.dateRange })))}
-                                    Tarefas: ${JSON.stringify((context.tasks || []).map(t => ({ text: t.text, status: t.status, cost: t.cost })))}
-                                    Equipe: ${JSON.stringify((context.members || []).map(m => m.name))}
-                                    
-                                    Pergunta do usuário: "${prompt}"
-                                    Responda de forma concisa e útil em português.`
+                                    text: `Você é um assistente de gestão de eventos. Responda de forma concisa e útil em português.`
                                 }]
                             }]
                         })
@@ -363,29 +322,8 @@
                 let responseText = "Desculpe, não consegui entender o contexto.";
                 const aiResponse = await callGeminiAPI(text);
                 
-                if (aiResponse) {
-                    responseText = aiResponse;
-                } else {
-                    const lowerInput = text.toLowerCase();
-                    if(lowerInput.includes('tarefa') || lowerInput.includes('fazer') || lowerInput.includes('atuais')) {
-                        const count = context.tasks.filter(t => t.status !== 'done').length;
-                        responseText = `Atualmente, tem ${count} tarefas pendentes em todos os eventos ativos.`;
-                    } else if (lowerInput.includes('custo') || lowerInput.includes('dinheiro') || lowerInput.includes('orçamento')) {
-                        const totalCost = context.tasks.reduce((acc, t) => acc + (t.cost || 0), 0);
-                        responseText = `O investimento total registado em tarefas é de ${formatCurrency(totalCost)}.`;
-                    } else if (lowerInput.includes('equipe') || lowerInput.includes('membro') || lowerInput.includes('livre')) {
-                         const busyMemberIds = new Set(context.tasks.filter(t => t.status !== 'done').map(t => t.responsible?.id).filter(Boolean));
-                         const freeMembers = context.members.filter(m => !busyMemberIds.has(m.id));
-                         if (freeMembers.length > 0) {
-                             responseText = `Membros sem tarefas ativas no momento: ${freeMembers.map(m => m.name).join(', ')}.`;
-                         } else {
-                             responseText = `A sua equipa global tem ${context.members.length} membros registados e todos parecem ter tarefas.`;
-                         }
-                    } else if (lowerInput.includes('resum')) {
-                         const activeEvts = (context.events || []).filter(e => !isEventFinished(e));
-                         responseText = `Você tem ${activeEvts.length} eventos ativos. O próximo é "${activeEvts[0]?.title || 'Nenhum'}".`;
-                    }
-                }
+                if (aiResponse) responseText = aiResponse;
+                else responseText = "Sem resposta da IA.";
 
                 setMessages(prev => [...prev, { sender: 'ai', text: responseText }]);
                 setIsTyping(false);
@@ -396,10 +334,6 @@
                 const txt = input;
                 setInput("");
                 await processQuery(txt);
-            };
-
-            const handleQuickAction = (action) => {
-                processQuery(action);
             };
 
             if(!isOpen) return null;
@@ -419,11 +353,6 @@
                         {isTyping && <div className="flex justify-start"><div className="bg-white border border-gray-100 p-3 rounded-xl rounded-tl-none shadow-sm flex gap-1"><div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div><div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div><div className="w-1.5 h-1.5 bg-gray-400 rounded-full typing-dot"></div></div></div>}
                         <div ref={messagesEndRef}></div>
                     </div>
-                    <div className="p-2 bg-gray-50 flex gap-2 overflow-x-auto hide-scrollbar border-t border-gray-100">
-                         <button onClick={() => handleQuickAction("Quem está livre?")} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">📊 Quem está livre?</button>
-                         <button onClick={() => handleQuickAction("Resuma os eventos ativos")} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">📝 Resumo Eventos</button>
-                         <button onClick={() => handleQuickAction("Custos totais")} className="whitespace-nowrap px-3 py-1.5 bg-white border border-blue-100 rounded-full text-xs font-bold text-blue-700 hover:bg-blue-50 shadow-sm transition-colors">💰 Custos</button>
-                    </div>
                     <div className="p-3 bg-white border-t flex gap-2">
                         <input className="flex-1 bg-gray-100 border-none outline-none rounded-lg px-3 py-2 text-sm" placeholder="Digite sua pergunta..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleSend()}/>
                         <button onClick={handleSend} className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"><Send size={18}/></button>
@@ -432,59 +361,7 @@
             );
         };
 
-        // --- Agenda Components ---
-        const CalendarWidget = ({ items, onDateSelect, selectedDate }) => {
-            const [currentDate, setCurrentDate] = useState(new Date());
-            const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
-            const days = Array(firstDay).fill(null).concat([...Array(daysInMonth).keys()].map(i => new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1)));
-
-            const changeMonth = (delta) => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
-            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-            const hasItem = (date) => {
-                if (!date) return false;
-                const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-                const dStr = localDate.toISOString().split('T')[0];
-                return items.some(i => i.date === dStr);
-            };
-
-            const getItemColor = (date) => {
-                if(!date) return null;
-                const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-                const dStr = localDate.toISOString().split('T')[0];
-                const item = items.find(i => i.date === dStr);
-                return item ? (AGENDA_COLORS.find(c => c.id === item.color)?.bg || 'bg-blue-100') : null;
-            };
-
-            return (
-                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden h-full flex flex-col">
-                    <div className="p-4 flex justify-between items-center bg-gray-50 border-b border-gray-100">
-                        <button onClick={()=>changeMonth(-1)} className="p-1 hover:bg-gray-200 rounded"><ChevronLeft size={16}/></button>
-                        <span className="font-bold text-gray-700 text-sm">{monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}</span>
-                        <button onClick={()=>changeMonth(1)} className="p-1 hover:bg-gray-200 rounded"><ChevronRight size={16}/></button>
-                    </div>
-                    <div className="grid grid-cols-7 text-center text-xs text-gray-400 p-2 border-b border-gray-100 bg-white">{['D','S','T','Q','Q','S','S'].map((d,i)=><div key={i}>{d}</div>)}</div>
-                    <div className="grid grid-cols-7 gap-1 p-2 bg-white flex-1 content-start">
-                        {days.map((date, idx) => {
-                            if (!date) return <div key={idx}></div>;
-                            const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-                            const dateStr = localDate.toISOString().split('T')[0];
-                            const isSelected = selectedDate === dateStr;
-                            const itemPresent = hasItem(date);
-                            const bg = getItemColor(date);
-                            return (
-                                <button key={idx} onClick={() => onDateSelect && onDateSelect(dateStr)} className={`h-8 w-8 mx-auto rounded-full flex items-center justify-center text-xs font-medium transition-all relative ${isSelected ? 'bg-blue-600 text-white shadow-md' : 'hover:bg-gray-100 text-gray-700'} ${!isSelected && itemPresent ? `${bg} font-bold` : ''}`}>
-                                    {date.getDate()}
-                                    {itemPresent && !isSelected && <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-current opacity-50"></div>}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        };
-
+        // --- Agenda Component ---
         const AgendaComponent = ({ agendaItems, onAdd, onDelete, onUpdate, readOnly = false, contextTitle = "Agenda", selectedDateFilter, events, scrollable = true }) => {
             const [newItem, setNewItem] = useState({ title: '', date: '', color: 'blue', eventId: '' });
             const [isAdding, setIsAdding] = useState(false);
@@ -544,17 +421,12 @@
 
         // --- Modals ---
         const WorkloadDetailModal = ({ isOpen, onClose, member, memberTasks, allMembers, onUpdateTask }) => {
-            const [selectedTask, setSelectedTask] = useState(null);
-            const [action, setAction] = useState(null);
-            const [targetMember, setTargetMember] = useState('');
             if (!isOpen || !member) return null;
-            const handleTransfer = () => { if(selectedTask && targetMember) { const newOwner = allMembers.find(m => m.id === targetMember); onUpdateTask(selectedTask.id, { responsible: newOwner }); setSelectedTask(null); setAction(null); } };
-            const handleRemove = (task) => { if(confirm("Remover esta tarefa deste membro?")) { onUpdateTask(task.id, { responsible: null }); } };
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title={`Carga de Trabalho: ${member.name}`}>
                     <div className="p-6">
                         <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100"><div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md"><Avatar member={member} size="w-full h-full"/></div><div><h3 className="font-bold text-lg text-gray-900">{member.name}</h3><p className="text-sm text-gray-500">{member.role}</p><span className="inline-block mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold">{memberTasks.length} Tarefas Ativas</span></div></div>
-                        {action === 'transfer' && selectedTask ? ( <div className="mb-4 p-4 bg-blue-50 rounded-xl border border-blue-100 animate-in"><p className="text-sm font-bold text-blue-900 mb-2">Transferir "{selectedTask.text}" para:</p><div className="flex gap-2"><select className="flex-1 p-2 border rounded-lg text-sm" value={targetMember} onChange={e=>setTargetMember(e.target.value)}><option value="">Selecione...</option>{allMembers.filter(m => m.id !== member.id).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select><button onClick={handleTransfer} disabled={!targetMember} className="bg-blue-600 text-white px-4 rounded-lg text-sm font-bold disabled:opacity-50">OK</button><button onClick={()=>{setAction(null); setSelectedTask(null)}} className="bg-white text-gray-500 border px-3 rounded-lg text-sm">Cancel</button></div></div> ) : ( <div className="space-y-2 max-h-60 overflow-y-auto pr-2">{memberTasks.map(t => (<div key={t.id} className="p-3 border border-gray-100 rounded-xl flex justify-between items-center bg-white hover:shadow-sm transition-all group"><span className="text-sm font-medium text-gray-700 truncate flex-1 pr-4">{t.text}</span><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={()=>{setSelectedTask(t); setAction('transfer')}} title="Transferir" className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Repeat size={14}/></button><button onClick={()=>handleRemove(t)} title="Remover Responsável" className="p-1.5 text-red-600 hover:bg-red-50 rounded"><LogOut size={14}/></button></div></div>))}</div> )}
+                        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">{memberTasks.map(t => (<div key={t.id} className="p-3 border border-gray-100 rounded-xl flex justify-between items-center bg-white hover:shadow-sm transition-all group"><span className="text-sm font-medium text-gray-700 truncate flex-1 pr-4">{t.text}</span></div>))}</div>
                     </div>
                 </Modal>
             );
@@ -917,71 +789,6 @@
             );
         };
 
-        // --- Setup Screen Component ---
-        const SetupScreen = () => {
-            const [configJson, setConfigJson] = useState('');
-            const [error, setError] = useState('');
-
-            const handleSave = () => {
-                try {
-                    // Validate JSON
-                    const parsed = JSON.parse(configJson);
-                    if (!parsed.apiKey || !parsed.projectId) {
-                        throw new Error("Configuração inválida. Verifique se copiou todo o objeto do Firebase.");
-                    }
-                    localStorage.setItem('event_hub_firebase_config', configJson);
-                    window.location.reload();
-                } catch (e) {
-                    setError("Erro ao salvar: " + e.message);
-                }
-            };
-
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-900 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full animate-in">
-                        <div className="flex flex-col items-center mb-6">
-                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-600">
-                                <Database size={32} />
-                            </div>
-                            <h1 className="text-2xl font-bold text-gray-900 text-center">Conectar Banco de Dados</h1>
-                            <p className="text-sm text-gray-500 text-center mt-2">Para usar o Event Hub, precisamos conectar ao seu Firebase.</p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800">
-                                <p className="font-bold mb-1">Como obter a configuração?</p>
-                                <ol className="list-decimal list-inside space-y-1 opacity-80">
-                                    <li>Vá ao Console do Firebase > Project Settings</li>
-                                    <li>Role até "Your apps" e selecione "Web"</li>
-                                    <li>Copie o objeto <code>firebaseConfig</code> (apenas o conteúdo entre as chaves <code>{`{...}`}</code>)</li>
-                                </ol>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cole o JSON aqui</label>
-                                <textarea 
-                                    className="w-full h-32 p-3 border rounded-xl text-xs font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder='{ "apiKey": "...", "authDomain": "...", ... }'
-                                    value={configJson}
-                                    onChange={e => setConfigJson(e.target.value)}
-                                ></textarea>
-                            </div>
-
-                            {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2"><AlertTriangle size={16}/> {error}</div>}
-
-                            <button 
-                                onClick={handleSave}
-                                disabled={!configJson}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
-                            >
-                                Conectar e Iniciar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         // --- Dashboard & Event Views ---
 
         const Dashboard = ({ events, tasks, members, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId }) => {
@@ -1128,7 +935,333 @@
             );
         };
 
+        const EventDetail = ({ event, onBack, tasks, members, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember, onDeleteEvent }) => {
+            const [selectedDate, setSelectedDate] = useState(null);
+            const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+            const [selectedTaskId, setSelectedTaskId] = useState(null); // Changed to ID
+            const [filterPhase, setFilterPhase] = useState('all');
+            const [viewGrouping, setViewGrouping] = useState('category'); 
+            const [isEditEventOpen, setIsEditEventOpen] = useState(false);
+            const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
 
+            // Derived state for the modal
+            const selectedTask = tasks.find(t => t.id === selectedTaskId);
+
+            const handleDragStart = (e, task) => { e.dataTransfer.setData("taskId", task.id); };
+            const handleDragOver = (e) => e.preventDefault();
+            const handleDrop = (e, targetId) => { const taskId = e.dataTransfer.getData("taskId"); if (viewGrouping === 'status') onUpdateTask(parseInt(taskId), { status: targetId }); else onUpdateTask(parseInt(taskId), { category: targetId }); };
+            const filteredTasks = tasks.filter(t => t.eventId === event.id && (filterPhase === 'all' || t.phase === filterPhase));
+            const handleAddAgenda = (item) => onUpdateEvent(event.id, { agenda: [...(event.agenda||[]), item] });
+            const handleDeleteAgenda = (id) => onUpdateEvent(event.id, { agenda: (event.agenda||[]).filter(a=>a.id!==id) });
+            const handleUpdateAgenda = (id, newItem) => { const newAgenda = (event.agenda || []).map(a => a.id === id ? { ...a, ...newItem } : a); onUpdateEvent(event.id, { agenda: newAgenda }); };
+            const cyclePriority = (task) => { const map = { low: 'medium', medium: 'high', high: 'low' }; onUpdateTask(task.id, { priority: map[task.priority || 'low'] }); };
+            const eventTeam = [members.find(m=>m.id===event.responsibleId), ...members.filter(m=>event.teamIds?.includes(m.id))].filter(Boolean);
+            const columns = viewGrouping === 'status' ? STATUS_COLUMNS : (event.categories || DEFAULT_CATEGORIES);
+            const totalEventCost = filteredTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
+
+            return (
+                <div className="min-h-screen bg-[#F8FAFC] pb-24 animate-in">
+                    <div className="h-48 bg-blue-900 relative">
+                        {event.coverUrl && <img src={event.coverUrl} className="w-full h-full object-cover opacity-30"/>}
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#F8FAFC] to-transparent"></div>
+                        <div className="absolute bottom-4 left-6">
+                            <h1 className="text-2xl font-extrabold text-blue-950">{event.title}</h1>
+                            <p className="text-sm font-bold text-gray-500 mt-1">Custo Total: {formatCurrency(totalEventCost)}</p>
+                        </div>
+                        <button onClick={onBack} className="absolute top-4 left-4 p-2 bg-white/20 rounded-full hover:bg-white/40 text-white"><ArrowLeft/></button>
+                        <button onClick={() => setIsEditEventOpen(true)} className="absolute top-4 right-4 p-2 bg-white/20 rounded-full hover:bg-white/40 text-white"><Edit2/></button>
+                    </div>
+
+                    <div className="max-w-[1800px] mx-auto px-6 mt-4 grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={16}/> Equipe do Evento</h3><button onClick={()=>setIsAddTeamOpen(!isAddTeamOpen)} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Plus size={16}/></button></div>
+                                {isAddTeamOpen && (<div className="mb-3 p-2 bg-gray-50 rounded-lg max-h-32 overflow-y-auto animate-in">{members.filter(m => !eventTeam.some(et => et.id === m.id)).map(m => (<div key={m.id} className="flex justify-between items-center p-1 hover:bg-gray-100 rounded cursor-pointer" onClick={() => { onAddTeamMember(event.id, m.id); setIsAddTeamOpen(false); }}><span className="text-xs">{m.name}</span><Plus size={12}/></div>))}</div>)}
+                                <div className="space-y-3">{eventTeam.map(m => (<div key={m.id} className="flex items-center gap-3 group"><Avatar member={m}/><div className="flex-1 min-w-0"><p className="text-xs font-bold truncate">{m.name}</p><p className="text-[10px] text-gray-500 truncate">{m.role}</p></div>{m.id === event.responsibleId ? <Crown size={14} className="text-amber-500"/> : <button onClick={() => onRemoveTeamMember(event.id, m.id)} className="text-red-400 opacity-0 group-hover:opacity-100"><X size={14}/></button>}</div>))}</div>
+                            </div>
+                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[500px]">
+                                <div className="p-4 border-b bg-gray-50/50 font-bold text-gray-700 flex items-center gap-2"><CalendarIcon size={16}/> Agenda do Evento</div>
+                                <div className="flex-1 overflow-visible">
+                                    <AgendaComponent agendaItems={event.agenda || []} selectedDateFilter={null} onAdd={handleAddAgenda} onDelete={handleDeleteAgenda} onUpdate={handleUpdateAgenda} contextTitle="" scrollable={true} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="lg:col-span-3 space-y-6">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between gap-4">
+                                <div className="flex bg-gray-100 p-1 rounded-lg">{['all', 'pre', 'during', 'post'].map(ph => (<button key={ph} onClick={()=>setFilterPhase(ph)} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filterPhase===ph ? 'bg-white shadow text-blue-900' : 'text-gray-500'}`}>{ph === 'all' ? 'Todos' : ph === 'pre' ? 'Pré' : ph === 'during' ? 'Durante' : 'Pós'}</button>))}</div>
+                                <div className="flex items-center gap-2"><div className="flex bg-gray-100 p-1 rounded-lg mr-2"><button onClick={() => setViewGrouping('category')} className={`p-2 rounded-md ${viewGrouping === 'category' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Categoria"><Grid size={16}/></button><button onClick={() => setViewGrouping('status')} className={`p-2 rounded-md ${viewGrouping === 'status' ? 'bg-white shadow text-blue-600' : 'text-gray-400'}`} title="Ver por Status"><Columns size={16}/></button></div><button onClick={onOpenCategorySettings} className="p-2 border rounded-lg text-gray-500 hover:bg-gray-50" title="Ajustes de Categoria"><Settings size={16}/></button><button onClick={onAddTask} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-2"><Plus size={14}/> Nova Tarefa</button></div>
+                            </div>
+                            <div className="flex flex-wrap gap-4 items-start">
+                                {columns.map(col => {
+                                    const colTasks = filteredTasks.filter(t => viewGrouping === 'status' ? t.status === col.id : t.category === col.id);
+                                    return (
+                                        <div key={col.id} className="min-w-[280px] flex-1 bg-gray-100/50 rounded-xl p-2 border border-gray-200 flex flex-col" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id)}>
+                                            <div className="flex items-center justify-between p-3 mb-2"><span className={`text-xs font-bold uppercase flex items-center gap-2 ${col.color ? `text-${col.color}-700` : 'text-gray-700'}`}>{col.icon && React.createElement(ICON_MAP[col.icon] || Box, { size: 14 })} {col.title}</span><span className="bg-white text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded border">{colTasks.length}</span></div>
+                                            <div className="space-y-3 flex-1">{colTasks.map(task => (<div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task)} onClick={() => { setSelectedTaskId(task.id); setIsTaskModalOpen(true); }} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md cursor-pointer group relative"><div className="flex justify-between items-start mb-2"><FlagPriority level={task.priority} onClick={()=>cyclePriority(task)}/><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button className="text-gray-400 hover:text-blue-600"><Edit2 size={12}/></button></div></div><p className="text-sm font-medium text-gray-800 mb-3">{task.text}</p><div className="flex items-center justify-between pt-2 border-t border-gray-50"><div className="flex items-center gap-2"><Avatar member={task.responsible} size="w-5 h-5"/><span className="text-[10px] text-gray-500">{task.responsible?.name.split(' ')[0]}</span></div>{task.cost > 0 && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded">{formatCurrency(task.cost)}</span>}</div></div>))}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                    {selectedTask && <TaskDetailModal isOpen={isTaskModalOpen} onClose={() => { setIsTaskModalOpen(false); setSelectedTaskId(null); }} task={selectedTask} members={members} dbOperations={{ updateTask: (id, updates) => onUpdateTask(id, updates) }} deleteTask={onDeleteTask} />}
+                    <EditEventModal isOpen={isEditEventOpen} onClose={() => setIsEditEventOpen(false)} event={event} onUpdate={onUpdateEvent} members={members} onDelete={onDeleteEvent} />
+                </div>
+            );
+        };
+
+        // --- App ---
+        // Change from arrow function to function declaration to avoid ReferenceError with hoisting
+        function App() {
+            const [view, setView] = useState('dashboard');
+            const [selectedEvent, setSelectedEvent] = useState(null);
+            
+            // --- FIREBASE STATE ---
+            const [events, setEvents] = useState([]);
+            const [tasks, setTasks] = useState([]);
+            const [members, setMembers] = useState([]);
+            const [user, setUser] = useState(null);
+            const [needsConfig, setNeedsConfig] = useState(false);
+            // ----------------------
+            
+            const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+            const [isNewEventOpen, setIsNewEventOpen] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [isCatSettingsOpen, setIsCatSettingsOpen] = useState(false);
+            const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+            const [isAIOpen, setIsAIOpen] = useState(false);
+            const [selectedWorkloadMember, setSelectedWorkloadMember] = useState(null);
+            const [logo, setLogo] = useState(null);
+            const [managerId, setManagerId] = useState('1'); 
+            const [geminiKey, setGeminiKey] = useState('');
+
+            // Auth & Listeners
+            useEffect(() => {
+                if (!app) {
+                    setNeedsConfig(true);
+                    return;
+                }
+
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) {
+                        console.error("Authentication Failed", e);
+                    }
+                };
+                initAuth();
+
+                return onAuthStateChanged(auth, (u) => {
+                    setUser(u);
+                });
+            }, []);
+
+            useEffect(() => {
+                if(!user || !db) return;
+
+                // Listen Events
+                const unsubEvents = onSnapshot(getColPath('events'), (snap) => {
+                    if (snap.empty && !localStorage.getItem('db_initialized')) {
+                        // Seed initial data if DB is empty (REMOVED INITIAL EVENTS TO BE EMPTY AS REQUESTED)
+                        INITIAL_MEMBERS.forEach(m => setDoc(getDocPath('members', m.id), m));
+                        setDoc(getDocPath('config', 'main'), { managerId: '1' });
+                        localStorage.setItem('db_initialized', 'true');
+                    } else {
+                        setEvents(snap.docs.map(d => d.data()));
+                    }
+                });
+
+                // Listen Tasks
+                const unsubTasks = onSnapshot(getColPath('tasks'), (snap) => {
+                    setTasks(snap.docs.map(d => d.data()));
+                });
+
+                // Listen Members
+                const unsubMembers = onSnapshot(getColPath('members'), (snap) => {
+                    setMembers(snap.docs.map(d => d.data()));
+                });
+
+                // Listen Settings
+                const unsubSettings = onSnapshot(getDocPath('config', 'main'), (snap) => {
+                    if(snap.exists()) {
+                        const data = snap.data();
+                        if(data.logo) setLogo(data.logo);
+                        if(data.managerId) setManagerId(data.managerId);
+                        if(data.geminiKey) setGeminiKey(data.geminiKey);
+                    }
+                });
+
+                return () => {
+                    unsubEvents();
+                    unsubTasks();
+                    unsubMembers();
+                    unsubSettings();
+                };
+            }, [user]);
+
+            // --- Handlers modified to use Firestore ---
+
+            const handleUpdateTask = (id, updates) => {
+                updateDoc(getDocPath('tasks', id), updates);
+            };
+
+            const handleDeleteTask = (id) => {
+                deleteDoc(getDocPath('tasks', id));
+            };
+
+            const handleCreateTask = (newTask) => {
+                setDoc(getDocPath('tasks', newTask.id), newTask);
+            };
+
+            const handleUpdateEvent = (id, updates) => {
+                updateDoc(getDocPath('events', id), updates);
+            };
+
+            const handleCreateEvent = (newEvent, newTasks) => {
+                setDoc(getDocPath('events', newEvent.id), newEvent);
+                newTasks.forEach(t => setDoc(getDocPath('tasks', t.id), t));
+            };
+
+            const handleDeleteEvent = (eventId) => {
+                if(confirm("Tem certeza que deseja excluir este evento e todas as suas tarefas?")) {
+                    deleteDoc(getDocPath('events', eventId));
+                    // Delete associated tasks
+                    const associatedTasks = tasks.filter(t => t.eventId === eventId);
+                    associatedTasks.forEach(t => deleteDoc(getDocPath('tasks', t.id)));
+                    
+                    setView('dashboard');
+                    setSelectedEvent(null);
+                }
+            };
+
+            const handleUpdateMember = (id, updates) => {
+                updateDoc(getDocPath('members', id), updates);
+            };
+
+            const handleAddMember = (newMember) => {
+                setDoc(getDocPath('members', newMember.id), newMember);
+            };
+
+            const handleUpdateLogo = (url) => {
+                setDoc(getDocPath('config', 'main'), { logo: url }, { merge: true });
+            };
+
+            const handleUpdateManager = (id) => {
+                setDoc(getDocPath('config', 'main'), { managerId: id }, { merge: true });
+            };
+            
+            const handleUpdateGeminiKey = (key) => {
+                setDoc(getDocPath('config', 'main'), { geminiKey: key }, { merge: true });
+            };
+            
+            const handleGlobalAddAgenda = (type, item) => {
+                if(item.eventId) {
+                    const evt = events.find(e => e.id === item.eventId);
+                    if(evt) handleUpdateEvent(evt.id, { agenda: [...(evt.agenda||[]), item] });
+                } else if (events.length > 0) {
+                    const evt = events[0]; 
+                    handleUpdateEvent(evt.id, { agenda: [...(evt.agenda||[]), item] });
+                }
+            };
+
+            const handleGlobalDeleteAgenda = (id) => { 
+                // We need to find which event has this agenda item since structure is nested
+                const evt = events.find(e => (e.agenda || []).some(a => a.id === id));
+                if (evt) {
+                    handleUpdateEvent(evt.id, { agenda: evt.agenda.filter(a => a.id !== id) });
+                }
+            };
+
+            const handleGlobalUpdateAgenda = (id, newItem) => {
+                const evt = events.find(e => (e.agenda || []).some(a => a.id === id));
+                if (evt) {
+                    const newAgenda = evt.agenda.map(a => a.id === id ? { ...a, ...newItem } : a);
+                    handleUpdateEvent(evt.id, { agenda: newAgenda });
+                }
+            };
+            
+            const handleUpdateEventCategories = (newCats) => {
+                if(selectedEvent) {
+                    handleUpdateEvent(selectedEvent.id, { categories: newCats });
+                    setSelectedEvent(prev => ({ ...prev, categories: newCats }));
+                }
+            };
+
+            const handleAddTeamMember = (eventId, memberId) => {
+                const event = events.find(e => e.id === eventId);
+                if (event && !event.teamIds?.includes(memberId)) {
+                    const newTeam = [...(event.teamIds || []), memberId];
+                    handleUpdateEvent(eventId, { teamIds: newTeam });
+                }
+            };
+
+            const handleRemoveTeamMember = (eventId, memberId) => {
+                 const event = events.find(e => e.id === eventId);
+                 if(event) {
+                      const newTeam = (event.teamIds || []).filter(id => id !== memberId);
+                      handleUpdateEvent(eventId, { teamIds: newTeam });
+                 }
+            };
+
+            const currentSelectedEvent = selectedEvent ? events.find(e => e.id === selectedEvent.id) : null;
+
+            if (needsConfig) {
+                return <SetupScreen />;
+            }
+
+            return (
+                <>
+                    {view === 'dashboard' && <Dashboard events={events} tasks={tasks} members={members} onSelectEvent={(e) => { setSelectedEvent(e); setView('detail'); }} onNewEvent={() => setIsNewEventOpen(true)} onMemberClick={setSelectedWorkloadMember} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda} globalLogo={logo} managerId={managerId}/>}
+                    {view === 'detail' && currentSelectedEvent && (
+                        <EventDetail 
+                            event={currentSelectedEvent} onBack={() => setView('dashboard')} 
+                            tasks={tasks} members={members} categories={currentSelectedEvent.categories || DEFAULT_CATEGORIES}
+                            onUpdateTask={handleUpdateTask} onUpdateEvent={handleUpdateEvent} onDeleteTask={handleDeleteTask}
+                            onOpenCategorySettings={() => setIsCatSettingsOpen(true)}
+                            onAddTask={() => setIsNewTaskOpen(true)}
+                            onAddTeamMember={handleAddTeamMember}
+                            onRemoveTeamMember={handleRemoveTeamMember}
+                            onDeleteEvent={handleDeleteEvent}
+                        />
+                    )}
+                    {view === 'agenda' && <GlobalAgendaView events={events} tasks={tasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
+                    {view === 'team' && <GlobalTeamView members={members} onEdit={() => setIsSettingsOpen(true)} />}
+                    {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>}
+                    
+                    <BottomNav activeTab={view} onChangeTab={(v) => { if(v === 'settings') setIsSettingsOpen(true); else setView(v); }} onAdd={() => setIsNewEventOpen(true)} />
+                    
+                    <button 
+                        onClick={() => setIsAIOpen(!isAIOpen)}
+                        className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-xl shadow-blue-600/30 flex items-center justify-center text-white z-[150] hover:scale-110 transition-transform duration-300 animate-in"
+                    >
+                        {isAIOpen ? <X size={24}/> : <Sparkles size={24}/>}
+                    </button>
+
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: tasks.reduce((a,b)=>a+(b.cost||0),0), tasks, members, events}} apiKey={geminiKey} />
+
+                    <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>
+                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} />
+                    <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
+                    {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
+                </>
+            );
+        };
+
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+            const root = createRoot(rootElement);
+            root.render(<App />);
+        } else {
+            console.error("Root element not found");
+        }
+    </script>
+</body>
+</html>
 
 
 
