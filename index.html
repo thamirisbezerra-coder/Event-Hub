@@ -524,6 +524,7 @@
             
             const handleUpdate = (id, field, val) => { setCats(prev => prev.map(c => c.id === id ? { ...c, [field]: val } : c)); };
             const handleDelete = (id) => { if (confirm("Tem a certeza?")) setCats(prev => prev.filter(c => c.id !== id)); };
+            // Melhoria na geração de ID para evitar conflitos
             const handleAdd = () => { 
                 if (!newCat.title.trim()) return; 
                 const uniqueId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -1314,6 +1315,15 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [memberFilter, setMemberFilter] = useState('');
 
+            // ESTADO PARA EXPANDIR CATEGORIAS
+            const [expandedCategories, setExpandedCategories] = useState([]);
+
+            const toggleCategory = (id) => {
+                setExpandedCategories(prev => 
+                    prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+                );
+            };
+
             // Derived state for the modal
             const selectedTask = tasks.find(t => t.id === selectedTaskId);
 
@@ -1489,14 +1499,57 @@
                                 </div>
                             </div>
                             
-                            {/* KANBAN BOARD COM GRID WRAP (4 POR LINHA) */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start pb-4">
+                             {/* Category List - Accordion Style */}
+                             <div className="flex flex-col gap-4 pb-4">
                                 {columns.map(col => {
                                     const colTasks = filteredTasks.filter(t => viewGrouping === 'status' ? t.status === col.id : t.category === col.id);
+                                    const isExpanded = expandedCategories.includes(col.id);
+                                    
                                     return (
-                                        <div key={col.id} className="bg-gray-100/50 rounded-xl p-2 border border-gray-200 flex flex-col" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id)}>
-                                            <div className="flex items-center justify-between p-3 mb-2"><span className={`text-xs font-bold uppercase flex items-center gap-2 ${col.color ? `text-${col.color}-700` : 'text-gray-700'}`}>{col.icon && React.createElement(ICON_MAP[col.icon] || Box, { size: 14 })} {col.title}</span><span className="bg-white text-gray-400 text-[10px] font-bold px-2 py-0.5 rounded border">{colTasks.length}</span></div>
-                                            <div className="space-y-3 flex-1">{colTasks.map(task => (<div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task)} onClick={() => { setSelectedTaskId(task.id); setIsTaskModalOpen(true); }} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md cursor-pointer group relative"><div className="flex justify-between items-start mb-2"><FlagPriority level={task.priority} onClick={()=>cyclePriority(task)}/><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button className="text-gray-400 hover:text-blue-600"><Edit2 size={12}/></button></div></div><p className="text-sm font-medium text-gray-800 mb-3">{task.text}</p><div className="flex items-center justify-between pt-2 border-t border-gray-50"><div className="flex items-center gap-2"><Avatar member={task.responsible} size="w-5 h-5"/><span className="text-[10px] text-gray-500">{task.responsible?.name.split(' ')[0]}</span></div>{task.cost > 0 && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded">{formatCurrency(task.cost)}</span>}</div></div>))}</div>
+                                        <div key={col.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all">
+                                            {/* Header - Clickable */}
+                                            <div 
+                                                onClick={() => toggleCategory(col.id)}
+                                                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                     {/* Icon & Title */}
+                                                     <div className={`p-2 rounded-lg bg-${col.color}-100 text-${col.color}-700`}>
+                                                        {React.createElement(ICON_MAP[col.icon] || Box, { size: 20 })}
+                                                     </div>
+                                                     <h3 className="font-bold text-gray-800 text-sm md:text-base">{col.title}</h3>
+                                                     <span className="bg-gray-100 text-gray-500 text-xs font-bold px-2 py-1 rounded-full">{colTasks.length}</span>
+                                                </div>
+                                                {/* Chevron */}
+                                                {isExpanded ? <ChevronUp size={20} className="text-gray-400"/> : <ChevronDown size={20} className="text-gray-400"/>}
+                                            </div>
+
+                                            {/* Body - Tasks */}
+                                            {isExpanded && (
+                                                <div className="p-4 bg-gray-50 border-t border-gray-100 animate-in">
+                                                    {colTasks.length === 0 && <p className="text-sm text-gray-400 italic text-center py-2">Nenhuma tarefa nesta categoria.</p>}
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        {colTasks.map(task => (
+                                                            <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task)} onClick={() => { setSelectedTaskId(task.id); setIsTaskModalOpen(true); }} className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm hover:shadow-md cursor-pointer group relative">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <FlagPriority level={task.priority} onClick={()=>cyclePriority(task)}/>
+                                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <button className="text-gray-400 hover:text-blue-600"><Edit2 size={12}/></button>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-sm font-medium text-gray-800 mb-3">{task.text}</p>
+                                                                <div className="flex items-center justify-between pt-2 border-t border-gray-50">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Avatar member={task.responsible} size="w-5 h-5"/>
+                                                                        <span className="text-[10px] text-gray-500">{task.responsible?.name.split(' ')[0]}</span>
+                                                                    </div>
+                                                                    {task.cost > 0 && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 rounded">{formatCurrency(task.cost)}</span>}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -1782,7 +1835,6 @@
     </script>
 </body>
 </html>
-
 
 
 
