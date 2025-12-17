@@ -65,7 +65,7 @@
             ExternalLink, Lightbulb, BrainCircuit, MoreVertical, Paperclip, FileText,
             Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase, Rocket, Star,
             PieChart, Timer, UserCheck, RefreshCw, Key, Archive, Download, Cloud,
-            Home, List, Grid, Smile, LogOut, Repeat, Columns
+            Home, List, Grid, Smile, LogOut, Repeat, Columns, Database
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Firebase Imports ---
@@ -73,18 +73,47 @@
         import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
-        // --- Firebase Config & Setup ---
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
-        
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        // --- Firebase Initialization Strategy (Prevents White Screen) ---
+        let app = null;
+        let db = null;
+        let auth = null;
+        let firebaseError = null;
 
-        // Helper to get collection path
-        const getColPath = (colName) => collection(db, 'artifacts', appId, 'public', 'data', colName);
-        const getDocPath = (colName, docId) => doc(db, 'artifacts', appId, 'public', 'data', colName, String(docId));
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+
+        try {
+            // Priority: 1. LocalStorage (User set manually), 2. Environment (Canvas)
+            let configToUse = null;
+            const localConfig = localStorage.getItem('event_hub_firebase_config');
+            
+            if (localConfig) {
+                configToUse = JSON.parse(localConfig);
+            } else if (typeof __firebase_config !== 'undefined') {
+                configToUse = JSON.parse(__firebase_config);
+            }
+
+            if (configToUse && configToUse.apiKey) {
+                app = initializeApp(configToUse);
+                db = getFirestore(app);
+                auth = getAuth(app);
+            } else {
+                // No config found - App will render Setup Screen
+                console.warn("Firebase config missing. Waiting for user input.");
+            }
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            firebaseError = e.message;
+        }
+
+        // Helper to get collection path (Safely)
+        const getColPath = (colName) => {
+            if (!db) return null;
+            return collection(db, 'artifacts', appId, 'public', 'data', colName);
+        };
+        const getDocPath = (colName, docId) => {
+            if (!db) return null;
+            return doc(db, 'artifacts', appId, 'public', 'data', colName, String(docId));
+        };
 
         // --- Utils & Constants ---
         const compressImage = (file, maxWidth = 800) => {
@@ -146,8 +175,8 @@
             { id: '5', name: 'Thalita Carmo', role: 'Marketing', photoUrl: null }
         ];
 
+        // REMOVIDO EVENTO DE EXEMPLO
         const INITIAL_EVENTS = [];
-
         const INITIAL_TASKS = [];
 
         // --- Constants & Configs ---
@@ -836,6 +865,71 @@
             );
         };
 
+        // --- Setup Screen Component ---
+        const SetupScreen = () => {
+            const [configJson, setConfigJson] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSave = () => {
+                try {
+                    // Validate JSON
+                    const parsed = JSON.parse(configJson);
+                    if (!parsed.apiKey || !parsed.projectId) {
+                        throw new Error("Configuração inválida. Verifique se copiou todo o objeto do Firebase.");
+                    }
+                    localStorage.setItem('event_hub_firebase_config', configJson);
+                    window.location.reload();
+                } catch (e) {
+                    setError("Erro ao salvar: " + e.message);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-900 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full animate-in">
+                        <div className="flex flex-col items-center mb-6">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 text-blue-600">
+                                <Database size={32} />
+                            </div>
+                            <h1 className="text-2xl font-bold text-gray-900 text-center">Conectar Banco de Dados</h1>
+                            <p className="text-sm text-gray-500 text-center mt-2">Para usar o Event Hub, precisamos conectar ao seu Firebase.</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800">
+                                <p className="font-bold mb-1">Como obter a configuração?</p>
+                                <ol className="list-decimal list-inside space-y-1 opacity-80">
+                                    <li>Vá ao Console do Firebase > Project Settings</li>
+                                    <li>Role até "Your apps" e selecione "Web"</li>
+                                    <li>Copie o objeto <code>firebaseConfig</code> (apenas o conteúdo entre as chaves <code>{`{...}`}</code>)</li>
+                                </ol>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Cole o JSON aqui</label>
+                                <textarea 
+                                    className="w-full h-32 p-3 border rounded-xl text-xs font-mono bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder='{ "apiKey": "...", "authDomain": "...", ... }'
+                                    value={configJson}
+                                    onChange={e => setConfigJson(e.target.value)}
+                                ></textarea>
+                            </div>
+
+                            {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2"><AlertTriangle size={16}/> {error}</div>}
+
+                            <button 
+                                onClick={handleSave}
+                                disabled={!configJson}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-200"
+                            >
+                                Conectar e Iniciar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- Dashboard & Event Views ---
 
         const Dashboard = ({ events, tasks, members, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId }) => {
@@ -891,18 +985,25 @@
 
                             <h2 className="text-lg font-bold text-blue-950 flex items-center gap-2 mb-4"><Clock size={20}/> Eventos Ativos</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-                                {activeEvents.map(evt => (
-                                    <div key={evt.id} onClick={() => onSelectEvent(evt)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
-                                        <div className="h-24 bg-gray-100 relative">
-                                            {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover"/>}
-                                            <div className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded-lg text-xs font-bold shadow-sm">{getDaysLeft(evt)} dias</div>
-                                        </div>
-                                        <div className="p-4">
-                                            <h3 className="font-bold text-gray-900 mb-1 truncate">{evt.title}</h3>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={12}/> {evt.location}</p>
-                                        </div>
+                                {activeEvents.length === 0 ? (
+                                    <div className="col-span-full flex flex-col items-center justify-center py-10 opacity-50">
+                                        <div className="bg-gray-100 p-4 rounded-full mb-3"><Rocket size={32} className="text-gray-400"/></div>
+                                        <p className="text-sm font-bold text-gray-500">Nenhum evento ativo no momento.</p>
                                     </div>
-                                ))}
+                                ) : (
+                                    activeEvents.map(evt => (
+                                        <div key={evt.id} onClick={() => onSelectEvent(evt)} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden">
+                                            <div className="h-24 bg-gray-100 relative">
+                                                {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover"/>}
+                                                <div className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded-lg text-xs font-bold shadow-sm">{getDaysLeft(evt)} dias</div>
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="font-bold text-gray-900 mb-1 truncate">{evt.title}</h3>
+                                                <p className="text-xs text-gray-500 flex items-center gap-1"><MapPin size={12}/> {evt.location}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
 
                             {finishedEvents.length > 0 && (
@@ -1030,6 +1131,7 @@
             const [tasks, setTasks] = useState([]);
             const [members, setMembers] = useState([]);
             const [user, setUser] = useState(null);
+            const [needsConfig, setNeedsConfig] = useState(false);
             // ----------------------
             
             const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
@@ -1045,11 +1147,20 @@
 
             // Auth & Listeners
             useEffect(() => {
+                if (!app) {
+                    setNeedsConfig(true);
+                    return;
+                }
+
                 const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) {
+                        console.error("Authentication Failed", e);
                     }
                 };
                 initAuth();
@@ -1060,14 +1171,12 @@
             }, []);
 
             useEffect(() => {
-                if(!user) return;
+                if(!user || !db) return;
 
                 // Listen Events
                 const unsubEvents = onSnapshot(getColPath('events'), (snap) => {
                     if (snap.empty && !localStorage.getItem('db_initialized')) {
-                        // Seed initial data if DB is empty
-                        INITIAL_EVENTS.forEach(e => setDoc(getDocPath('events', e.id), e));
-                        INITIAL_TASKS.forEach(t => setDoc(getDocPath('tasks', t.id), t));
+                        // Seed initial data if DB is empty (REMOVED INITIAL EVENTS TO BE EMPTY AS REQUESTED)
                         INITIAL_MEMBERS.forEach(m => setDoc(getDocPath('members', m.id), m));
                         setDoc(getDocPath('config', 'main'), { managerId: '1' });
                         localStorage.setItem('db_initialized', 'true');
@@ -1209,6 +1318,10 @@
             };
 
             const currentSelectedEvent = selectedEvent ? events.find(e => e.id === selectedEvent.id) : null;
+
+            if (needsConfig) {
+                return <SetupScreen />;
+            }
 
             return (
                 <>
