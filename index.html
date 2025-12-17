@@ -673,13 +673,24 @@
             };
             const daysLeft = getLocalDaysLeft();
             const daysLeftText = daysLeft < 0 ? `Terminou há ${Math.abs(daysLeft)} dias` : daysLeft === 0 ? "É hoje!" : `Faltam ${daysLeft} dias`;
+            
+            // Helper for date display
+            const formatDate = (dateStr) => {
+                if(!dateStr) return '';
+                const [y, m, d] = dateStr.split('-');
+                return `${d}/${m}/${y}`;
+            };
 
 
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Editar Evento">
-                     {/* Add Countdown Banner */}
-                    <div className={`mb-4 p-3 rounded-xl text-center text-sm font-bold ${daysLeft < 0 ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-blue-700'}`}>
-                        {daysLeftText}
+                      {/* Add Countdown Banner with Dates and Location */}
+                    <div className={`mb-4 p-3 rounded-xl text-center text-sm font-bold flex flex-col gap-1 ${daysLeft < 0 ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-blue-700'}`}>
+                        <span className="text-lg">{daysLeftText}</span>
+                        <span className="text-xs opacity-80 font-normal">
+                           {startDate && formatDate(startDate)} {endDate && endDate !== startDate && ` até ${formatDate(endDate)}`}
+                           {location && ` • ${location}`}
+                        </span>
                     </div>
 
                     <div className="space-y-4">
@@ -944,6 +955,7 @@
                 const memberTasks = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id);
                 const pending = memberTasks.filter(t => t.status !== 'done').length;
                 const done = memberTasks.filter(t => t.status === 'done').length;
+                const total = pending + done;
                 return { ...m, pending, done, total: pending + done };
             });
             
@@ -1096,7 +1108,13 @@
             const handleDeleteAgenda = (id) => onUpdateEvent(event.id, { agenda: (event.agenda||[]).filter(a=>a.id!==id) });
             const handleUpdateAgenda = (id, newItem) => { const newAgenda = (event.agenda || []).map(a => a.id === id ? { ...a, ...newItem } : a); onUpdateEvent(event.id, { agenda: newAgenda }); };
             const cyclePriority = (task) => { const map = { low: 'medium', medium: 'high', high: 'low' }; onUpdateTask(task.id, { priority: map[task.priority || 'low'] }); };
-            const eventTeam = [members.find(m=>m.id===event.responsibleId), ...members.filter(m=>event.teamIds?.includes(m.id))].filter(Boolean);
+            
+            // FIX: Ensure responsible person is not duplicated in the team list
+            const eventTeam = [
+                members.find(m => m.id === event.responsibleId),
+                ...members.filter(m => event.teamIds?.includes(m.id) && m.id !== event.responsibleId)
+            ].filter(Boolean);
+
             const columns = viewGrouping === 'status' ? STATUS_COLUMNS : (event.categories || DEFAULT_CATEGORIES);
             const totalEventCost = filteredTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
 
@@ -1424,7 +1442,6 @@
     </script>
 </body>
 </html>
-
 
 
 
