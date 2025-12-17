@@ -754,7 +754,18 @@
             const toggleTeamMember = (memberId) => { if (team.includes(memberId)) setTeam(prev => prev.filter(id => id !== memberId)); else setTeam(prev => [...prev, memberId]); };
             const handleSubmit = () => {
                 if (!title || !startDate || !responsible) { alert("Preencha Nome, Data e Responsável."); return; }
-                const initialTasksToCreate = OPTIONAL_STARTUP_TASKS.filter(t => selectedOptionalTasks.includes(t.id)).map(t => ({ text: t.text, category: t.category, phase: t.phase, priority: 'medium', status: 'planning', cost: 0, responsible: members.find(m => m.id === responsible), messages: [], support: [], subtasks: [] }));
+                const initialTasksToCreate = OPTIONAL_STARTUP_TASKS.filter(t => selectedOptionalTasks.includes(t.id)).map(t => ({ 
+                    text: t.text, 
+                    category: t.category, 
+                    phase: t.phase, 
+                    priority: 'medium', 
+                    status: 'planning', 
+                    cost: 0, 
+                    responsible: members.find(m => m.id === responsible) || null, // FIX
+                    messages: [], 
+                    support: [], 
+                    subtasks: [] 
+                }));
                 const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
                 const dateRange = isSingleDay || !endDate ? formatDate(startDate) : `${formatDate(startDate)} - ${formatDate(endDate)}`;
                 onCreate({ id: Date.now().toString(), title, location: location || 'Local a definir', startDate, endDate: isSingleDay ? startDate : endDate, dateRange, responsibleId: responsible, teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [] }, initialTasksToCreate);
@@ -904,14 +915,18 @@
 
             const handleCreate = () => {
                 if (!text) return;
+                
+                const responsibleMember = members.find(m => m.id === responsible);
+                const supportMembers = support.map(id => members.find(m => m.id === id)).filter(Boolean);
+
                 onCreate({
                     id: Date.now(),
                     eventId,
                     text,
                     category,
                     phase,
-                    responsible: members.find(m => m.id === responsible),
-                    support: support.map(id => members.find(m => m.id === id)),
+                    responsible: responsibleMember || null, // FIX: Ensure null if undefined
+                    support: supportMembers,
                     status: 'planning',
                     priority: 'medium',
                     subtasks: [],
@@ -1054,7 +1069,20 @@
                                 />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável</label><select className="w-full p-3 border rounded-xl bg-gray-50 text-sm font-bold" value={currentTask.responsible?.id || ''} onChange={(e) => dbOperations.updateTask(currentTask.id, { responsible: members.find(m => m.id === e.target.value) })}><option value="">Selecione...</option>{members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável</label>
+                                    <select 
+                                        className="w-full p-3 border rounded-xl bg-gray-50 text-sm font-bold" 
+                                        value={currentTask.responsible?.id || ''} 
+                                        onChange={(e) => {
+                                            const member = members.find(m => m.id === e.target.value);
+                                            dbOperations.updateTask(currentTask.id, { responsible: member || null }); // FIX: Ensure null if undefined
+                                        }}
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                    </select>
+                                </div>
                                 <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Apoio</label><div className="flex flex-wrap gap-2">{members.map(m => (<button key={m.id} onClick={() => toggleSupport(m.id)} className={`p-1.5 rounded-full border-2 transition-all ${currentTask.support?.some(s => s.id === m.id) ? 'border-blue-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}><Avatar member={m} size="w-8 h-8"/></button>))}</div></div>
                             </div>
                             <div className="mb-8"><h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><CheckSquare size={18}/> Tarefas Complementares</h3><div className="space-y-2 mb-3">{currentTask.subtasks?.map(sub => (<div key={sub.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group"><input type="checkbox" checked={sub.completed} onChange={() => toggleSubtask(sub.id)} className="w-4 h-4 text-blue-600 rounded cursor-pointer"/><span className={`text-sm flex-1 ${sub.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{sub.text}</span><button onClick={() => { const newSubs = currentTask.subtasks.filter(s => s.id !== sub.id); dbOperations.updateTask(currentTask.id, { subtasks: newSubs }); }} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button></div>))}</div><div className="flex gap-2"><input className="flex-1 p-2 border rounded-lg text-sm" placeholder="Adicionar item..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddSubtask()}/><button onClick={handleAddSubtask} className="bg-blue-100 text-blue-700 p-2 rounded-lg"><Plus size={18}/></button></div></div>
