@@ -35,14 +35,21 @@
     </style>
 
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        blue: { 900: '#1e3a8a', 950: '#172554' }
+        // Configuração segura do Tailwind
+        try {
+            if (typeof tailwind !== 'undefined') {
+                tailwind.config = {
+                    theme: {
+                        extend: {
+                            colors: {
+                                blue: { 900: '#1e3a8a', 950: '#172554' }
+                            }
+                        }
                     }
                 }
             }
+        } catch (e) {
+            console.warn("Tailwind ainda não carregou, usando estilos padrão.");
         }
     </script>
 </head>
@@ -1311,6 +1318,11 @@
             const [chatAttachment, setChatAttachment] = useState(null);
             const [newSubtask, setNewSubtask] = useState("");
             const [showEmojis, setShowEmojis] = useState(false);
+            
+            // New state for editing
+            const [editingMessageId, setEditingMessageId] = useState(null);
+            const [editingText, setEditingText] = useState("");
+
             const chatEndRef = useRef(null);
             const fileInputRef = useRef(null);
 
@@ -1339,9 +1351,46 @@
                 setChatAttachment(null);
             };
 
-            const handleDeleteMessage = (msgId) => {
-                const updatedMessages = currentTask.messages.filter(m => m.id !== msgId);
+            const handleStartEditing = (msg) => {
+                setEditingMessageId(msg.id);
+                setEditingText(msg.text);
+            };
+
+            const handleCancelEditing = () => {
+                setEditingMessageId(null);
+                setEditingText("");
+            };
+
+            const handleSaveEdit = (msgId) => {
+                if (!editingText.trim()) return; // Don't allow empty edits
+                
+                const updatedMessages = currentTask.messages.map(m => {
+                    if (m.id === msgId) {
+                        return {
+                            ...m,
+                            text: editingText,
+                            editedAt: new Date().toISOString()
+                        };
+                    }
+                    return m;
+                });
+                
                 dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
+                setEditingMessageId(null);
+                setEditingText("");
+            };
+
+            const formatEditedDate = (isoDate) => {
+                if (!isoDate) return "";
+                const date = new Date(isoDate);
+                const today = new Date();
+                const isToday = date.toDateString() === today.toDateString();
+                
+                const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                if (isToday) return `Editado às ${timeStr}`;
+                
+                const dateStr = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                return `Editado em ${dateStr} às ${timeStr}`;
             };
 
             const handleAddSubtask = () => {
@@ -1479,9 +1528,44 @@
                                         <div className="flex-shrink-0 mt-1"><Avatar member={members.find(m => m.id === msg.senderId)} size="w-8 h-8"/></div>
                                         <div className={`p-3 rounded-xl text-sm max-w-[80%] relative ${msg.senderId === selectedSender.id ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 rounded-tl-none'}`}>
                                             <p className="text-[10px] font-bold opacity-70 mb-1">{msg.senderName}</p>
-                                            {msg.image && <img src={msg.image} className="w-full rounded-lg mb-2"/>}
-                                            <p>{msg.text}</p>
-                                            <button onClick={() => handleDeleteMessage(msg.id)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover/msg:opacity-100 transition-opacity"><X size={10}/></button>
+                                            
+                                            {editingMessageId === msg.id ? (
+                                                <div className="flex flex-col gap-2 min-w-[200px]">
+                                                    <textarea 
+                                                        className="w-full p-2 text-gray-800 rounded bg-white/90 border-none outline-none text-sm resize-none" 
+                                                        rows={2}
+                                                        value={editingText} 
+                                                        onChange={e => setEditingText(e.target.value)}
+                                                        autoFocus
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={handleCancelEditing} className="text-xs opacity-80 hover:opacity-100 font-bold">Cancelar</button>
+                                                        <button onClick={() => handleSaveEdit(msg.id)} className="bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-xs font-bold">Salvar</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {msg.image && <img src={msg.image} className="w-full rounded-lg mb-2"/>}
+                                                    <p style={{whiteSpace: 'pre-wrap'}}>{msg.text}</p>
+                                                    
+                                                    {msg.editedAt && (
+                                                        <div className={`text-[9px] mt-1 flex items-center gap-1 ${msg.senderId === selectedSender.id ? 'text-blue-100 justify-end' : 'text-gray-400 justify-end'}`}>
+                                                            <Edit2 size={8} /> {formatEditedDate(msg.editedAt)}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {/* Edit Button (Only for sender) */}
+                                            {msg.senderId === selectedSender.id && !editingMessageId && (
+                                                <button 
+                                                    onClick={() => handleStartEditing(msg)} 
+                                                    className="absolute -top-2 -right-2 bg-gray-200 text-gray-600 hover:bg-blue-500 hover:text-white rounded-full p-1 opacity-0 group-hover/msg:opacity-100 transition-opacity shadow-sm"
+                                                    title="Editar mensagem"
+                                                >
+                                                    <Edit2 size={10}/>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -2038,6 +2122,7 @@
             const [logo, setLogo] = useState(null);
             const [managerId, setManagerId] = useState('1'); 
             const [geminiKey, setGeminiKey] = useState('');
+            const [managerPassword, setManagerPassword] = useState('1234');
 
             // Auth & Listeners
             useEffect(() => {
@@ -2072,7 +2157,7 @@
                     if (snap.empty && !localStorage.getItem('db_initialized')) {
                         // Seed initial data if DB is empty (REMOVED INITIAL EVENTS TO BE EMPTY AS REQUESTED)
                         INITIAL_MEMBERS.forEach(m => setDoc(getDocPath('members', m.id), m));
-                        setDoc(getDocPath('config', 'main'), { managerId: '1' });
+                        setDoc(getDocPath('config', 'main'), { managerId: '1', managerPassword: '1234' });
                         localStorage.setItem('db_initialized', 'true');
                     } else {
                         setEvents(snap.docs.map(d => d.data()));
@@ -2096,6 +2181,7 @@
                         if(data.logo) setLogo(data.logo);
                         if(data.managerId) setManagerId(data.managerId);
                         if(data.geminiKey) setGeminiKey(data.geminiKey);
+                        if(data.managerPassword) setManagerPassword(data.managerPassword);
                     }
                 });
 
@@ -2160,6 +2246,18 @@
             
             const handleUpdateGeminiKey = (key) => {
                 setDoc(getDocPath('config', 'main'), { geminiKey: key }, { merge: true });
+            };
+            
+            const handleUpdatePassword = (pass) => {
+                 setDoc(getDocPath('config', 'main'), { managerPassword: pass }, { merge: true });
+            }
+
+            const handleUpdateAppId = (newId) => {
+                if(newId && newId.trim()) {
+                    localStorage.setItem('event_hub_custom_app_id', newId.trim());
+                } else {
+                    localStorage.removeItem('event_hub_custom_app_id');
+                }
             };
             
             const handleGlobalAddAgenda = (type, item) => {
@@ -2235,7 +2333,7 @@
                     )}
                     {view === 'agenda' && <GlobalAgendaView events={events} tasks={tasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
                     {view === 'team' && <GlobalTeamView members={members} onEdit={() => setIsSettingsOpen(true)} />}
-                    {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>}
+                    {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>}
                     
                     <BottomNav activeTab={view} onChangeTab={(v) => { if(v === 'settings') setIsSettingsOpen(true); else setView(v); }} onAdd={() => setIsNewEventOpen(true)} />
                     
@@ -2249,7 +2347,7 @@
                     <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: tasks.reduce((a,b)=>a+(b.cost||0),0), tasks, members, events}} apiKey={geminiKey} />
 
                     <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
-                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey}/>
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>
                     <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} />
                     <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
                     {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
