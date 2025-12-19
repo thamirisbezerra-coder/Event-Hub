@@ -2461,7 +2461,21 @@
 
                     <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>
-                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} />
+                    
+                    {/* ALTERADO: Filtrar tarefas apenas de eventos ativos (não finalizados) */}
+                    <WorkloadDetailModal 
+                        isOpen={!!selectedWorkloadMember} 
+                        onClose={() => setSelectedWorkloadMember(null)} 
+                        member={selectedWorkloadMember} 
+                        memberTasks={tasks.filter(t => {
+                            const event = events.find(e => e.id === t.eventId);
+                            // Verifica se é responsável E se o evento existe E se o evento NÃO acabou
+                            return t.responsible?.id === selectedWorkloadMember?.id && event && !isEventFinished(event);
+                        })} 
+                        allMembers={members} 
+                        onUpdateTask={handleUpdateTask} 
+                    />
+
                     <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
                     {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
                 </>
@@ -2478,6 +2492,7 @@
     </script>
 </body>
 </html>
+
 
 
 
