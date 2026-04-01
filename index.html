@@ -94,7 +94,7 @@
             PieChart, Timer, UserCheck, RefreshCw, Key, Archive, Download, Cloud,
             Home, List, Grid, Smile, LogOut, Repeat, Columns, Database, Lock, ShieldCheck,
             Folder, HardDrive, History, ArrowRightCircle, ShoppingCart, Film,
-            Settings2, Tent, IceCream, FlaskConical, Milk
+            Settings2, Tent, IceCream, FlaskConical, Milk, Globe, Heart, Award, MonitorPlay, Mic2
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -215,6 +215,15 @@
         const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift, coffee: Coffee, music: Music, layout: Layout, search: Search, smile: Smile, star: Star, cloud: Cloud, key: Key, lock: Archive, map: MapPin, camera: Camera, folder: Folder };
         const ICON_KEYS = Object.keys(ICON_MAP);
 
+        // --- MAPA DE ÍCONES PARA EVENTOS ---
+        const EVENT_ICON_MAP = {
+            box: Box, tent: Tent, icecream: IceCream, flask: FlaskConical, milk: Milk, 
+            settings: Settings, star: Star, music: Music, coffee: Coffee, zap: Zap, 
+            megaphone: Megaphone, palette: Palette, globe: Globe, award: Award, 
+            mic: Mic2, tv: MonitorPlay, heart: Heart, rocket: Rocket, briefcase: Briefcase
+        };
+        const EVENT_ICON_KEYS = Object.keys(EVENT_ICON_MAP);
+
         const DEFAULT_CATEGORIES = [
             { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue', phases: ['pre', 'during', 'post'], responsibleId: null },
             { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber', phases: ['pre', 'during'], responsibleId: null },
@@ -238,16 +247,6 @@
             { id: 's1', text: 'Contratar recepcionistas', category: 'staff', phase: 'pre' },
             { id: 'po1', text: 'Consolidar relatório de leads', category: 'post', phase: 'post' }
         ];
-
-        const getEventIcon = (title) => {
-            const t = title.toLowerCase();
-            if (t.includes('jornada') || t.includes('técnica')) return <Settings size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
-            if (t.includes('fenagra') || t.includes('feira')) return <Tent size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
-            if (t.includes('sorvete') || t.includes('fispal')) return <IceCream size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
-            if (t.includes('pharma') || t.includes('química') || t.includes('fce')) return <FlaskConical size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
-            if (t.includes('láctea') || t.includes('leite') || t.includes('minas')) return <Milk size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
-            return <Box size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
-        };
 
         const Avatar = ({ member, size = "w-10 h-10", title }) => {
             if (!member) return <div className={`${size} rounded-full bg-gray-200 border border-gray-300`} title={title}></div>;
@@ -1043,6 +1042,7 @@
             const [startDate, setStartDate] = useState('');
             const [endDate, setEndDate] = useState('');
             const [driveLink, setDriveLink] = useState('');
+            const [selectedIcon, setSelectedIcon] = useState('box');
             const [isSingleDay, setIsSingleDay] = useState(false);
             const [responsible, setResponsible] = useState('');
             const [team, setTeam] = useState([]);
@@ -1072,7 +1072,7 @@
                 onCreate({ 
                     id: newEventId, title, location: location || 'Local a definir', driveLink, startDate, 
                     endDate: isSingleDay ? startDate : endDate, dateRange, responsibleId: responsible, 
-                    teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [] 
+                    teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [], icon: selectedIcon 
                 }, initialTasksToCreate);
                 onClose(); 
             };
@@ -1088,11 +1088,25 @@
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">Link da Pasta <HardDrive size={12} className="text-gray-400"/></label><input className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none" placeholder="https://drive.google.com/..." value={driveLink} onChange={e=>setDriveLink(e.target.value)}/></div>
                         </div>
 
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Ícone da Capa</label>
+                            <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 max-h-32 overflow-y-auto">
+                                {EVENT_ICON_KEYS.map(key => {
+                                    const Icon = EVENT_ICON_MAP[key];
+                                    return (
+                                        <button key={key} onClick={() => setSelectedIcon(key)} type="button" className={`p-2 rounded-lg flex justify-center items-center transition-all ${selectedIcon === key ? 'bg-blue-600 text-white shadow-md scale-110' : 'bg-white text-gray-400 hover:text-blue-500 border border-gray-100 hover:border-blue-200'}`}>
+                                            <Icon size={20}/>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <div className="space-y-3"><div className="flex items-center justify-between"><label className="block text-xs font-bold text-gray-500 uppercase">Período *</label><label className="flex items-center gap-2 text-xs font-bold text-blue-600 cursor-pointer"><input type="checkbox" checked={isSingleDay} onChange={e => setIsSingleDay(e.target.checked)}/> Dia único?</label></div><div className="flex gap-2"><input type="date" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" value={startDate} onChange={e=>setStartDate(e.target.value)}/>{!isSingleDay && <input type="date" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" value={endDate} onChange={e=>setEndDate(e.target.value)}/>}</div></div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-100">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável *</label><div className="space-y-2 max-h-40 overflow-y-auto">{members.map(m => (<div key={m.id} onClick={() => setResponsible(m.id)} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${responsible === m.id ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}><Avatar member={m} size="w-8 h-8"/><span className="text-xs font-bold flex-1">{m.name}</span>{responsible === m.id && <Check size={14} className="text-blue-600"/>}</div>))}</div></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe</label><div className="flex flex-wrap gap-2">{members.filter(m => m.id !== responsible).map(m => (<button key={m.id} onClick={() => toggleTeamMember(m.id)} className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs ${team.includes(m.id) ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200'}`}><Avatar member={m} size="w-5 h-5"/> {m.name}</button>))}</div></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável *</label><div className="space-y-2 max-h-40 overflow-y-auto">{members.filter(m => m.active !== false).map(m => (<div key={m.id} onClick={() => setResponsible(m.id)} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${responsible === m.id ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}><Avatar member={m} size="w-8 h-8"/><span className="text-xs font-bold flex-1">{m.name}</span>{responsible === m.id && <Check size={14} className="text-blue-600"/>}</div>))}</div></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe</label><div className="flex flex-wrap gap-2">{members.filter(m => m.id !== responsible && m.active !== false).map(m => (<button key={m.id} onClick={() => toggleTeamMember(m.id)} className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs ${team.includes(m.id) ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200'}`}><Avatar member={m} size="w-5 h-5"/> {m.name}</button>))}</div></div>
                         </div>
                         <div className="pt-2 border-t border-gray-100"><label className="block text-xs font-bold text-gray-500 uppercase mb-3">Tarefas Iniciais (Opcional)</label><div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-h-40 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3">{OPTIONAL_STARTUP_TASKS.map(task => (<label key={task.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${selectedOptionalTasks.includes(task.id) ? 'bg-white border-blue-300 shadow-sm' : 'border-transparent'}`}><input type="checkbox" className="rounded text-blue-600" checked={selectedOptionalTasks.includes(task.id)} onChange={() => toggleTask(task.id)}/><span className="text-xs text-gray-700">{task.text}</span></label>))}</div></div>
                         <button onClick={handleSubmit} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:shadow-lg animate-shine bg-[length:200%_auto]">Criar Evento</button>
@@ -1107,17 +1121,18 @@
             const [endDate, setEndDate] = useState(event?.endDate || '');
             const [location, setLocation] = useState(event?.location || '');
             const [driveLink, setDriveLink] = useState(event?.driveLink || '');
+            const [selectedIcon, setSelectedIcon] = useState(event?.icon || 'box');
             const [cover, setCover] = useState(event?.coverUrl || '');
             const [responsible, setResponsible] = useState(event?.responsibleId || '');
             const fileInputRef = useRef(null);
 
             useEffect(() => {
-                if(event) { setTitle(event.title || ''); setStartDate(event.startDate || ''); setEndDate(event.endDate || ''); setLocation(event.location || ''); setDriveLink(event.driveLink || ''); setCover(event.coverUrl || ''); setResponsible(event.responsibleId || ''); }
+                if(event) { setTitle(event.title || ''); setStartDate(event.startDate || ''); setEndDate(event.endDate || ''); setLocation(event.location || ''); setDriveLink(event.driveLink || ''); setSelectedIcon(event.icon || 'box'); setCover(event.coverUrl || ''); setResponsible(event.responsibleId || ''); }
             }, [event]);
 
             if(!isOpen || !event) return null;
 
-            const handleSave = () => { onUpdate(event.id, { title, startDate, endDate, location, driveLink, coverUrl: cover, responsibleId: responsible }); onClose(); };
+            const handleSave = () => { onUpdate(event.id, { title, startDate, endDate, location, driveLink, icon: selectedIcon, coverUrl: cover, responsibleId: responsible }); onClose(); };
             const handleCoverUpload = async (e) => { if(e.target.files[0]) { const url = await compressImage(e.target.files[0], 800); setCover(url); } };
 
             const getLocalDaysLeft = () => {
@@ -1154,6 +1169,21 @@
                              <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Localização</label><input className="w-full p-3 border rounded-xl text-sm" placeholder="Ex: São Paulo, SP" value={location} onChange={e=>setLocation(e.target.value)}/></div>
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">Link do Drive <HardDrive size={12} className="text-gray-400"/></label><input className="w-full p-3 border rounded-xl text-sm" placeholder="https://drive.google.com/..." value={driveLink} onChange={e=>setDriveLink(e.target.value)}/></div>
                         </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Ícone da Capa</label>
+                            <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 max-h-32 overflow-y-auto">
+                                {EVENT_ICON_KEYS.map(key => {
+                                    const Icon = EVENT_ICON_MAP[key];
+                                    return (
+                                        <button key={key} onClick={() => setSelectedIcon(key)} type="button" className={`p-2 rounded-lg flex justify-center items-center transition-all ${selectedIcon === key ? 'bg-blue-600 text-white shadow-md scale-110' : 'bg-white text-gray-400 hover:text-blue-500 border border-gray-100 hover:border-blue-200'}`}>
+                                            <Icon size={20}/>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Responsável</label>
                             <select className="w-full p-3 border rounded-xl bg-white text-sm" value={responsible} onChange={(e) => setResponsible(e.target.value)}>
@@ -1655,20 +1685,17 @@
                     <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24 relative z-10">
                         <div className="flex justify-between items-start mb-8">
                             <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-3">
-                                    {globalLogo ? (
-                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center">
-                                            <img src={globalLogo} className="w-8 h-8 object-contain"/>
-                                        </div>
-                                    ) : (
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-800 to-red-600 flex items-center justify-center text-white text-xs font-bold border border-gray-200">
-                                            D
-                                        </div>
-                                    )}
-                                    <div>
-                                        <h1 className="text-2xl font-extrabold text-blue-950 leading-tight">Event Hub</h1>
-                                        <p className="text-sm text-gray-500">Olá, <strong className="text-blue-600">{currentUser?.name.split(' ')[0] || 'Usuário'}</strong></p>
+                                {globalLogo && (
+                                    <img src={globalLogo} className="h-12 sm:h-16 w-auto max-w-[180px] object-contain drop-shadow-sm" alt="Logo" />
+                                )}
+                                {!globalLogo && (
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-800 to-red-600 flex items-center justify-center text-white text-xl font-bold shadow-md">
+                                        EH
                                     </div>
+                                )}
+                                <div className={globalLogo ? "border-l-2 border-gray-200 pl-4" : ""}>
+                                    <h1 className="text-2xl font-extrabold text-blue-950 leading-tight">Event Hub</h1>
+                                    <p className="text-sm text-gray-500">Olá, <strong className="text-blue-600">{currentUser?.name.split(' ')[0] || 'Usuário'}</strong></p>
                                 </div>
                             </div>
 
@@ -1771,7 +1798,7 @@
                                                     
                                                     {/* Central Icon Background Overlay */}
                                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                                                        {getEventIcon(evt.title)}
+                                                        {React.createElement(EVENT_ICON_MAP[evt.icon] || EVENT_ICON_MAP['box'], { size: 64, className: "text-white drop-shadow-md opacity-90", strokeWidth: 1.5 })}
                                                     </div>
 
                                                     {eventViewMode === 'active' && <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded text-[10px] font-bold text-gray-800 shadow-sm z-20">{getDaysLeft(evt)} dias</div>}
