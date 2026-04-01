@@ -198,7 +198,7 @@
         ];
 
         const STATUS_COLUMNS = [
-            { id: 'planning', title: 'Planejamento', color: 'blue', icon: Box, bgSoft: 'bg-blue-50/80', border: 'border-blue-100' },
+            { id: 'planning', title: 'Planejamento', color: 'purple', icon: Box, bgSoft: 'bg-purple-50/80', border: 'border-purple-100' },
             { id: 'in_progress', title: 'Andamento', color: 'amber', icon: Truck, bgSoft: 'bg-amber-50/80', border: 'border-amber-100' },
             { id: 'review', title: 'Finalização', color: 'purple', icon: Search, bgSoft: 'bg-purple-50/80', border: 'border-purple-100' },
             { id: 'done', title: 'Concluído', color: 'emerald', icon: CheckSquare, bgSoft: 'bg-emerald-50/80', border: 'border-emerald-100' }
@@ -1876,27 +1876,65 @@
                                     if (viewGrouping === 'category') {
                                         const isExpanded = expandedCategories.includes(col.id);
                                         const catResponsible = members.find(m => m.id === col.responsibleId);
+                                        
+                                        const total = colTasks.length || 1;
+                                        const planningPct = (colTasks.filter(t => t.status === 'planning').length / total) * 100;
+                                        const inProgressPct = (colTasks.filter(t => t.status === 'in_progress').length / total) * 100;
+                                        const reviewPct = (colTasks.filter(t => t.status === 'review').length / total) * 100;
+                                        const donePct = (colTasks.filter(t => t.status === 'done').length / total) * 100;
+
                                         return (
                                             <div key={col.id} className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all flex flex-col ${isExpanded ? 'col-span-full ring-2 ring-blue-400 shadow-lg z-10 order-first lg:order-none' : 'hover:shadow-md hover:border-gray-300'}`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id, 'column')}>
-                                                <div onClick={() => toggleCategory(col.id)} className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2.5 rounded-xl shadow-sm bg-${col.color}-100 text-${col.color}-700 border border-${col.color}-200`}>
-                                                            {React.createElement(ICON_MAP[col.icon] || Box, { size: 20 })}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <h3 className="font-bold text-gray-800 text-sm md:text-base flex items-center gap-2">
-                                                                {col.title}
-                                                                {catResponsible && !isExpanded && (
-                                                                    <Avatar member={catResponsible} size="w-5 h-5" title={`Responsável: ${catResponsible.name}`} />
+                                                <div onClick={() => toggleCategory(col.id)} className={`p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-2.5 rounded-xl shadow-sm bg-${col.color}-100 text-${col.color}-700 border border-${col.color}-200`}>
+                                                                {React.createElement(ICON_MAP[col.icon] || Box, { size: 20 })}
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <h3 className="font-bold text-gray-800 text-sm md:text-base flex items-center gap-2">
+                                                                    {col.title}
+                                                                </h3>
+                                                                {catResponsible ? (
+                                                                    <span className="text-[10px] text-gray-600 flex items-center gap-1.5 mt-1 font-medium bg-gray-100/80 px-2 py-0.5 rounded-full w-fit border border-gray-200">
+                                                                        <Avatar member={catResponsible} size="w-4 h-4" /> 
+                                                                        Responsável: <strong className="text-blue-700">{catResponsible.name}</strong>
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-[10px] text-gray-400 flex items-center gap-1 mt-1 border border-transparent px-1">
+                                                                        <UserCheck size={10}/> Sem responsável definido
+                                                                    </span>
                                                                 )}
-                                                            </h3>
-                                                            {catResponsible && isExpanded && (
-                                                                <span className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5"><UserCheck size={10}/> Resp: {catResponsible.name}</span>
-                                                            )}
+                                                            </div>
                                                         </div>
-                                                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isExpanded ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>{colTasks.length}</span>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isExpanded ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>{colTasks.length}</span>
+                                                            <div className={`p-1 rounded-full transition-transform ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>{isExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</div>
+                                                        </div>
                                                     </div>
-                                                    <div className={`p-1 rounded-full transition-transform ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>{isExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</div>
+                                                    
+                                                    {/* GANTT PROGRESS BAR */}
+                                                    {colTasks.length > 0 ? (
+                                                        <div className="w-full mt-2">
+                                                            <div className="flex justify-between text-[9px] font-bold text-gray-400 mb-1.5 px-1">
+                                                                <span className="flex gap-2">
+                                                                    <span className="flex items-center gap-1" title="Planejamento"><div className="w-1.5 h-1.5 rounded-full bg-purple-600"></div>Plan</span>
+                                                                    <span className="flex items-center gap-1" title="Andamento"><div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>And</span>
+                                                                    <span className="flex items-center gap-1" title="Finalização"><div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>Fin</span>
+                                                                    <span className="flex items-center gap-1" title="Concluído"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>Concl</span>
+                                                                </span>
+                                                                <span className={donePct === 100 ? 'text-emerald-500' : ''}>{Math.round(donePct)}% Concluído</span>
+                                                            </div>
+                                                            <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden flex shadow-inner">
+                                                                {planningPct > 0 && <div style={{width: `${planningPct}%`}} className="bg-purple-600 transition-all duration-500" title={`Planejamento: ${Math.round(planningPct)}%`}></div>}
+                                                                {inProgressPct > 0 && <div style={{width: `${inProgressPct}%`}} className="bg-amber-400 transition-all duration-500" title={`Andamento: ${Math.round(inProgressPct)}%`}></div>}
+                                                                {reviewPct > 0 && <div style={{width: `${reviewPct}%`}} className="bg-purple-400 transition-all duration-500" title={`Finalização: ${Math.round(reviewPct)}%`}></div>}
+                                                                {donePct > 0 && <div style={{width: `${donePct}%`}} className="bg-emerald-500 transition-all duration-500" title={`Concluído: ${Math.round(donePct)}%`}></div>}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-2.5 w-full bg-gray-100 rounded-full mt-4"></div>
+                                                    )}
                                                 </div>
 
                                                 {isExpanded && (
