@@ -584,13 +584,39 @@
             );
         };
 
-        const WorkloadDetailModal = ({ isOpen, onClose, member, memberTasks, allMembers, onUpdateTask }) => {
+        const WorkloadDetailModal = ({ isOpen, onClose, member, memberTasks, allMembers, onUpdateTask, events }) => {
             if (!isOpen || !member) return null;
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title={`Carga de Trabalho: ${member.name}`}>
                     <div className="p-6">
-                        <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100"><div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md"><Avatar member={member} size="w-full h-full"/></div><div><h3 className="font-bold text-lg text-gray-900">{member.name}</h3><p className="text-sm text-gray-500">{member.role}</p><span className="inline-block mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold">{memberTasks.length} Tarefas Ativas</span></div></div>
-                        <div className="space-y-2 max-h-60 overflow-y-auto pr-2">{memberTasks.map(t => (<div key={t.id} className="p-3 border border-gray-100 rounded-xl flex justify-between items-center bg-white hover:shadow-sm transition-all group"><span className="text-sm font-medium text-gray-700 truncate flex-1 pr-4">{t.text}</span></div>))}</div>
+                        <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md">
+                                <Avatar member={member} size="w-full h-full"/>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg text-gray-900">{member.name}</h3>
+                                <p className="text-sm text-gray-500">{member.role}</p>
+                                <span className="inline-block mt-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold">{memberTasks.length} Tarefas Atribuídas</span>
+                            </div>
+                        </div>
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                            {memberTasks.length === 0 && <p className="text-center text-sm text-gray-400">Nenhuma tarefa atribuída.</p>}
+                            {memberTasks.map(t => {
+                                const evt = events?.find(e => e.id === t.eventId);
+                                const isDone = t.status === 'done';
+                                return (
+                                    <div key={t.id} className={`p-3 border rounded-xl flex flex-col transition-all group ${isDone ? 'bg-gray-50 border-gray-200' : 'bg-white border-blue-100 hover:shadow-sm'}`}>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className={`text-sm font-bold truncate pr-4 ${isDone ? 'text-gray-500 line-through' : 'text-gray-800'}`}>{t.text}</span>
+                                            {isDone ? <CheckSquare size={16} className="text-emerald-500 shrink-0"/> : <Clock size={16} className="text-amber-500 shrink-0"/>}
+                                        </div>
+                                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                            <CalendarIcon size={10}/> {evt?.title || 'Evento Desconhecido'}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </Modal>
             );
@@ -1243,7 +1269,8 @@
             const [editingMessageId, setEditingMessageId] = useState(null);
             const [editingText, setEditingText] = useState("");
 
-            const [transferTargetId, setTransferTargetId] = useState(null);
+            const [isTransferring, setIsTransferring] = useState(false);
+            const [transferTargetId, setTransferTargetId] = useState('');
             const [transferReason, setTransferReason] = useState('');
 
             const chatEndRef = useRef(null);
@@ -1339,15 +1366,8 @@
 
             const handleDeleteTask = () => { if(confirm("Tem a certeza que deseja excluir esta tarefa?")) { deleteTask(currentTask.id); onClose(); } };
 
-            const handleResponsibleSelectChange = (e) => {
-                const selectedId = e.target.value;
-                if (selectedId !== (currentTask.responsible?.id || '')) {
-                    setTransferTargetId(selectedId);
-                    setTransferReason(''); 
-                }
-            };
-
             const confirmTransfer = () => {
+                if (!transferTargetId) { alert("Por favor, selecione o novo responsável."); return; }
                 if (!transferReason.trim()) { alert("Por favor, preencha o motivo da transferência."); return; }
                 const newResponsible = members.find(m => m.id === transferTargetId);
                 const sender = currentUser || members[0];
@@ -1376,24 +1396,31 @@
                     });
                 }
 
-                setTransferTargetId(null);
+                setIsTransferring(false);
             };
 
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa: ${currentTask.text}`} fullScreen={true}>
-                    {transferTargetId !== null && (
+                    {isTransferring && (
                         <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
                             <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-in">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2"><Repeat size={20} className="text-blue-600"/> Transferir Tarefa</h3>
-                                <p className="text-sm text-gray-600 mb-4">Você está transferindo esta tarefa para <strong className="text-blue-700">{members.find(m => m.id === transferTargetId)?.name || 'Nenhum'}</strong>. Por favor, registre o motivo no histórico.</p>
+                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Repeat size={20} className="text-blue-600"/> Transferir Tarefa</h3>
+                                
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Novo Responsável</label>
+                                <select className="w-full p-3 border rounded-xl mb-4 bg-gray-50 outline-none focus:border-blue-500" value={transferTargetId} onChange={e=>setTransferTargetId(e.target.value)}>
+                                    <option value="">Selecione...</option>
+                                    {members.filter(m => m.id !== currentTask.responsible?.id && m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Motivo da Transferência</label>
                                 <textarea 
-                                    className="w-full p-3 border border-gray-300 rounded-xl outline-none focus:border-blue-500 mb-4 text-sm resize-none" 
-                                    rows="3" placeholder="Motivo da transferência..."
+                                    className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 mb-4 text-sm resize-none bg-gray-50" 
+                                    rows="3" placeholder="Por que está transferindo esta tarefa?"
                                     value={transferReason} onChange={e=>setTransferReason(e.target.value)} autoFocus
                                 />
                                 <div className="flex justify-end gap-2">
-                                    <button onClick={() => setTransferTargetId(null)} className="px-4 py-2 text-sm text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancelar</button>
-                                    <button onClick={confirmTransfer} className="px-4 py-2 text-sm bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700">Confirmar Transferência</button>
+                                    <button onClick={() => setIsTransferring(false)} className="px-4 py-2 text-sm text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancelar</button>
+                                    <button onClick={confirmTransfer} className="px-4 py-2 text-sm bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700">Confirmar</button>
                                 </div>
                             </div>
                         </div>
@@ -1451,17 +1478,29 @@
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1"><UserCheck size={14}/> Responsável</label>
-                                    <select 
-                                        className="w-full p-3 border border-blue-200 rounded-xl bg-blue-50/30 text-sm font-bold text-blue-900 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
-                                        value={currentTask.responsible?.id || ''} 
-                                        onChange={handleResponsibleSelectChange}
-                                    >
-                                        <option value="">Sem responsável</option>
-                                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                        {currentTask.responsible && !members.find(m => m.id === currentTask.responsible.id) && (
-                                            <option value={currentTask.responsible.id}>{currentTask.responsible.name} (Excluído do Time)</option>
-                                        )}
-                                    </select>
+                                    {currentTask.responsible ? (
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-xl border border-blue-100 flex-1">
+                                                <Avatar member={currentTask.responsible} size="w-6 h-6"/>
+                                                <span className="text-sm font-bold text-blue-900 truncate">{currentTask.responsible.name}</span>
+                                            </div>
+                                            <button onClick={() => { setIsTransferring(true); setTransferTargetId(''); setTransferReason(''); }} className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-blue-600 transition-colors text-sm font-bold flex items-center gap-2 shadow-sm" title="Transferir Tarefa">
+                                                <Repeat size={16}/> Transferir
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            className="w-full p-3 border border-blue-200 rounded-xl bg-blue-50/30 text-sm font-bold text-blue-900 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
+                                            value="" 
+                                            onChange={(e) => {
+                                                const member = members.find(m => m.id === e.target.value);
+                                                dbOperations.updateTask(currentTask.id, { responsible: member || null });
+                                            }}
+                                        >
+                                            <option value="">Atribuir a alguém...</option>
+                                            {members.filter(m => m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    )}
                                 </div>
                                 <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Apoio</label><div className="flex flex-wrap gap-2">{members.map(m => (<button key={m.id} onClick={() => toggleSupport(m.id)} className={`p-1.5 rounded-full border-2 transition-all ${currentTask.support?.some(s => s.id === m.id) ? 'border-blue-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}><Avatar member={m} size="w-8 h-8"/></button>))}</div></div>
                             </div>
@@ -1606,7 +1645,15 @@
                         <div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-auto min-h-[14rem]">
-                                    <div className="relative w-32 h-32 flex-shrink-0"><svg className="w-full h-full -rotate-90"><circle cx="64" cy="64" r="54" stroke="#F3F4F6" strokeWidth="12" fill="none"/><circle cx="64" cy="64" r="54" stroke="#1e3a8a" strokeWidth="12" fill="none" strokeDasharray="339" strokeDashoffset={339 - (339*progress)/100} strokeLinecap="round"/></svg><div className="absolute inset-0 flex items-center justify-center font-bold text-2xl text-blue-900">{progress}%</div></div>
+                                    <div className="relative w-32 h-32 flex-shrink-0">
+                                        <svg className="w-full h-full -rotate-90">
+                                            <circle cx="64" cy="64" r="54" stroke="#F3F4F6" strokeWidth="12" fill="none"/>
+                                            <circle cx="64" cy="64" r="54" stroke="#1e3a8a" strokeWidth="12" fill="none" strokeDasharray="339" strokeDashoffset={339 - (339*progress)/100} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}/>
+                                        </svg>
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                            <span className="font-bold text-2xl text-blue-900 leading-none">{progress}%</span>
+                                        </div>
+                                    </div>
                                     <div className="ml-8 flex-1">
                                         <h3 className="font-bold text-gray-900 mb-3 text-lg">Status Global (Ativos)</h3>
                                         <div className="space-y-3">
@@ -2208,7 +2255,7 @@
 
                     <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onDeleteMember={handleDeleteMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>
-                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} />
+                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} events={events} />
                     <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} members={members} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
                     {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
                 </>
