@@ -31,7 +31,14 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .animate-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
+        
+        /* Fundo Geométrico do Dashboard */
+        .bg-geometric {
+            background-image: url("data:image/svg+xml,%3Csvg width='600' height='600' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h600v600H0z' fill='none'/%3E%3Cg stroke='%23cbd5e1' stroke-width='1.5' fill='none' opacity='0.4'%3E%3Cpath d='M-100 150L200 -100M-100 450L500 -100M-100 750L800 -100M200 750L1100 -100M500 750L1400 -100' /%3E%3Cpath d='M-100 -100L200 150M-100 200L500 700M-100 500L800 1200M200 -100L1100 800M500 -100L1400 800' /%3E%3C/g%3E%3C/svg%3E");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
     </style>
 
     <script>
@@ -86,7 +93,8 @@
             Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase, Rocket, Star,
             PieChart, Timer, UserCheck, RefreshCw, Key, Archive, Download, Cloud,
             Home, List, Grid, Smile, LogOut, Repeat, Columns, Database, Lock, ShieldCheck,
-            Folder, HardDrive, History
+            Folder, HardDrive, History, ArrowRightCircle, ShoppingCart, Film,
+            Settings2, Tent, IceCream, FlaskConical, Milk
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -231,6 +239,16 @@
             { id: 'po1', text: 'Consolidar relatório de leads', category: 'post', phase: 'post' }
         ];
 
+        const getEventIcon = (title) => {
+            const t = title.toLowerCase();
+            if (t.includes('jornada') || t.includes('técnica')) return <Settings size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
+            if (t.includes('fenagra') || t.includes('feira')) return <Tent size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
+            if (t.includes('sorvete') || t.includes('fispal')) return <IceCream size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
+            if (t.includes('pharma') || t.includes('química') || t.includes('fce')) return <FlaskConical size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
+            if (t.includes('láctea') || t.includes('leite') || t.includes('minas')) return <Milk size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
+            return <Box size={64} className="text-white drop-shadow-md" strokeWidth={1.5} />;
+        };
+
         const Avatar = ({ member, size = "w-10 h-10", title }) => {
             if (!member) return <div className={`${size} rounded-full bg-gray-200 border border-gray-300`} title={title}></div>;
             const inactiveClass = member.active === false ? "grayscale opacity-60" : "";
@@ -277,7 +295,6 @@
             );
         };
 
-        // --- TELA DE SELEÇÃO DE PERFIL COM SENHA ---
         const ProfileSelectionScreen = ({ members, onSelect }) => {
             const [selectedProfile, setSelectedProfile] = useState(null);
             const [passwordInput, setPasswordInput] = useState('');
@@ -396,21 +413,21 @@
             };
 
             return (
-                <div className="relative">
+                <div className="relative z-[200]">
                     <button 
                         onClick={() => setIsOpen(!isOpen)} 
-                        className="relative p-2.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all shadow-sm"
+                        className="relative w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all shadow-sm"
                     >
                         {unreadCount > 0 ? <BellRing size={20} className="text-blue-600 animate-pulse"/> : <Bell size={20}/>}
                         {unreadCount > 0 && (
-                            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white text-white text-[9px] font-bold flex items-center justify-center rounded-full shadow-sm">
+                            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-2 border-white text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-sm">
                                 {unreadCount > 9 ? '9+' : unreadCount}
                             </span>
                         )}
                     </button>
 
                     {isOpen && (
-                        <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 z-[300] overflow-hidden animate-in">
+                        <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-200 z-[300] overflow-hidden animate-in">
                             <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
                                 <h3 className="font-bold text-gray-800 flex items-center gap-2"><Bell size={16} className="text-blue-600"/> Notificações</h3>
                                 {allNotifs.length > 0 && (
@@ -547,7 +564,7 @@
             const startEdit = (item) => { setNewItem({ title: item.title, date: item.date, color: item.color, eventId: item.eventId || '' }); setEditItem(item); setIsAdding(true); };
 
             return (
-                <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex flex-col h-full bg-white rounded-2xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
                     <div className="p-4 border-b bg-gray-50/50 flex justify-between items-center">
                         <h3 className="font-bold text-gray-800 flex items-center gap-2">
                             <CalendarIcon size={16} className="text-blue-600"/> 
@@ -1252,12 +1269,18 @@
         };
 
         const BottomNav = ({ activeTab, onChangeTab, onAdd }) => (
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 flex justify-between items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <button onClick={() => onChangeTab('dashboard')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'dashboard' ? 'text-blue-900' : 'text-gray-400'}`}><Home size={20} /><span className="text-[10px]">Início</span></button>
-                <button onClick={() => onChangeTab('agenda')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'agenda' ? 'text-blue-900' : 'text-gray-400'}`}><CalendarIcon size={20} /><span className="text-[10px]">Agenda</span></button>
-                <div className="relative -top-6"><button onClick={onAdd} className="w-14 h-14 bg-gradient-to-r from-blue-900 to-blue-800 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 transition-transform"><Plus size={28} /></button></div>
-                <button onClick={() => onChangeTab('team')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'team' ? 'text-blue-900' : 'text-gray-400'}`}><Users size={20} /><span className="text-[10px]">Equipe</span></button>
-                <button onClick={() => onChangeTab('settings')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'settings' ? 'text-blue-900' : 'text-gray-400'}`}><Settings size={20} /><span className="text-[10px]">Ajustes</span></button>
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-2 flex justify-between items-center z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] h-16">
+                <button onClick={() => onChangeTab('dashboard')} className={`flex flex-col items-center justify-center gap-1 w-16 ${activeTab === 'dashboard' ? 'text-blue-900' : 'text-gray-400'}`}><Home size={22} /><span className="text-[9px] font-medium">Início</span></button>
+                <button onClick={() => onChangeTab('agenda')} className={`flex flex-col items-center justify-center gap-1 w-16 ${activeTab === 'agenda' ? 'text-blue-900' : 'text-gray-400'}`}><CalendarIcon size={22} /><span className="text-[9px] font-medium">Agenda</span></button>
+                
+                <div className="relative -top-5">
+                    <button onClick={onAdd} className="w-14 h-14 bg-blue-900 rounded-full shadow-lg shadow-blue-900/30 flex items-center justify-center text-white hover:scale-105 transition-transform border-4 border-white">
+                        <Plus size={28} />
+                    </button>
+                </div>
+                
+                <button onClick={() => onChangeTab('team')} className={`flex flex-col items-center justify-center gap-1 w-16 ${activeTab === 'team' ? 'text-blue-900' : 'text-gray-400'}`}><Users size={22} /><span className="text-[9px] font-medium">Equipe</span></button>
+                <button onClick={() => onChangeTab('settings')} className={`flex flex-col items-center justify-center gap-1 w-16 ${activeTab === 'settings' ? 'text-blue-900' : 'text-gray-400'}`}><Settings size={22} /><span className="text-[9px] font-medium">Ajustes</span></button>
             </div>
         );
 
@@ -1365,6 +1388,14 @@
             };
 
             const handleDeleteTask = () => { if(confirm("Tem a certeza que deseja excluir esta tarefa?")) { deleteTask(currentTask.id); onClose(); } };
+
+            const handleResponsibleSelectChange = (e) => {
+                const selectedId = e.target.value;
+                if (selectedId !== (currentTask.responsible?.id || '')) {
+                    setTransferTargetId(selectedId);
+                    setTransferReason(''); 
+                }
+            };
 
             const confirmTransfer = () => {
                 if (!transferTargetId) { alert("Por favor, selecione o novo responsável."); return; }
@@ -1605,7 +1636,7 @@
             const finishedEvents = events.filter(e => isEventFinished(e)).sort((a, b) => new Date(b.endDate || b.startDate) - new Date(a.endDate || a.startDate));
             const activeEventIds = activeEvents.map(e => e.id);
             
-            const workload = members.filter(m => m.role !== 'Temporário').map(m => {
+            const workload = members.filter(m => m.role !== 'Temporário' && m.active !== false).map(m => {
                 const memberTasks = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id);
                 const pending = memberTasks.filter(t => t.status !== 'done').length;
                 const done = memberTasks.filter(t => t.status === 'done').length;
@@ -1620,108 +1651,143 @@
             const eventsToDisplay = eventViewMode === 'active' ? activeEvents : finishedEvents;
 
             return (
-                <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24">
-                    <div className="flex justify-between items-center mb-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 flex items-center justify-center font-bold text-xs bg-transparent rounded-2xl overflow-hidden">{globalLogo ? <img src={globalLogo} className="w-full h-full object-contain"/> : 'LOGO'}</div>
-                            <div>
-                                <h1 className="text-2xl font-extrabold text-blue-950">Event Hub</h1>
-                                <p className="text-sm text-gray-500">Olá, <strong className="text-blue-600">{currentUser?.name.split(' ')[0] || 'Usuário'}</strong></p>
+                <div className="relative min-h-screen bg-geometric">
+                    <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24 relative z-10">
+                        <div className="flex justify-between items-start mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3">
+                                    {globalLogo ? (
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white flex items-center justify-center">
+                                            <img src={globalLogo} className="w-8 h-8 object-contain"/>
+                                        </div>
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-800 to-red-600 flex items-center justify-center text-white text-xs font-bold border border-gray-200">
+                                            D
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h1 className="text-2xl font-extrabold text-blue-950 leading-tight">Event Hub</h1>
+                                        <p className="text-sm text-gray-500">Olá, <strong className="text-blue-600">{currentUser?.name.split(' ')[0] || 'Usuário'}</strong></p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <NotificationCenter notifications={notifications} currentUser={currentUser} tasks={tasks} onMarkAsRead={onMarkAsReadNotification} onClearAll={onClearAllNotifications} />
-                            <div onClick={onLogout} className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-sm border border-gray-100 pr-4 cursor-pointer hover:bg-red-50 hover:border-red-200 transition-colors group" title="Sair / Trocar de Perfil">
-                                <Avatar member={currentUser} size="w-10 h-10"/>
-                                <div className="text-left hidden sm:block">
-                                    <p className="text-xs font-bold text-gray-800 group-hover:text-red-700">{currentUser?.name}</p>
-                                    <p className="text-[10px] text-gray-500 truncate max-w-[100px] group-hover:text-red-500">Trocar Perfil</p>
+
+                            <div className="flex items-center gap-4 relative">
+                                <NotificationCenter notifications={notifications} currentUser={currentUser} tasks={tasks} onMarkAsRead={onMarkAsReadNotification} onClearAll={onClearAllNotifications} />
+                                <div onClick={onLogout} className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-sm border border-gray-100 pr-4 cursor-pointer hover:bg-gray-50 transition-colors group" title="Sair / Trocar de Perfil">
+                                    <Avatar member={currentUser} size="w-10 h-10"/>
+                                    <div className="text-left hidden sm:block">
+                                        <p className="text-xs font-bold text-gray-800 group-hover:text-blue-700">{currentUser?.name}</p>
+                                        <p className="text-[10px] text-gray-500 truncate max-w-[100px] group-hover:text-blue-500">Trocar Perfil</p>
+                                    </div>
+                                </div>
+
+                                {/* Tooltip Flutuante */}
+                                <div className="absolute top-[110%] right-0 w-64 bg-white p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.1)] border border-gray-100 z-50 flex gap-4 animate-in">
+                                    <div className="absolute -top-2 right-6 w-4 h-4 bg-white border-t border-l border-gray-100 transform rotate-45"></div>
+                                    <div className="w-10 h-10 shrink-0 bg-blue-50 rounded-xl flex items-center justify-center text-blue-900"><Settings2 size={24}/></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-800">Olá {currentUser?.name.split(' ')[0]}!</p>
+                                        <p className="text-xs text-gray-500 leading-tight mt-0.5">Grandes eventos são feitos de pequenos detalhes. Vamos fazer história hoje!</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 gap-8">
-                        <div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-auto min-h-[14rem]">
-                                    <div className="relative w-32 h-32 flex-shrink-0">
-                                        <svg className="w-full h-full -rotate-90">
-                                            <circle cx="64" cy="64" r="54" stroke="#F3F4F6" strokeWidth="12" fill="none"/>
-                                            <circle cx="64" cy="64" r="54" stroke="#1e3a8a" strokeWidth="12" fill="none" strokeDasharray="339" strokeDashoffset={339 - (339*progress)/100} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}/>
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="font-bold text-2xl text-blue-900 leading-none">{progress}%</span>
+                        <div className="grid grid-cols-1 gap-8 mt-12">
+                            <div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                    
+                                    {/* Status Global Card */}
+                                    <div className="bg-white rounded-[1.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 flex items-center gap-6 h-auto min-h-[12rem]">
+                                        <div className="w-24 h-24 rounded-full border-4 border-gray-100 flex items-center justify-center bg-gray-50 text-gray-500 shrink-0">
+                                            <Settings size={32} />
                                         </div>
-                                    </div>
-                                    <div className="ml-8 flex-1">
-                                        <h3 className="font-bold text-gray-900 mb-3 text-lg">Status Global (Ativos)</h3>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                                        <div className="flex-1 flex flex-col justify-center gap-4">
+                                            <h3 className="font-bold text-gray-800 text-sm">Status Global (Ativos)</h3>
+                                            <div className="w-full bg-emerald-50/80 border border-emerald-100 rounded-xl p-3 flex justify-between items-center">
                                                 <span className="text-xs font-bold text-emerald-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Concluídas</span>
                                                 <span className="text-sm font-extrabold text-emerald-800">{completedActiveTasks}</span>
                                             </div>
-                                            <div className="flex items-center justify-between bg-amber-50 p-2 rounded-lg border border-amber-100">
+                                            <div className="w-full bg-amber-50/80 border border-amber-100 rounded-xl p-3 flex justify-between items-center">
                                                 <span className="text-xs font-bold text-amber-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Pendentes</span>
                                                 <span className="text-sm font-extrabold text-amber-800">{totalActiveTasks - completedActiveTasks}</span>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col justify-center h-auto min-h-[14rem]">
-                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Users size={18} className="text-blue-600"/> Carga de Trabalho</h3>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {workload.map(m => (
-                                            <div key={m.id} onClick={() => onMemberClick(m)} className="flex items-center gap-3 p-2 rounded-xl border border-gray-50 hover:bg-gray-50 hover:border-gray-200 transition-all cursor-pointer group bg-white shadow-sm">
-                                                <div className="relative shrink-0"><Avatar member={m} size="w-10 h-10"/>{m.total > 0 && (<div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-white font-bold border border-white ${m.total > 5 ? 'bg-blue-600' : 'bg-blue-400'}`}>{m.total}</div>)}</div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[11px] font-bold text-gray-800 truncate">{m.name.split(' ')[0]}</p>
-                                                    <div className="flex gap-2 mt-0.5">
-                                                        <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5" title="Pendentes"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> {m.pending}</span>
-                                                        <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5" title="Concluídas"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {m.done}</span>
+                                    
+                                    {/* Carga de Trabalho Card */}
+                                    <div className="bg-white rounded-[1.5rem] p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 flex flex-col h-full">
+                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Users size={16} className="text-blue-600"/> Carga de Trabalho</h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {workload.map(m => {
+                                                let UserIcon = ArrowRightCircle;
+                                                if(m.name.includes('Matheus')) UserIcon = BarChart3;
+                                                if(m.name.includes('Larissa')) UserIcon = Film;
+                                                if(m.name.includes('Suzana')) UserIcon = ShoppingCart;
+
+                                                return (
+                                                    <div key={m.id} onClick={() => onMemberClick(m)} className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 transition-all cursor-pointer group bg-white border border-transparent hover:border-gray-100">
+                                                        <div className="relative shrink-0">
+                                                            <Avatar member={m} size="w-10 h-10"/>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-bold text-gray-800 truncate">{m.name.split(' ')[0]}</p>
+                                                            <div className="flex gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-bold text-amber-500 flex items-center gap-0.5" title="Pendentes"><div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div> {m.pending}</span>
+                                                                <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-0.5" title="Concluídas"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> {m.done}</span>
+                                                            </div>
+                                                        </div>
+                                                        <UserIcon size={18} className="text-blue-900 opacity-40 group-hover:opacity-100 transition-opacity" />
                                                     </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between mb-6">
+                                    <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                        <Clock size={20} className="text-gray-800"/> Eventos em Andamento
+                                    </h2>
+                                    <div className="bg-white p-1 rounded-full border border-gray-200 flex shadow-sm">
+                                        <button onClick={() => setEventViewMode('active')} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${eventViewMode === 'active' ? 'bg-blue-100 text-blue-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}>Em Andamento</button>
+                                        <button onClick={() => setEventViewMode('completed')} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 ${eventViewMode === 'completed' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><Check size={14}/> Concluídos</button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10 min-h-[200px]">
+                                    {eventsToDisplay.length === 0 ? (
+                                        <div className="col-span-full flex flex-col items-center justify-center py-12 opacity-50 bg-white rounded-2xl border border-dashed border-gray-200">
+                                            <div className="bg-gray-50 p-4 rounded-full mb-3 text-gray-400">{eventViewMode === 'active' ? <Rocket size={32}/> : <Archive size={32}/>}</div>
+                                            <p className="text-sm font-bold text-gray-500">{eventViewMode === 'active' ? 'Nenhum evento ativo no momento.' : 'Nenhum evento concluído ainda.'}</p>
+                                        </div>
+                                    ) : (
+                                        eventsToDisplay.map(evt => (
+                                            <div key={evt.id} onClick={() => onSelectEvent(evt)} className={`bg-white rounded-xl border shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden aspect-[4/3] flex flex-col relative transform hover:-translate-y-1 ${eventViewMode === 'completed' ? 'grayscale border-gray-200' : 'border-gray-100'}`}>
+                                                <div className="flex-1 bg-slate-100 relative overflow-hidden">
+                                                    {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-90"/>}
+                                                    {!evt.coverUrl && <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-indigo-50"></div>}
+                                                    
+                                                    {/* Central Icon Background Overlay */}
+                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                                                        {getEventIcon(evt.title)}
+                                                    </div>
+
+                                                    {eventViewMode === 'active' && <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded text-[10px] font-bold text-gray-800 shadow-sm z-20">{getDaysLeft(evt)} dias</div>}
+                                                    {eventViewMode === 'completed' && <div className="absolute inset-0 bg-white/10 flex items-center justify-center z-20"><div className="bg-emerald-500 text-white p-2 rounded-full shadow-lg"><Check size={20}/></div></div>}
+                                                    
+                                                    {/* Drive Link (if exists) */}
+                                                    {evt.driveLink && <div className="absolute top-2 left-2 bg-white px-1.5 py-1.5 rounded-md shadow-sm z-20" title="Possui pasta no Drive"><img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-3.5 h-3.5" /></div>}
+                                                </div>
+                                                <div className="p-3 shrink-0 bg-white border-t border-gray-50 z-20">
+                                                    <h3 className="font-bold text-gray-900 mb-0.5 truncate text-sm">{evt.title}</h3>
+                                                    <p className="text-[10px] text-gray-500 flex items-center gap-1"><MapPin size={10}/> {evt.location || 'Local a definir'}</p>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        ))
+                                    )}
                                 </div>
-                            </div>
-
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-blue-950 flex items-center gap-2">
-                                    {eventViewMode === 'active' ? <Clock size={24}/> : <CheckSquare size={24}/>} 
-                                    {eventViewMode === 'active' ? 'Eventos em Andamento' : 'Eventos Concluídos'}
-                                </h2>
-                                <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
-                                    <button onClick={() => setEventViewMode('active')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'active' ? 'bg-blue-100 text-blue-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><Clock size={14}/> Em Andamento</button>
-                                    <button onClick={() => setEventViewMode('completed')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'completed' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><CheckSquare size={14}/> Concluídos</button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10 min-h-[200px]">
-                                {eventsToDisplay.length === 0 ? (
-                                    <div className="col-span-full flex flex-col items-center justify-center py-12 opacity-50 bg-white rounded-2xl border border-dashed border-gray-200">
-                                        <div className="bg-gray-50 p-4 rounded-full mb-3 text-gray-400">{eventViewMode === 'active' ? <Rocket size={32}/> : <Archive size={32}/>}</div>
-                                        <p className="text-sm font-bold text-gray-500">{eventViewMode === 'active' ? 'Nenhum evento ativo no momento.' : 'Nenhum evento concluído ainda.'}</p>
-                                    </div>
-                                ) : (
-                                    eventsToDisplay.map(evt => (
-                                        <div key={evt.id} onClick={() => onSelectEvent(evt)} className={`bg-white rounded-xl border shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden aspect-square flex flex-col relative transform hover:-translate-y-1 ${eventViewMode === 'completed' ? 'grayscale border-gray-200' : 'border-gray-100'}`}>
-                                            <div className="flex-1 bg-slate-100 relative overflow-hidden">
-                                                {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>}
-                                                {!evt.coverUrl && <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-indigo-50"></div>}
-                                                {eventViewMode === 'active' && <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold shadow-sm text-blue-900 border border-white/50">{getDaysLeft(evt)} dias</div>}
-                                                {eventViewMode === 'completed' && <div className="absolute inset-0 bg-white/10 flex items-center justify-center"><div className="bg-emerald-500 text-white p-2 rounded-full shadow-lg"><Check size={20}/></div></div>}
-                                                {evt.driveLink && <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-md shadow-sm border border-white/50" title="Possui pasta no Drive"><img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-3.5 h-3.5" /></div>}
-                                            </div>
-                                            <div className="p-3 shrink-0 bg-white border-t border-gray-50">
-                                                <h3 className="font-bold text-gray-900 mb-0.5 truncate text-sm">{evt.title}</h3>
-                                                <p className="text-[10px] text-gray-500 flex items-center gap-1"><MapPin size={10}/> {evt.location || 'Local a definir'}</p>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
                             </div>
                         </div>
                     </div>
@@ -1807,7 +1873,6 @@
 
             return (
                 <div className="min-h-screen bg-[#F8FAFC] pb-24 animate-in">
-                    {/* HERO SECTION */}
                     <div className="h-64 sm:h-72 bg-slate-900 relative rounded-b-[2.5rem] shadow-sm overflow-hidden mb-6 group/hero">
                         {event.coverUrl ? (
                             <img src={event.coverUrl} className="w-full h-full object-cover opacity-50 mix-blend-overlay transition-transform duration-[10s] group-hover/hero:scale-105"/>
