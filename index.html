@@ -2194,6 +2194,75 @@
             </div>
         );
 
+        const FISPAL_DATA = {
+            title: "Fispal 2026",
+            date: "2026-06-09",
+            categories: [
+                {
+                    title: "Estrutura", color: "blue", icon: "box",
+                    subcategories: ["Laboratório", "Salão Principal", "Montagem", "Depósito", "Recepção", "Buffet", "Portal", "Confeitaria/ Aulas Show", "Aula Show"],
+                    tasks: [
+                        { sub: "Laboratório", text: "Ponto de energia 330v" }, { sub: "Laboratório", text: "Geladeira Full" }, { sub: "Laboratório", text: "Freezer tampa cega vertical" }, { sub: "Laboratório", text: "Ultracongelador" }, { sub: "Laboratório", text: "Produtoras" }, { sub: "Laboratório", text: "Aquecimento pia" }, { sub: "Laboratório", text: "Bancadas grande" }, { sub: "Laboratório", text: "Utensílios" }, { sub: "Laboratório", text: "freezer horizontal - 2 portas" }, { sub: "Laboratório", text: "Liquidificador" }, { sub: "Laboratório", text: "Mangueira para lavagem com esguicho" }, { sub: "Laboratório", text: "Pia industrial funda" }, { sub: "Laboratório", text: "Escorredor Grande (Sobre a Pia)" }, { sub: "Laboratório", text: "Prateleiras" }, { sub: "Laboratório", text: "Freezer Horizontal - Tampa cega" }, { sub: "Laboratório", text: "Mixer" }, { sub: "Laboratório", text: "microondas grande" },
+                        { sub: "Salão Principal", text: "Bistrôs - Locação e instalação" }, { sub: "Salão Principal", text: "Quantidade de bistrôs e banquetas" }, { sub: "Salão Principal", text: "App de pedido" }, { sub: "Salão Principal", text: "Internet" }, { sub: "Salão Principal", text: "Ficha de pedido" }, { sub: "Salão Principal", text: "Pedido (Equipe)" }, { sub: "Salão Principal", text: "Pedido - Separação (Meninas)" },
+                        { sub: "Confeitaria/ Aulas Show", text: "E-book de receitas" }, { sub: "Confeitaria/ Aulas Show", text: "Limpeza Dedicada" },
+                        { sub: "Aula Show", text: "Arte Agenda de Cursos (passando na TV)" }, { sub: "Aula Show", text: "Programação" }, { sub: "Aula Show", text: "Sistema de som" },
+                        { sub: "Portal", text: "Contratação de exitntor de incêncio" }, { sub: "Portal", text: "Seguro" }, { sub: "Portal", text: "Cabo de aço" }, { sub: "Portal", text: "Credenciamento" },
+                        { sub: "Montagem", text: "Quantidade e especificação de pontos de elétrica" }, { sub: "Montagem", text: "Listagem de equipamentos" }, { sub: "Montagem", text: "Conversão KVAs" }, { sub: "Montagem", text: "Pontos de água e deságue" }, { sub: "Montagem", text: "Planta técnica (elétrica, água, deságue)" }, { sub: "Montagem", text: "Responsável eletricista" }, { sub: "Montagem", text: "Responsável maquinário" }, { sub: "Montagem", text: "Responsável máquina café" }, { sub: "Montagem", text: "Responsável limpeza" }, { sub: "Montagem", text: "Responsável segurança" }, { sub: "Montagem", text: "Responsável catering / garçons / copeiras" }, { sub: "Montagem", text: "Responsável painel Led" }, { sub: "Montagem", text: "Responsável Montadora" }, { sub: "Montagem", text: "Responsável Feira" }, { sub: "Montagem", text: "Dimensionamento correto KVAs / Potência / Corrente" }, { sub: "Montagem", text: "Rádios" },
+                        { sub: "Depósito", text: "Prateleiras" },
+                        { sub: "Recepção", text: "Escala" }, { sub: "Recepção", text: "Materiais" }, { sub: "Recepção", text: "Totens" },
+                        { sub: "Buffet", text: "Contratação de pessoas" }
+                    ]
+                },
+                {
+                    title: "Johnny Rockets", color: "red", icon: "star",
+                    subcategories: ["Geral"],
+                    tasks: [
+                        { sub: "Geral", text: "Negociação" }, { sub: "Geral", text: "Estrutura" }, { sub: "Geral", text: "Letreiro" }, { sub: "Geral", text: "Definição de sabores" }, { sub: "Geral", text: "Tomadas" }, { sub: "Geral", text: "KVAs" }, { sub: "Geral", text: "Equipe" }, { sub: "Geral", text: "Copinhos" }, { sub: "Geral", text: "Canudos" }, { sub: "Geral", text: "Guardanapos" }, { sub: "Geral", text: "Maquinário" }, { sub: "Geral", text: "Recheios" }, { sub: "Geral", text: "Mini Hamburgueres" }, { sub: "Geral", text: "Letreiro Soft (Jhonny Rockets)" }, { sub: "Geral", text: "Caixa de som" }, { sub: "Geral", text: "Chapéu" }, { sub: "Geral", text: "Avental" }
+                    ]
+                },
+                {
+                    title: "Totens Distribuidores", color: "orange", icon: "layout",
+                    subcategories: ["Ação Totens - Distribuidores"],
+                    tasks: [
+                        { sub: "Ação Totens - Distribuidores", text: "Criar Convite" }, { sub: "Ação Totens - Distribuidores", text: "Criar forms" }, { sub: "Ação Totens - Distribuidores", text: "Definir participantes" }, { sub: "Ação Totens - Distribuidores", text: "Criar artes com logo e localidade" }, { sub: "Ação Totens - Distribuidores", text: "Enviar para Fispal" }, { sub: "Ação Totens - Distribuidores", text: "1 totem entrada = Bem-vindos + Endereço + Conheça os lançamentos + QR code Todos os distribuidores" }, { sub: "Ação Totens - Distribuidores", text: "Acompanhar produção" }, { sub: "Ação Totens - Distribuidores", text: "Acompanhar instalação" }, { sub: "Ação Totens - Distribuidores", text: "Landing Page Onde Comprar" }
+                    ]
+                },
+                {
+                    title: "Comunicação", color: "purple", icon: "megaphone",
+                    subcategories: ["Painel de LED", "Comunicação Estande"],
+                    tasks: [
+                        { sub: "Painel de LED", text: "Painel de Led" }, { sub: "Painel de LED", text: "Vídeo Led - Receber mapa de pixels" }, { sub: "Painel de LED", text: "Vídeo Led - Áudio" }, { sub: "Painel de LED", text: "Vídeo Led - Mapa de Conteúdos" }, { sub: "Painel de LED", text: "Vídeo Led - Roteiro" }, { sub: "Painel de LED", text: "Vídeo Led - Contratação de Produtora" }, { sub: "Painel de LED", text: "Vídeo Led - Produção Vídeos" }, { sub: "Painel de LED", text: "Vídeo Led - Envio e teste" }, { sub: "Painel de LED", text: "Vídeos - Lançamentos e destaques" }, { sub: "Painel de LED", text: "Vídeos - Sua próxima inovação começa aqui (e áreas)" }, { sub: "Painel de LED", text: "Vídeos - Casa de Aromas" }, { sub: "Painel de LED", text: "Vídeos - Sensorial (estilo Leagel)" }, { sub: "Painel de LED", text: "Vídeos - ESG" }, { sub: "Painel de LED", text: "Vídeos - Marque uma visita à Doremus" }, { sub: "Painel de LED", text: "Vídeos - Venha ser distribuidor Doremus" }, { sub: "Painel de LED", text: "Mapa de pixels" },
+                        { sub: "Comunicação Estande", text: "Paineis internos - Mapa" }, { sub: "Comunicação Estande", text: "Painéis internos- Definição do conteúdo" }, { sub: "Comunicação Estande", text: "Painéis internos - Arte" }, { sub: "Comunicação Estande", text: "Painel anexo (mapas de paineis)" }, { sub: "Comunicação Estande", text: "Flyers Lançamentos" }, { sub: "Comunicação Estande", text: "Flyers - destaques" }, { sub: "Comunicação Estande", text: "Catálogo - refação" }, { sub: "Comunicação Estande", text: "Comunicação Pós-Evento" }, { sub: "Comunicação Estande", text: "Comunicação do Freezer" }
+                    ]
+                },
+                {
+                    title: "Produtos", color: "emerald", icon: "box",
+                    subcategories: ["Degustação Sorvetes"],
+                    tasks: [
+                        { sub: "Degustação Sorvetes", text: "Definição Receitas" }, { sub: "Degustação Sorvetes", text: "Quantidades Calda" }, { sub: "Degustação Sorvetes", text: "Envio Caldas" }, { sub: "Degustação Sorvetes", text: "Produção Sorvetes" }, { sub: "Degustação Sorvetes", text: "Decoração de Cubas" }, { sub: "Degustação Sorvetes", text: "Picolés - definição sabores" }, { sub: "Degustação Sorvetes", text: "Picolés - arte embalagem" }, { sub: "Degustação Sorvetes", text: "Picolés - Produção" }, { sub: "Degustação Sorvetes", text: "Picolés - Rotulagem" }, { sub: "Degustação Sorvetes", text: "Picolés - Envio" }, { sub: "Degustação Sorvetes", text: "Amostras" }, { sub: "Degustação Sorvetes", text: "Potinhos Amostras" }, { sub: "Degustação Sorvetes", text: "Potinhos - Adesivos" }, { sub: "Degustação Sorvetes", text: "Chocolatinho Logomarcado" }
+                    ]
+                },
+                {
+                    title: "Escala", color: "teal", icon: "users",
+                    subcategories: ["Escala", "Salão Principal"],
+                    tasks: [
+                        { sub: "Escala", text: "Programação" },
+                        { sub: "Salão Principal", text: "Numeração das mesas" }
+                    ]
+                },
+                {
+                    title: "Utensílios", color: "yellow", icon: "coffee",
+                    subcategories: ["Confeitaria/ Aulas Show", "Espaço Café", "Degustação Sorvetes", "Salão Principal"],
+                    tasks: [
+                        { sub: "Confeitaria/ Aulas Show", text: "Guardanapos" }, { sub: "Confeitaria/ Aulas Show", text: "Talheres Descartáveis" }, { sub: "Confeitaria/ Aulas Show", text: "Xícaras para Affogato" }, { sub: "Confeitaria/ Aulas Show", text: "Outros Utensílios Paulo" }, { sub: "Confeitaria/ Aulas Show", text: "Thiago Pedebis - Confirmar" }, { sub: "Confeitaria/ Aulas Show", text: "Thiago Pedebis - Definir data e horário" }, { sub: "Confeitaria/ Aulas Show", text: "Chocolatinho Logomarcado" }, { sub: "Confeitaria/ Aulas Show", text: "Vitrine - definir e alugar" }, { sub: "Confeitaria/ Aulas Show", text: "Limpeza dedicada" }, { sub: "Confeitaria/ Aulas Show", text: "Lixeiras" }, { sub: "Confeitaria/ Aulas Show", text: "Definição Aulas Paulo e Nani" }, { sub: "Confeitaria/ Aulas Show", text: "Definição Aula Thiago Pedebis" }, { sub: "Confeitaria/ Aulas Show", text: "Arte Agenda de Cursos" }, { sub: "Confeitaria/ Aulas Show", text: "Pratinhos" },
+                        { sub: "Espaço Café", text: "Recheios para Affogato" }, { sub: "Espaço Café", text: "Xícaras para Affogato" }, { sub: "Espaço Café", text: "Colheres" }, { sub: "Espaço Café", text: "Guardanapos" }, { sub: "Espaço Café", text: "Sorvete" },
+                        { sub: "Degustação Sorvetes", text: "Cubas locadas" }, { sub: "Degustação Sorvetes", text: "Porta-pazinhas" }, { sub: "Degustação Sorvetes", text: "Pazinhas / Colher" }, { sub: "Degustação Sorvetes", text: "Copinhos 50ML" }, { sub: "Degustação Sorvetes", text: "Espátulas" }, { sub: "Degustação Sorvetes", text: "Guardanapos" }, { sub: "Degustação Sorvetes", text: "Picolés - Freezer" }, { sub: "Degustação Sorvetes", text: "Picolés - definição sabores" }, { sub: "Degustação Sorvetes", text: "Picolés - arte embalagem" }, { sub: "Degustação Sorvetes", text: "Picolés - Produção" }, { sub: "Degustação Sorvetes", text: "Picolés - Rotulagem" }, { sub: "Degustação Sorvetes", text: "Picolés - Envio" }, { sub: "Degustação Sorvetes", text: "Pia (Água/Deságue)" }, { sub: "Degustação Sorvetes", text: "Aquecimento pia" }, { sub: "Degustação Sorvetes", text: "Promotoras para degustação - quantidade" }, { sub: "Degustação Sorvetes", text: "Promotoras para degustação - contratação" }, { sub: "Degustação Sorvetes", text: "Promotoras para degustação - capacitação e gestão" }, { sub: "Degustação Sorvetes", text: "Amostras" }, { sub: "Degustação Sorvetes", text: "Potinhos Amostras" }, { sub: "Degustação Sorvetes", text: "Potinhos - Adesivos" }, { sub: "Degustação Sorvetes", text: "Chocolatinho Logomarcado" }, { sub: "Degustação Sorvetes", text: "Lixeiras" },
+                        { sub: "Salão Principal", text: "Água" }
+                    ]
+                }
+            ]
+        };
+
         function App() {
             const [view, setView] = useState('dashboard');
             const [selectedEvent, setSelectedEvent] = useState(null);
@@ -2339,6 +2408,77 @@
                 setActiveUserId(null);
             };
 
+            const handleImportFispal = async () => {
+                if (!confirm("Deseja criar automaticamente o evento Fispal 2026 com dezenas de categorias, subcategorias e tarefas pré-configuradas?")) return;
+                
+                const eventId = "fispal-" + Date.now();
+                
+                const importedCategories = FISPAL_DATA.categories.map((c, i) => {
+                    const catId = `cat-${Date.now()}-${i}`;
+                    const subcats = c.subcategories.map((subTitle, j) => ({
+                        id: `sub-${catId}-${j}`,
+                        title: subTitle
+                    }));
+                    
+                    return {
+                        id: catId,
+                        title: c.title,
+                        color: c.color,
+                        icon: c.icon,
+                        phases: ['pre', 'during', 'post'],
+                        responsibleId: null,
+                        subcategories: subcats,
+                        _rawTasks: c.tasks
+                    };
+                });
+
+                const newEvent = {
+                    id: eventId,
+                    title: FISPAL_DATA.title,
+                    location: "São Paulo, SP",
+                    driveLink: "",
+                    startDate: FISPAL_DATA.date,
+                    endDate: FISPAL_DATA.date,
+                    dateRange: "09/06/2026",
+                    responsibleId: members[0]?.id || null,
+                    teamIds: [],
+                    categories: importedCategories.map(c => {
+                        const { _rawTasks, ...rest } = c;
+                        return rest;
+                    }),
+                    agenda: []
+                };
+
+                let tasksToCreate = [];
+                let taskOrder = Date.now();
+
+                importedCategories.forEach(cat => {
+                    cat._rawTasks.forEach((t, index) => {
+                        const subcat = cat.subcategories.find(s => s.title === t.sub);
+                        tasksToCreate.push({
+                            id: Date.now() + Math.floor(Math.random() * 1000000) + index,
+                            eventId: eventId,
+                            text: t.text,
+                            category: cat.id,
+                            subcategoryId: subcat ? subcat.id : null,
+                            phase: 'pre',
+                            priority: 'medium',
+                            status: 'planning',
+                            cost: 0,
+                            responsible: null,
+                            messages: [],
+                            support: [],
+                            subtasks: [],
+                            transferHistory: [],
+                            order: taskOrder++
+                        });
+                    });
+                });
+
+                handleCreateEvent(newEvent, tasksToCreate);
+                alert("Fispal 2026 gerado com sucesso! Clicando em OK, o evento deve aparecer no seu painel em alguns segundos.");
+            };
+
             const currentSelectedEvent = selectedEvent ? events.find(e => e.id === selectedEvent.id) : null;
 
             if (!activeUserId && members.length > 0) { 
@@ -2364,9 +2504,147 @@
                 );
             }
 
+            // Precisamos garantir que a view do Dashboard possa acionar o ImportFispal
+            const EnhancedDashboard = (props) => {
+                const { events, tasks, members, currentUser, notifications, onMarkAsReadNotification, onClearAllNotifications, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId, onLogout } = props;
+                const [eventViewMode, setEventViewMode] = useState('active');
+                
+                const activeEvents = events.filter(e => !isEventFinished(e)).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                const finishedEvents = events.filter(e => isEventFinished(e)).sort((a, b) => new Date(b.endDate || b.startDate) - new Date(a.endDate || a.startDate));
+                const activeEventIds = activeEvents.map(e => e.id);
+                
+                const workload = members.filter(m => m.role !== 'Temporário').map(m => {
+                    const memberTasks = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id);
+                    const pending = memberTasks.filter(t => t.status !== 'done').length;
+                    const done = memberTasks.filter(t => t.status === 'done').length;
+                    return { ...m, pending, done, total: pending + done };
+                });
+                
+                const manager = members.find(m => m.id === managerId) || members[0];
+                const activeTasks = tasks.filter(t => activeEventIds.includes(t.eventId));
+                const completedActiveTasks = activeTasks.filter(t => t.status === 'done').length;
+                const totalActiveTasks = activeTasks.length;
+                const progress = totalActiveTasks > 0 ? Math.round((completedActiveTasks / totalActiveTasks) * 100) : 0;
+                const eventsToDisplay = eventViewMode === 'active' ? activeEvents : finishedEvents;
+
+                return (
+                    <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24">
+                        <div className="flex justify-between items-center mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="w-16 h-16 flex items-center justify-center font-bold text-xs bg-transparent rounded-2xl overflow-hidden">{globalLogo ? <img src={globalLogo} className="w-full h-full object-contain"/> : 'LOGO'}</div>
+                                <div>
+                                    <h1 className="text-2xl font-extrabold text-blue-950">Event Hub</h1>
+                                    <p className="text-sm text-gray-500">Olá, <strong className="text-blue-600">{currentUser?.name.split(' ')[0] || 'Usuário'}</strong></p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <NotificationCenter notifications={notifications} currentUser={currentUser} tasks={tasks} onMarkAsRead={onMarkAsReadNotification} onClearAll={onClearAllNotifications} />
+                                <div onClick={onLogout} className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-sm border border-gray-100 pr-4 cursor-pointer hover:bg-red-50 hover:border-red-200 transition-colors group" title="Sair / Trocar de Perfil">
+                                    <Avatar member={currentUser} size="w-10 h-10"/>
+                                    <div className="text-left hidden sm:block">
+                                        <p className="text-xs font-bold text-gray-800 group-hover:text-red-700">{currentUser?.name}</p>
+                                        <p className="text-[10px] text-gray-500 truncate max-w-[100px] group-hover:text-red-500">Trocar Perfil</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-8">
+                            <div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-auto min-h-[14rem]">
+                                        <div className="relative w-32 h-32 flex-shrink-0">
+                                            <svg className="w-full h-full -rotate-90">
+                                                <circle cx="64" cy="64" r="54" stroke="#F3F4F6" strokeWidth="12" fill="none"/>
+                                                <circle cx="64" cy="64" r="54" stroke="#1e3a8a" strokeWidth="12" fill="none" strokeDasharray="339" strokeDashoffset={339 - (339*progress)/100} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}/>
+                                            </svg>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span className="font-bold text-2xl text-blue-900 leading-none">{progress}%</span>
+                                            </div>
+                                        </div>
+                                        <div className="ml-8 flex-1">
+                                            <h3 className="font-bold text-gray-900 mb-3 text-lg">Status Global (Ativos)</h3>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                                                    <span className="text-xs font-bold text-emerald-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Concluídas</span>
+                                                    <span className="text-sm font-extrabold text-emerald-800">{completedActiveTasks}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between bg-amber-50 p-2 rounded-lg border border-amber-100">
+                                                    <span className="text-xs font-bold text-amber-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Pendentes</span>
+                                                    <span className="text-sm font-extrabold text-amber-800">{totalActiveTasks - completedActiveTasks}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col justify-center h-auto min-h-[14rem]">
+                                        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Users size={18} className="text-blue-600"/> Carga de Trabalho</h3>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                            {workload.map(m => (
+                                                <div key={m.id} onClick={() => onMemberClick(m)} className="flex items-center gap-3 p-2 rounded-xl border border-gray-50 hover:bg-gray-50 hover:border-gray-200 transition-all cursor-pointer group bg-white shadow-sm">
+                                                    <div className="relative shrink-0"><Avatar member={m} size="w-10 h-10"/>{m.total > 0 && (<div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-white font-bold border border-white ${m.total > 5 ? 'bg-blue-600' : 'bg-blue-400'}`}>{m.total}</div>)}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-[11px] font-bold text-gray-800 truncate">{m.name.split(' ')[0]}</p>
+                                                        <div className="flex gap-2 mt-0.5">
+                                                            <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5" title="Pendentes"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> {m.pending}</span>
+                                                            <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5" title="Concluídas"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {m.done}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+                                    <h2 className="text-xl font-bold text-blue-950 flex items-center gap-2">
+                                        {eventViewMode === 'active' ? <Clock size={24}/> : <CheckSquare size={24}/>} 
+                                        {eventViewMode === 'active' ? 'Eventos em Andamento' : 'Eventos Concluídos'}
+                                    </h2>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <button onClick={handleImportFispal} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow-lg flex items-center gap-2 transition-all hover:scale-105">
+                                            <Wand2 size={16}/> 🪄 Importar Modelo Fispal 2026
+                                        </button>
+                                        <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+                                            <button onClick={() => setEventViewMode('active')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'active' ? 'bg-blue-100 text-blue-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><Clock size={14}/> Em Andamento</button>
+                                            <button onClick={() => setEventViewMode('completed')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'completed' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><CheckSquare size={14}/> Concluídos</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10 min-h-[200px]">
+                                    {eventsToDisplay.length === 0 ? (
+                                        <div className="col-span-full flex flex-col items-center justify-center py-12 opacity-50 bg-white rounded-2xl border border-dashed border-gray-200">
+                                            <div className="bg-gray-50 p-4 rounded-full mb-3 text-gray-400">{eventViewMode === 'active' ? <Rocket size={32}/> : <Archive size={32}/>}</div>
+                                            <p className="text-sm font-bold text-gray-500">{eventViewMode === 'active' ? 'Nenhum evento ativo no momento.' : 'Nenhum evento concluído ainda.'}</p>
+                                        </div>
+                                    ) : (
+                                        eventsToDisplay.map(evt => (
+                                            <div key={evt.id} onClick={() => onSelectEvent(evt)} className={`bg-white rounded-xl border shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden aspect-square flex flex-col relative transform hover:-translate-y-1 ${eventViewMode === 'completed' ? 'grayscale border-gray-200' : 'border-gray-100'}`}>
+                                                <div className="flex-1 bg-slate-100 relative overflow-hidden">
+                                                    {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>}
+                                                    {!evt.coverUrl && <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-indigo-50"></div>}
+                                                    {eventViewMode === 'active' && <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold shadow-sm text-blue-900 border border-white/50">{getDaysLeft(evt)} dias</div>}
+                                                    {eventViewMode === 'completed' && <div className="absolute inset-0 bg-white/10 flex items-center justify-center"><div className="bg-emerald-500 text-white p-2 rounded-full shadow-lg"><Check size={20}/></div></div>}
+                                                    {evt.driveLink && <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-md shadow-sm border border-white/50" title="Possui pasta no Drive"><img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-3.5 h-3.5" /></div>}
+                                                </div>
+                                                <div className="p-3 shrink-0 bg-white border-t border-gray-50">
+                                                    <h3 className="font-bold text-gray-900 mb-0.5 truncate text-sm">{evt.title}</h3>
+                                                    <p className="text-[10px] text-gray-500 flex items-center gap-1"><MapPin size={10}/> {evt.location || 'Local a definir'}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
             return (
                 <>
-                    {view === 'dashboard' && <Dashboard events={events} tasks={tasks} members={members} currentUser={currentUserMember} notifications={notifications} onMarkAsReadNotification={handleMarkAsReadNotification} onClearAllNotifications={handleClearAllNotifications} onSelectEvent={(e) => { setSelectedEvent(e); setView('detail'); }} onNewEvent={() => setIsNewEventOpen(true)} onMemberClick={setSelectedWorkloadMember} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda} globalLogo={logo} managerId={managerId} onLogout={handleLogout}/>}
+                    {view === 'dashboard' && <EnhancedDashboard events={events} tasks={tasks} members={members} currentUser={currentUserMember} notifications={notifications} onMarkAsReadNotification={handleMarkAsReadNotification} onClearAllNotifications={handleClearAllNotifications} onSelectEvent={(e) => { setSelectedEvent(e); setView('detail'); }} onNewEvent={() => setIsNewEventOpen(true)} onMemberClick={setSelectedWorkloadMember} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda} globalLogo={logo} managerId={managerId} onLogout={handleLogout}/>}
                     {view === 'detail' && currentSelectedEvent && (
                         <EventDetail 
                             event={currentSelectedEvent} onBack={() => setView('dashboard')} 
