@@ -35,6 +35,10 @@
         }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .animate-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .glass-header { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255, 255, 255, 0.5); }
@@ -92,7 +96,7 @@
             Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase, Rocket, Star,
             PieChart, Timer, UserCheck, RefreshCw, Key, Archive, Download, Cloud,
             Home, List, Grid, Smile, LogOut, Repeat, Columns, Database, Lock, ShieldCheck,
-            Folder, HardDrive, History
+            Folder, HardDrive, History, Utensils, Ticket, Trophy, Tent, Store, ShoppingBag, Heart
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -212,6 +216,18 @@
 
         const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift, coffee: Coffee, music: Music, layout: Layout, search: Search, smile: Smile, star: Star, cloud: Cloud, key: Key, lock: Archive, map: MapPin, camera: Camera, folder: Folder };
         const ICON_KEYS = Object.keys(ICON_MAP);
+
+        const COVER_ICONS_MAP = {
+            star: Star, music: Music, coffee: Coffee, briefcase: Briefcase,
+            target: Target, camera: Camera, gift: Gift, sparkles: Sparkles,
+            flame: Flame, lightbulb: Lightbulb, zap: Zap, megaphone: Megaphone,
+            palette: Palette, mapPin: MapPin, rocket: Rocket, pieChart: PieChart,
+            crown: Crown, plane: Plane, truck: Truck, mic: Mic, smile: Smile,
+            layout: Layout, calendar: CalendarIcon, utensils: Utensils,
+            ticket: Ticket, trophy: Trophy, tent: Tent, store: Store, 
+            shoppingBag: ShoppingBag, heart: Heart
+        };
+        const COVER_ICON_KEYS = Object.keys(COVER_ICONS_MAP);
 
         const DEFAULT_CATEGORIES = [
             { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue', phases: ['pre', 'during', 'post'], responsibleId: null, subcategories: [] },
@@ -702,7 +718,7 @@
                                     </div>
                                     <div>
                                         <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Ícone:</span>
-                                        <div className="grid grid-cols-7 gap-1 bg-white p-2 rounded-lg border max-h-24 overflow-y-auto">
+                                        <div className="grid grid-cols-7 gap-1 bg-white p-2 rounded-lg border max-h-24 overflow-y-auto custom-scrollbar">
                                             {ICON_KEYS.map(iconKey => { const Icon = ICON_MAP[iconKey]; return (<button key={iconKey} onClick={() => setNewCat({...newCat, icon: iconKey})} className={`p-1.5 rounded hover:bg-gray-100 flex justify-center ${newCat.icon === iconKey ? 'text-blue-600 bg-blue-50' : 'text-gray-500'}`}><Icon size={14}/></button>) })}
                                         </div>
                                     </div>
@@ -711,7 +727,7 @@
                             <button onClick={handleAdd} className="w-full bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold mt-4">Adicionar Categoria</button>
                         </div>
 
-                        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2">
+                        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
                             {cats.map(cat => {
                                 const resp = members.find(m => m.id === cat.responsibleId);
                                 return (
@@ -776,7 +792,7 @@
                                                 </div>
                                                 <div className="flex-1">
                                                     <span className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Ícone:</span>
-                                                    <div className="grid grid-cols-8 gap-1 bg-gray-50 p-2 rounded-lg border max-h-24 overflow-y-auto">
+                                                    <div className="grid grid-cols-8 gap-1 bg-gray-50 p-2 rounded-lg border max-h-24 overflow-y-auto custom-scrollbar">
                                                         {ICON_KEYS.map(iconKey => { const Icon = ICON_MAP[iconKey]; return (<button key={iconKey} onClick={() => handleUpdate(cat.id, 'icon', iconKey)} className={`p-1 rounded flex justify-center ${cat.icon === iconKey ? 'text-blue-600 bg-blue-50' : 'text-gray-400'}`}><Icon size={14}/></button>) })}
                                                     </div>
                                                 </div>
@@ -808,7 +824,7 @@
                                                     }} className="bg-blue-100 text-blue-700 px-4 rounded-lg font-bold hover:bg-blue-200 transition-colors">Adicionar</button>
                                                 </div>
 
-                                                <div className="space-y-1 max-h-40 overflow-y-auto">
+                                                <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
                                                     {(cat.subcategories || []).length === 0 && <p className="text-xs text-gray-400 italic text-center py-2">Nenhuma subcategoria criada.</p>}
                                                     {(cat.subcategories || []).map(sub => (
                                                         <div key={sub.id} className="flex justify-between items-center bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
@@ -927,7 +943,7 @@
                                 ))}
                             </div>
 
-                            <div className="flex-1 p-8 overflow-y-auto bg-white">
+                            <div className="flex-1 p-8 overflow-y-auto bg-white custom-scrollbar">
                                 {activeTab === 'general' && (
                                     <div className="space-y-8 animate-in">
                                         <div>
@@ -1087,6 +1103,7 @@
             const [isSingleDay, setIsSingleDay] = useState(false);
             const [responsible, setResponsible] = useState('');
             const [team, setTeam] = useState([]);
+            const [coverIcon, setCoverIcon] = useState('star');
             const [selectedOptionalTasks, setSelectedOptionalTasks] = useState([]);
             
             useEffect(() => { if (isSingleDay) setEndDate(startDate); }, [isSingleDay, startDate]);
@@ -1113,7 +1130,7 @@
                 onCreate({ 
                     id: newEventId, title, location: location || 'Local a definir', driveLink, startDate, 
                     endDate: isSingleDay ? startDate : endDate, dateRange, responsibleId: responsible, 
-                    teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [] 
+                    teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [], coverIcon 
                 }, initialTasksToCreate);
                 onClose(); 
             };
@@ -1131,11 +1148,30 @@
 
                         <div className="space-y-3"><div className="flex items-center justify-between"><label className="block text-xs font-bold text-gray-500 uppercase">Período *</label><label className="flex items-center gap-2 text-xs font-bold text-blue-600 cursor-pointer"><input type="checkbox" checked={isSingleDay} onChange={e => setIsSingleDay(e.target.checked)}/> Dia único?</label></div><div className="flex gap-2"><input type="date" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" value={startDate} onChange={e=>setStartDate(e.target.value)}/>{!isSingleDay && <input type="date" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" value={endDate} onChange={e=>setEndDate(e.target.value)}/>}</div></div>
                         
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-3">Ícone da Capa do Evento</label>
+                            <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-32 overflow-y-auto p-1 custom-scrollbar">
+                                {COVER_ICON_KEYS.map(key => {
+                                    const Icon = COVER_ICONS_MAP[key];
+                                    return (
+                                        <button 
+                                            key={key} 
+                                            onClick={() => setCoverIcon(key)}
+                                            className={`p-2.5 rounded-xl flex items-center justify-center transition-all ${coverIcon === key ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 shadow-sm' : 'bg-white text-gray-400 border border-gray-200 hover:bg-gray-100 hover:text-gray-600'}`}
+                                            title={key}
+                                        >
+                                            <Icon size={18} />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-100">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável *</label><div className="space-y-2 max-h-40 overflow-y-auto">{members.map(m => (<div key={m.id} onClick={() => setResponsible(m.id)} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${responsible === m.id ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}><Avatar member={m} size="w-8 h-8"/><span className="text-xs font-bold flex-1">{m.name}</span>{responsible === m.id && <Check size={14} className="text-blue-600"/>}</div>))}</div></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável *</label><div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">{members.map(m => (<div key={m.id} onClick={() => setResponsible(m.id)} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${responsible === m.id ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}><Avatar member={m} size="w-8 h-8"/><span className="text-xs font-bold flex-1">{m.name}</span>{responsible === m.id && <Check size={14} className="text-blue-600"/>}</div>))}</div></div>
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe</label><div className="flex flex-wrap gap-2">{members.filter(m => m.id !== responsible).map(m => (<button key={m.id} onClick={() => toggleTeamMember(m.id)} className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs ${team.includes(m.id) ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200'}`}><Avatar member={m} size="w-5 h-5"/> {m.name}</button>))}</div></div>
                         </div>
-                        <div className="pt-2 border-t border-gray-100"><label className="block text-xs font-bold text-gray-500 uppercase mb-3">Tarefas Iniciais (Opcional)</label><div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-h-40 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3">{OPTIONAL_STARTUP_TASKS.map(task => (<label key={task.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${selectedOptionalTasks.includes(task.id) ? 'bg-white border-blue-300 shadow-sm' : 'border-transparent'}`}><input type="checkbox" className="rounded text-blue-600" checked={selectedOptionalTasks.includes(task.id)} onChange={() => toggleTask(task.id)}/><span className="text-xs text-gray-700">{task.text}</span></label>))}</div></div>
+                        <div className="pt-2 border-t border-gray-100"><label className="block text-xs font-bold text-gray-500 uppercase mb-3">Tarefas Iniciais (Opcional)</label><div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-h-40 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-2 gap-3">{OPTIONAL_STARTUP_TASKS.map(task => (<label key={task.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${selectedOptionalTasks.includes(task.id) ? 'bg-white border-blue-300 shadow-sm' : 'border-transparent'}`}><input type="checkbox" className="rounded text-blue-600" checked={selectedOptionalTasks.includes(task.id)} onChange={() => toggleTask(task.id)}/><span className="text-xs text-gray-700">{task.text}</span></label>))}</div></div>
                         <button onClick={handleSubmit} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:shadow-lg animate-shine bg-[length:200%_auto]">Criar Evento</button>
                     </div>
                 </Modal>
@@ -1149,16 +1185,21 @@
             const [location, setLocation] = useState(event?.location || '');
             const [driveLink, setDriveLink] = useState(event?.driveLink || '');
             const [cover, setCover] = useState(event?.coverUrl || '');
+            const [coverIcon, setCoverIcon] = useState(event?.coverIcon || 'star');
             const [responsible, setResponsible] = useState(event?.responsibleId || '');
             const fileInputRef = useRef(null);
 
             useEffect(() => {
-                if(event) { setTitle(event.title || ''); setStartDate(event.startDate || ''); setEndDate(event.endDate || ''); setLocation(event.location || ''); setDriveLink(event.driveLink || ''); setCover(event.coverUrl || ''); setResponsible(event.responsibleId || ''); }
+                if(event) { 
+                    setTitle(event.title || ''); setStartDate(event.startDate || ''); setEndDate(event.endDate || ''); 
+                    setLocation(event.location || ''); setDriveLink(event.driveLink || ''); setCover(event.coverUrl || ''); 
+                    setCoverIcon(event.coverIcon || 'star'); setResponsible(event.responsibleId || ''); 
+                }
             }, [event]);
 
             if(!isOpen || !event) return null;
 
-            const handleSave = () => { onUpdate(event.id, { title, startDate, endDate, location, driveLink, coverUrl: cover, responsibleId: responsible }); onClose(); };
+            const handleSave = () => { onUpdate(event.id, { title, startDate, endDate, location, driveLink, coverUrl: cover, coverIcon, responsibleId: responsible }); onClose(); };
             const handleCoverUpload = async (e) => { if(e.target.files[0]) { const url = await compressImage(e.target.files[0], 800); setCover(url); } };
 
             const getLocalDaysLeft = () => {
@@ -1181,12 +1222,32 @@
 
                     <div className="space-y-4">
                         <div onClick={()=>fileInputRef.current.click()} className="h-32 bg-gray-100 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative group border border-gray-200">
-                            {cover ? <img src={cover} className="w-full h-full object-cover"/> : <span className="text-gray-400 font-bold">Alterar Capa</span>}
+                            {cover ? <img src={cover} className="w-full h-full object-cover"/> : <span className="text-gray-400 font-bold">Alterar Imagem da Capa</span>}
                             <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold"><Camera size={24}/></div>
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload}/>
                         </div>
 
                         <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label><input className="w-full p-3 border rounded-xl font-bold text-gray-800" placeholder="Nome" value={title} onChange={e=>setTitle(e.target.value)}/></div>
+                        
+                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-3">Ícone da Capa</label>
+                            <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 max-h-32 overflow-y-auto p-1 custom-scrollbar">
+                                {COVER_ICON_KEYS.map(key => {
+                                    const Icon = COVER_ICONS_MAP[key];
+                                    return (
+                                        <button 
+                                            key={key} 
+                                            onClick={() => setCoverIcon(key)}
+                                            className={`p-2.5 rounded-xl flex items-center justify-center transition-all ${coverIcon === key ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-500 shadow-sm' : 'bg-white text-gray-400 border border-gray-200 hover:bg-gray-100 hover:text-gray-600'}`}
+                                            title={key}
+                                        >
+                                            <Icon size={18} />
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Início</label><input type="date" className="w-full p-3 border rounded-xl text-sm" value={startDate} onChange={e=>setStartDate(e.target.value)}/></div>
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fim</label><input type="date" className="w-full p-3 border rounded-xl text-sm" value={endDate} onChange={e=>setEndDate(e.target.value)}/></div>
@@ -1273,7 +1334,7 @@
 
             return (
                 <Modal isOpen={isOpen} onClose={onClose} title="Nova Tarefa">
-                    <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                    <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
                         <input className="w-full p-3 border rounded-xl" placeholder="Descrição da Tarefa" value={text} onChange={e=>setText(e.target.value)} autoFocus/>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -1527,7 +1588,7 @@
                     )}
 
                     <div className="flex flex-col md:flex-row h-full">
-                        <div className="flex-1 p-6 overflow-y-auto border-r border-gray-200">
+                        <div className="flex-1 p-6 overflow-y-auto border-r border-gray-200 custom-scrollbar">
                             
                             {/* TÍTULO EDITÁVEL */}
                             <div className="flex justify-between items-start mb-6">
@@ -1685,7 +1746,7 @@
                         
                         <div className="w-full md:w-[400px] bg-gray-50 flex flex-col border-l border-gray-200">
                             <div className="p-4 border-b bg-white font-bold text-gray-700 flex items-center gap-2"><MessageSquare size={18}/> Chat da Tarefa</div>
-                            <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                            <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
                                 {(currentTask.messages || []).length === 0 && <p className="text-center text-gray-400 text-xs mt-10">Inicie a conversa sobre esta tarefa.<br/>Dica: Digite @nome para notificar alguém!</p>}
                                 {(currentTask.messages || []).map(msg => (
                                     <div key={msg.id} className={`flex gap-2 group/msg ${msg.senderId === currentUser?.id ? 'flex-row-reverse' : ''}`}>
@@ -1696,7 +1757,7 @@
                                             {editingMessageId === msg.id ? (
                                                 <div className="flex flex-col gap-2 min-w-[200px]">
                                                     <textarea 
-                                                        className="w-full p-2 text-gray-800 rounded bg-white/90 border-none outline-none text-sm resize-none" 
+                                                        className="w-full p-2 text-gray-800 rounded bg-white/90 border-none outline-none text-sm resize-none custom-scrollbar" 
                                                         rows={2} value={editingText} onChange={e => setEditingText(e.target.value)} autoFocus
                                                     />
                                                     <div className="flex justify-end gap-2">
@@ -1742,7 +1803,7 @@
                                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
                                         <button onClick={() => setShowEmojis(!showEmojis)} className="p-2 text-gray-400 hover:text-yellow-500"><Smile size={18}/></button>
                                         {showEmojis && (<div className="absolute bottom-12 left-0 bg-white shadow-xl border rounded-xl p-2 grid grid-cols-6 gap-2 z-10 w-64">{['👍','👎','🔥','🎉','✅','❌','📅','😊','🤔','👀','🚀','💡'].map(e => (<button key={e} onClick={() => addEmoji(e)} className="text-xl hover:bg-gray-100 rounded p-1">{e}</button>))}</div>)}
-                                        <textarea className="flex-1 bg-transparent border-none outline-none text-sm p-2 max-h-24 resize-none" rows={1} placeholder="Escreva uma mensagem... Use @nome para notificar." value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}/>
+                                        <textarea className="flex-1 bg-transparent border-none outline-none text-sm p-2 max-h-24 resize-none custom-scrollbar" rows={1} placeholder="Escreva uma mensagem... Use @nome para notificar." value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}/>
                                     </div>
                                     <button onClick={handleSendMessage} className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md"><Send size={18}/></button>
                                 </div>
@@ -1869,7 +1930,17 @@
                                         <div key={evt.id} onClick={() => onSelectEvent(evt)} className={`bg-white rounded-xl border shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden aspect-square flex flex-col relative transform hover:-translate-y-1 ${eventViewMode === 'completed' ? 'grayscale border-gray-200' : 'border-gray-100'}`}>
                                             <div className="flex-1 bg-slate-100 relative overflow-hidden">
                                                 {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>}
-                                                {!evt.coverUrl && <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-indigo-50"></div>}
+                                                {!evt.coverUrl && (
+                                                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center">
+                                                        {evt.coverIcon && React.createElement(COVER_ICONS_MAP[evt.coverIcon] || Star, { size: 64, className: "text-blue-900/10" })}
+                                                    </div>
+                                                )}
+                                                {evt.coverUrl && evt.coverIcon && (
+                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                        {React.createElement(COVER_ICONS_MAP[evt.coverIcon] || Star, { size: 80, className: "text-white/40 drop-shadow-xl" })}
+                                                    </div>
+                                                )}
+                                                
                                                 {eventViewMode === 'active' && <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold shadow-sm text-blue-900 border border-white/50">{getDaysLeft(evt)} dias</div>}
                                                 {eventViewMode === 'completed' && <div className="absolute inset-0 bg-white/10 flex items-center justify-center"><div className="bg-emerald-500 text-white p-2 rounded-full shadow-lg"><Check size={20}/></div></div>}
                                                 {evt.driveLink && <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-md shadow-sm border border-white/50" title="Possui pasta no Drive"><img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-3.5 h-3.5" /></div>}
@@ -1977,12 +2048,18 @@
                         ) : (
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-indigo-900 opacity-80"></div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent z-10"></div>
                         
-                        <button onClick={onBack} className="absolute top-6 left-6 p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all shadow-sm"><ArrowLeft size={20}/></button>
-                        <button onClick={() => setIsEditEventOpen(true)} className="absolute top-6 right-6 p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all shadow-sm"><Settings size={20}/></button>
+                        {event.coverIcon && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                                {React.createElement(COVER_ICONS_MAP[event.coverIcon] || Star, { size: 160, className: "text-white/10 mix-blend-overlay drop-shadow-2xl" })}
+                            </div>
+                        )}
 
-                        <div className="absolute bottom-6 left-6 right-6">
+                        <button onClick={onBack} className="absolute top-6 left-6 p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all shadow-sm z-20"><ArrowLeft size={20}/></button>
+                        <button onClick={() => setIsEditEventOpen(true)} className="absolute top-6 right-6 p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all shadow-sm z-20"><Settings size={20}/></button>
+
+                        <div className="absolute bottom-6 left-6 right-6 z-20">
                             <h1 className="text-3xl lg:text-4xl font-extrabold text-white mb-3 drop-shadow-md">{event.title}</h1>
                             <div className="flex flex-wrap items-center gap-3 mb-3">
                                  <span className="text-xs font-bold text-slate-900 bg-white px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 shadow-lg">
@@ -2078,7 +2155,7 @@
                             </div>
                             
                             {/* BOARD */}
-                            <div className={`${viewGrouping === 'status' ? 'flex overflow-x-auto gap-4 pb-4 items-start' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start pb-4'}`}>
+                            <div className={`${viewGrouping === 'status' ? 'flex overflow-x-auto gap-4 pb-4 items-start custom-scrollbar' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start pb-4'}`}>
                                 {columns.map(col => {
                                     const colTasks = filteredTasks.filter(t => viewGrouping === 'status' ? t.status === col.id : t.category === col.id);
                                     
@@ -2470,3 +2547,4 @@
     </script>
 </body>
 </html>
+    
