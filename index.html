@@ -2380,6 +2380,19 @@
 
             const currentUserMember = members.find(m => m.id === activeUserId) || null;
 
+            // Filtra os eventos baseados no perfil do usuário
+            const visibleEvents = useMemo(() => {
+                if (!currentUserMember || currentUserMember.role !== 'Temporário') return events;
+                return events.filter(e => e.responsibleId === currentUserMember.id || (e.teamIds && e.teamIds.includes(currentUserMember.id)));
+            }, [events, currentUserMember]);
+
+            // Filtra as tarefas baseadas nos eventos visíveis
+            const visibleTasks = useMemo(() => {
+                if (!currentUserMember || currentUserMember.role !== 'Temporário') return tasks;
+                const visibleEventIds = visibleEvents.map(e => e.id);
+                return tasks.filter(t => visibleEventIds.includes(t.eventId));
+            }, [tasks, visibleEvents, currentUserMember]);
+
             // 2. Subscreve ao Firestore apenas se logado
             useEffect(() => {
                 if(!user || !db) return;
@@ -2478,7 +2491,7 @@
                 setActiveUserId(null);
             };
 
-            const currentSelectedEvent = selectedEvent ? events.find(e => e.id === selectedEvent.id) : null;
+            const currentSelectedEvent = selectedEvent ? visibleEvents.find(e => e.id === selectedEvent.id) : null;
 
             if (!activeUserId && members.length > 0) { 
                 return <ProfileSelectionScreen members={members} onSelect={(id) => { localStorage.setItem('eventhub_active_user_id', id); setActiveUserId(id); }} />; 
@@ -2505,11 +2518,11 @@
 
             return (
                 <>
-                    {view === 'dashboard' && <Dashboard events={events} tasks={tasks} members={members} currentUser={currentUserMember} notifications={notifications} onMarkAsReadNotification={handleMarkAsReadNotification} onClearAllNotifications={handleClearAllNotifications} onSelectEvent={(e) => { setSelectedEvent(e); setView('detail'); }} onNewEvent={() => setIsNewEventOpen(true)} onMemberClick={setSelectedWorkloadMember} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda} globalLogo={logo} managerId={managerId} onLogout={handleLogout}/>}
+                    {view === 'dashboard' && <Dashboard events={visibleEvents} tasks={visibleTasks} members={members} currentUser={currentUserMember} notifications={notifications} onMarkAsReadNotification={handleMarkAsReadNotification} onClearAllNotifications={handleClearAllNotifications} onSelectEvent={(e) => { setSelectedEvent(e); setView('detail'); }} onNewEvent={() => setIsNewEventOpen(true)} onMemberClick={setSelectedWorkloadMember} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda} globalLogo={logo} managerId={managerId} onLogout={handleLogout}/>}
                     {view === 'detail' && currentSelectedEvent && (
                         <EventDetail 
                             event={currentSelectedEvent} onBack={() => setView('dashboard')} 
-                            tasks={tasks} members={members} currentUser={currentUserMember}
+                            tasks={visibleTasks} members={members} currentUser={currentUserMember}
                             categories={currentSelectedEvent.categories || DEFAULT_CATEGORIES}
                             onUpdateTask={handleUpdateTask} onUpdateEvent={handleUpdateEvent} onDeleteTask={handleDeleteTask}
                             onOpenCategorySettings={() => setIsCatSettingsOpen(true)} onAddTask={() => setIsNewTaskOpen(true)}
@@ -2517,7 +2530,7 @@
                             onDeleteEvent={handleDeleteEvent} onCreateMember={handleAddMember} createNotification={handleCreateNotification}
                         />
                     )}
-                    {view === 'agenda' && <GlobalAgendaView events={events} tasks={tasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
+                    {view === 'agenda' && <GlobalAgendaView events={visibleEvents} tasks={visibleTasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
                     {view === 'team' && <GlobalTeamView members={members} onEdit={() => setIsSettingsOpen(true)} />}
                     {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onDeleteMember={handleDeleteMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>}
                     
@@ -2526,11 +2539,11 @@
                     <button onClick={() => setIsAIOpen(!isAIOpen)} className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-xl shadow-blue-600/30 flex items-center justify-center text-white z-[150] hover:scale-110 transition-transform duration-300 animate-in">
                         {isAIOpen ? <X size={24}/> : <Sparkles size={24}/>}
                     </button>
-                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: tasks.reduce((a,b)=>a+(b.cost||0),0), tasks, members, events}} apiKey={geminiKey} />
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: visibleTasks.reduce((a,b)=>a+(b.cost||0),0), tasks: visibleTasks, members, events: visibleEvents}} apiKey={geminiKey} />
 
                     <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onDeleteMember={handleDeleteMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>
-                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={tasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} events={events} />
+                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={visibleTasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} events={visibleEvents} />
                     <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} members={members} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
                     {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
                 </>
