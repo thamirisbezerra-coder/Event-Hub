@@ -265,7 +265,7 @@
             "Gerencie o agora para celebrar o amanhã. 🥂"
         ];
 
-        // DADOS COMPRIMIDOS DA FISPAL 2025 PARA IMPORTAÇÃO (s=Subcategoria, t=Texto da Tarefa)
+        // DADOS DA PLANILHA FISPAL 2025 PARA IMPORTAÇÃO
         const FISPAL_2025_DATA = {
             title: "Fispal 2025", date: "2025-06-24", coverIcon: "star",
             categories: [
@@ -273,44 +273,44 @@
                     title: "Comunicação & Marketing", color: "purple", icon: "megaphone",
                     subcategories: ["Comunicação Institucional", "Painel de Led", "Comunicação Geral", "Ação Totens", "Dorecast"],
                     tasks: [
-                        {s:"Comunicação Institucional", t:"Comunicação (Cronograma)"}, {s:"Comunicação Institucional", t:"Save the Date"}, {s:"Comunicação Institucional", t:"Convite oficial"}, {s:"Comunicação Institucional", t:"Sequencia de lembretes"}, {s:"Comunicação Institucional", t:"Contratação Storymaker"}, {s:"Comunicação Institucional", t:"Captação Lançamentos"}, {s:"Comunicação Institucional", t:"E-book de Receitas"},
-                        {s:"Painel de Led", t:"Painel de Led"}, {s:"Painel de Led", t:"Vídeo Led - Receber mapa de pixels"}, {s:"Painel de Led", t:"Vídeo Led - Áudio"}, {s:"Painel de Led", t:"Vídeo Led - Mapa de Conteúdos"}, {s:"Painel de Led", t:"Vídeo Led - Roteiro"}, {s:"Painel de Led", t:"Vídeo Led - Contratação de Produtora"}, {s:"Painel de Led", t:"Vídeo Led - Produção Vídeos"}, {s:"Painel de Led", t:"Vídeo Led - Envio e teste"}, {s:"Painel de Led", t:"Vídeos - Lançamentos e destaques"}, {s:"Painel de Led", t:"Vídeos - Sua próxima inovação"}, {s:"Painel de Led", t:"Vídeos - Casa de Aromas"}, {s:"Painel de Led", t:"Vídeos - Sensorial"}, {s:"Painel de Led", t:"Vídeos - ESG"}, {s:"Painel de Led", t:"Vídeos - Marque visita"}, {s:"Painel de Led", t:"Vídeos - Seja distribuidor"}, {s:"Painel de Led", t:"Videos - Dorecast 3ª Temporada"},
-                        {s:"Comunicação Geral", t:"Paineis internos - Mapa"}, {s:"Comunicação Geral", t:"Painéis internos - Definição do conteúdo"}, {s:"Comunicação Geral", t:"Painéis internos - Arte"}, {s:"Comunicação Geral", t:"Painel anexo 1, 2 e 3"}, {s:"Comunicação Geral", t:"Flyers Lançamentos e Destaques"}, {s:"Comunicação Geral", t:"Catálogo - refação"},
-                        {s:"Ação Totens", t:"Criar Convite"}, {s:"Ação Totens", t:"Criar forms"}, {s:"Ação Totens", t:"Definir participantes"}, {s:"Ação Totens", t:"Criar artes com logo e localidade"}, {s:"Ação Totens", t:"Enviar para Fispal - Arte"}, {s:"Ação Totens", t:"Totem entrada Bem-vindos"}, {s:"Ação Totens", t:"Acompanhar produção e instalação"},
-                        {s:"Dorecast", t:"Definição de produtos p/ exposição"}, {s:"Dorecast", t:"Definir convidados"}, {s:"Dorecast", t:"Criar e Enviar convites"}, {s:"Dorecast", t:"RSVP"}, {s:"Dorecast", t:"Criar roteiros"}, {s:"Dorecast", t:"Agua e itens de decoração"}, {s:"Dorecast", t:"Suporte de acrílico celular"}, {s:"Dorecast", t:"Criar Thumbs e cortes"}, {s:"Dorecast", t:"Patrocinar Dorecast no Youtube"}, {s:"Dorecast", t:"Cronograma de publicação"}, {s:"Dorecast", t:"Gravação convite oficial Reels"}, {s:"Dorecast", t:"Briefing Vinheta (abertura)"}, {s:"Dorecast", t:"Copo Stanley com logo Dorecast"}
+                        {s:"Comunicação Institucional", t:"Comunicação (Cronograma)"}, {s:"Comunicação Institucional", t:"Save the Date"}, {s:"Comunicação Institucional", t:"Convite oficial"}, {s:"Comunicação Institucional", t:"Sequencia de lembretes"}, {s:"Comunicação Institucional", t:"Contratação Storymaker - Dia do Evento"}, {s:"Comunicação Institucional", t:"Captação Lançamentos"}, {s:"Comunicação Institucional", t:"Cordão Credencial - Mesmo Convenção"}, {s:"Comunicação Institucional", t:"Pin Doremus na Fispal"}, {s:"Comunicação Institucional", t:"Pin 40 anos"}, {s:"Comunicação Institucional", t:"E-book de Receitas"}, {s:"Comunicação Institucional", t:"E-book de Cafés"},
+                        {s:"Painel de Led", t:"Painel de Led"}, {s:"Painel de Led", t:"Vídeo Led - Receber mapa de pixels"}, {s:"Painel de Led", t:"Vídeo Led - Áudio"}, {s:"Painel de Led", t:"Vídeo Led - Mapa de Conteúdos"}, {s:"Painel de Led", t:"Vídeo Led - Roteiro"}, {s:"Painel de Led", t:"Vídeo Led - Contratação de Produtora"}, {s:"Painel de Led", t:"Vídeo Led - Produção Vídeos"}, {s:"Painel de Led", t:"Vídeo Led - Envio e teste"}, {s:"Painel de Led", t:"Vídeos - Lançamentos e destaques"}, {s:"Painel de Led", t:"Vídeos - Sua próxima inovação começa aqui (e áreas)"}, {s:"Painel de Led", t:"Vídeos - Casa de Aromas"}, {s:"Painel de Led", t:"Vídeos - Sensorial (estilo Leagel)"}, {s:"Painel de Led", t:"Vídeos - ESG"}, {s:"Painel de Led", t:"Vídeos - Marque uma visita à Doremus"}, {s:"Painel de Led", t:"Vídeos - Venha ser distribuidor Doremus"}, {s:"Painel de Led", t:"Vídeos - Stitch"}, {s:"Painel de Led", t:"Videos - Dorecast 3ª Temporada"}, {s:"Painel de Led", t:"Stitch - Autorização"},
+                        {s:"Comunicação Geral", t:"Paineis internos - Mapa"}, {s:"Comunicação Geral", t:"Painéis internos- Definição do conteúdo"}, {s:"Comunicação Geral", t:"Painéis internos - Arte"}, {s:"Comunicação Geral", t:"Painel anexo 1"}, {s:"Comunicação Geral", t:"Painel anexo 2"}, {s:"Comunicação Geral", t:"Painel anexo 3"}, {s:"Comunicação Geral", t:"Flyers Lançamentos"}, {s:"Comunicação Geral", t:"Flyers - destaques"}, {s:"Comunicação Geral", t:"Catálogo - refação"}, {s:"Comunicação Geral", t:"Comunicação Pós-Evento"}, {s:"Comunicação Geral", t:"Comunicação do Freezer"},
+                        {s:"Ação Totens", t:"Criar Convite"}, {s:"Ação Totens", t:"Criar forms"}, {s:"Ação Totens", t:"Definir participantes"}, {s:"Ação Totens", t:"Criar artes com logo e localidade"}, {s:"Ação Totens", t:"Enviar para Fispal - Arte"}, {s:"Ação Totens", t:"1 totem entrada = Bem-vindos + Endereço + Conheça os lançamentos + QR code Todos os distribuidores"}, {s:"Ação Totens", t:"Acompanhar produção"}, {s:"Ação Totens", t:"Acompanhar instalação"}, {s:"Ação Totens", t:"Landing Page Onde Comprar"},
+                        {s:"Dorecast", t:"Parede Comunicação"}, {s:"Dorecast", t:"Definição de produtos p/ exposição"}, {s:"Dorecast", t:"Definir convidados"}, {s:"Dorecast", t:"Criar convite Digital"}, {s:"Dorecast", t:"Enviar convites"}, {s:"Dorecast", t:"RSVP"}, {s:"Dorecast", t:"Criar roteiros"}, {s:"Dorecast", t:"Agua"}, {s:"Dorecast", t:"Suporte de acrílico para celular"}, {s:"Dorecast", t:"Comprar itens de decoração"}, {s:"Dorecast", t:"Criar Thumbs"}, {s:"Dorecast", t:"Criar títulos"}, {s:"Dorecast", t:"Criar Cortes em massa"}, {s:"Dorecast", t:"Patrocinar Dorecast no Youtube"}, {s:"Dorecast", t:"Cronograma de publicação"}, {s:"Dorecast", t:"Cronograma de divulgação"}, {s:"Dorecast", t:"Gravação convite oficial Geral- Reels"}, {s:"Dorecast", t:"Briefing Vinheta (abertura)"}, {s:"Dorecast", t:"Copo Stanley com logo Dorecast"}, {s:"Dorecast", t:"Presente / Troféu"}
                     ]
                 },
                 {
                     title: "Estande & Estrutura", color: "blue", icon: "layout",
                     subcategories: ["Estande", "Laboratório", "Depósito", "Geral / Montagem", "Copa"],
                     tasks: [
-                        {s:"Estande", t:"Fechar projeto"}, {s:"Estande", t:"Formalização de Compras"}, {s:"Estande", t:"Submissão do projeto base"}, {s:"Estande", t:"Ajustes finais do projeto"}, {s:"Estande", t:"Contrato Montadora"}, {s:"Estande", t:"Preenchimento Portal e Serviços"}, {s:"Estande", t:"EPIs - Capacete montagem"},
-                        {s:"Laboratório", t:"Geladeira grande"}, {s:"Laboratório", t:"Freezer tampa cega vertical"}, {s:"Laboratório", t:"Ultracongelador (2)"}, {s:"Laboratório", t:"Produtoras"}, {s:"Laboratório", t:"Carrinho Pneumático"}, {s:"Laboratório", t:"freezer horizontal - 2 portas"}, {s:"Laboratório", t:"Liquidificador, Mixer, Microondas"}, {s:"Laboratório", t:"Mangueira para lavagem"}, {s:"Laboratório", t:"Pia industrial funda com escorredor"}, {s:"Laboratório", t:"Prateleiras e tomadas"},
-                        {s:"Depósito", t:"Lockers"}, {s:"Depósito", t:"Cadeados e Controle de Chaves"}, {s:"Depósito", t:"Tomadas"}, {s:"Depósito", t:"Toten carregadores e Cabides"},
-                        {s:"Geral / Montagem", t:"Pontos de elétrica"}, {s:"Geral / Montagem", t:"Listagem de equipamentos"}, {s:"Geral / Montagem", t:"Dimensionamento KVAs"}, {s:"Geral / Montagem", t:"Pontos de água e deságue"}, {s:"Geral / Montagem", t:"Planta técnica"}, {s:"Geral / Montagem", t:"Responsável eletricista e hidraulico"}, {s:"Geral / Montagem", t:"Responsável maquinário"}, {s:"Geral / Montagem", t:"Responsável limpeza e segurança"}, {s:"Geral / Montagem", t:"Responsável catering / garçons"}, {s:"Geral / Montagem", t:"Responsável Montadora / Feira / LED"},
-                        {s:"Copa", t:"Freezer e Geladeira"}, {s:"Copa", t:"Pia (Água/Deságue)"}, {s:"Copa", t:"Prateleiras, Lixeiras e Tomadas"}, {s:"Copa", t:"Copeira, Garçom e Limpeza"}
+                        {s:"Estande", t:"Fechar projeto"}, {s:"Estande", t:"Formalização de Compras"}, {s:"Estande", t:"Submissão do projeto base para Fispal (25/04)"}, {s:"Estande", t:"Ajustes no projeto"}, {s:"Estande", t:"Fechamento final do projeto"}, {s:"Estande", t:"Contrato Montadora"}, {s:"Estande", t:"Preenchimento Portal"}, {s:"Estande", t:"RETIRAR CREDENCIAL"}, {s:"Estande", t:"EPIs - Capacete para acompanhar montagem"},
+                        {s:"Laboratório", t:"Geladeira grande"}, {s:"Laboratório", t:"Freezer tampa cega vertical"}, {s:"Laboratório", t:"Ultracongelador"}, {s:"Laboratório", t:"Ultracongelador Doremus"}, {s:"Laboratório", t:"Produtoras"}, {s:"Laboratório", t:"Carrinho Pneumático"}, {s:"Laboratório", t:"freezer horizontal - 2 portas"}, {s:"Laboratório", t:"Liquidificador"}, {s:"Laboratório", t:"Mangeuria para lavagem  com esguicho"}, {s:"Laboratório", t:"Pia industrial funda (com água e deságue)"}, {s:"Laboratório", t:"Escorredor"}, {s:"Laboratório", t:"prateleiras varias"}, {s:"Laboratório", t:"varias tomadas"}, {s:"Laboratório", t:"Mixer"}, {s:"Laboratório", t:"microondas grande"}, {s:"Laboratório", t:"freezer 1 portas"},
+                        {s:"Depósito", t:"Lockers"}, {s:"Depósito", t:"Cadeados - comprar"}, {s:"Depósito", t:"Responsáveis Chave - Porta"}, {s:"Depósito", t:"Cópias Chave - Porta"}, {s:"Depósito", t:"Tomadas"}, {s:"Depósito", t:"Toten de carregadores de Celular"}, {s:"Depósito", t:"Cabide"},
+                        {s:"Geral / Montagem", t:"Quantidade e especificação de pontos de elétrica"}, {s:"Geral / Montagem", t:"Listagem de equipamentos"}, {s:"Geral / Montagem", t:"Conversão KVAs"}, {s:"Geral / Montagem", t:"Pontos de água e deságue"}, {s:"Geral / Montagem", t:"Planta técnica (elétrica, água, deságue)"}, {s:"Geral / Montagem", t:"Responsável eletricista"}, {s:"Geral / Montagem", t:"Responsável maquinário"}, {s:"Geral / Montagem", t:"Responsável máquina café"}, {s:"Geral / Montagem", t:"Responsável limpeza"}, {s:"Geral / Montagem", t:"Responsável segurança"}, {s:"Geral / Montagem", t:"Responsável catering / garçons / copeiras"}, {s:"Geral / Montagem", t:"Responsável painel Led"}, {s:"Geral / Montagem", t:"Responsável Montadora"}, {s:"Geral / Montagem", t:"Responsável Feira"}, {s:"Geral / Montagem", t:"Dimensionamento correto KVAs / Potência / Corrente"},
+                        {s:"Copa", t:"Freezer"}, {s:"Copa", t:"Geladeira"}, {s:"Copa", t:"Pia (Água/Deságue)"}, {s:"Copa", t:"Aquecimento pia"}, {s:"Copa", t:"Prateleiras"}, {s:"Copa", t:"Lixeiras"}, {s:"Copa", t:"Tomadas"}, {s:"Copa", t:"Copeira"}, {s:"Copa", t:"Garçom"}, {s:"Copa", t:"limpeza full time estande"}
                     ]
                 },
                 {
                     title: "Operação & Ativações", color: "amber", icon: "star",
-                    subcategories: ["Salão Principal", "Degustação Sorvete", "Açaí", "Espaço Café", "Soft / Milkshake", "Confeitaria/Aulas Show"],
+                    subcategories: ["Salão Principal", "Degustação Sorvete", "Açaí", "Espaço Café", "Soft, Milkshake, Sanduíche e Recheios", "Confeitaria/Aulas Show"],
                     tasks: [
-                        {s:"Salão Principal", t:"Bistrôs - Locação e instalação"}, {s:"Salão Principal", t:"Quantidade de bistrôs e banquetas"}, {s:"Salão Principal", t:"Numeração das mesas"}, {s:"Salão Principal", t:"Água e Outras bebidas"}, {s:"Salão Principal", t:"Nuts, Sticks e aperitivos"}, {s:"Salão Principal", t:"Avelã e Pistache torrados"}, {s:"Salão Principal", t:"Molhos Food Service (Bisnagas Fifo)"}, {s:"Salão Principal", t:"Arte e Adesivo para Bisnaga Molhos"}, {s:"Salão Principal", t:"Copinhos para degustação de molhos"}, {s:"Salão Principal", t:"Tomadas"}, {s:"Salão Principal", t:"Brindes e Sacolas Extras"},
-                        {s:"Degustação Sorvete", t:"Vitrines - locação e instalação"}, {s:"Degustação Sorvete", t:"Plaquinhas e Artes"}, {s:"Degustação Sorvete", t:"Cubas locadas"}, {s:"Degustação Sorvete", t:"Definição Receitas e Produção"}, {s:"Degustação Sorvete", t:"Envio Caldas"}, {s:"Degustação Sorvete", t:"Picolés - definição, produção, envio"}, {s:"Degustação Sorvete", t:"Picolés - Freezer"}, {s:"Degustação Sorvete", t:"Pia (Água/Deságue) e Aquecimento"}, {s:"Degustação Sorvete", t:"Promotoras - quantidade, contratação"}, {s:"Degustação Sorvete", t:"Amostras, Potinhos e Adesivos"},
-                        {s:"Açaí", t:"Construção Espaço Açaizeiro"}, {s:"Açaí", t:"Freezer Açaís e adesivos"}, {s:"Açaí", t:"Açaís - definição e compra"}, {s:"Açaí", t:"Boleador Açaí, Colher e Pazinhas"}, {s:"Açaí", t:"Copos de Açaí para montagem"}, {s:"Açaí", t:"Guardanapos e Lixeiras"}, {s:"Açaí", t:"Pia (Água/Deságue)"},
-                        {s:"Espaço Café", t:"Recheios p/ Affogato"}, {s:"Espaço Café", t:"Xícaras, Colheres e Guardanapos"}, {s:"Espaço Café", t:"Sorvete - neutro"}, {s:"Espaço Café", t:"Máquina Espresso e Insumo"}, {s:"Espaço Café", t:"Barista - Contratação e Equipamentos"}, {s:"Espaço Café", t:"Definição Menu Cafés"}, {s:"Espaço Café", t:"Freezer pequeno (Café/Smash)"},
-                        {s:"Soft / Milkshake", t:"Máquinas de Soft e Tomadas"}, {s:"Soft / Milkshake", t:"Mixers de Milkshake e Canudos"}, {s:"Soft / Milkshake", t:"Sanduicheiras de Sorvete"}, {s:"Soft / Milkshake", t:"Sorvete para Gelato Smash"}, {s:"Soft / Milkshake", t:"Bombas para Caldas e Utensílios"}, {s:"Soft / Milkshake", t:"Vitrine para Recheios e Plaquinhas"}, {s:"Soft / Milkshake", t:"Pump aquecida para Skimo"}, {s:"Soft / Milkshake", t:"Furos para fontes e pump"}, {s:"Soft / Milkshake", t:"Promotora Degustação"}, {s:"Soft / Milkshake", t:"Copinhos, Pazinhas e Guardanapos"},
-                        {s:"Confeitaria/Aulas Show", t:"Confirmar Thiago Pedebis"}, {s:"Confeitaria/Aulas Show", t:"Definição Aulas Paulo, Nani e Thiago"}, {s:"Confeitaria/Aulas Show", t:"Vitrine - definir e alugar"}, {s:"Confeitaria/Aulas Show", t:"Limpeza dedicada e Lixeiras"}, {s:"Confeitaria/Aulas Show", t:"Pratinhos, Guardanapos e Talheres"}, {s:"Confeitaria/Aulas Show", t:"Xícaras para Affogatos"}, {s:"Confeitaria/Aulas Show", t:"Outros Utensílios Paulo"}, {s:"Confeitaria/Aulas Show", t:"Microondas, Geladeira e Tomadas"}, {s:"Confeitaria/Aulas Show", t:"Transporte para pré-preparados"}
+                        {s:"Salão Principal", t:"Bistrôs - Locação e instalação"}, {s:"Salão Principal", t:"Quantidade de bistrôs e banquetas"}, {s:"Salão Principal", t:"Numeração das mesas"}, {s:"Salão Principal", t:"Água"}, {s:"Salão Principal", t:"Outras bebidas"}, {s:"Salão Principal", t:"Nuts e outros aperitivos"}, {s:"Salão Principal", t:"Sticks / Grissini"}, {s:"Salão Principal", t:"Molhos Food Service"}, {s:"Salão Principal", t:"Totem de Avaliação"}, {s:"Salão Principal", t:"Lixeiras"}, {s:"Salão Principal", t:"Bips"}, {s:"Salão Principal", t:"Extintor"}, {s:"Salão Principal", t:"Bisnagas Fifo para Molhos"}, {s:"Salão Principal", t:"Arte para Bisnaga Molhos"}, {s:"Salão Principal", t:"Adesivo Bisnaga Molhos"}, {s:"Salão Principal", t:"Copinhos para degustação de molhos"}, {s:"Salão Principal", t:"Tomadas"}, {s:"Salão Principal", t:"Brindes"}, {s:"Salão Principal", t:"Sacolas Extras"}, {s:"Salão Principal", t:"Avelã e Pistache torrados na fábrica"},
+                        {s:"Degustação Sorvete", t:"Vitrines - locação e instalação"}, {s:"Degustação Sorvete", t:"Plaquinhas"}, {s:"Degustação Sorvete", t:"Artes Plaquinhas com numeração da receita"}, {s:"Degustação Sorvete", t:"Cubas Próprias"}, {s:"Degustação Sorvete", t:"Cubas locadas"}, {s:"Degustação Sorvete", t:"Definição Receitas"}, {s:"Degustação Sorvete", t:"Quantidades Calda"}, {s:"Degustação Sorvete", t:"Envio Caldas"}, {s:"Degustação Sorvete", t:"Produção Sorvetes"}, {s:"Degustação Sorvete", t:"Decoração de Cubas"}, {s:"Degustação Sorvete", t:"Picolés - definição sabores"}, {s:"Degustação Sorvete", t:"Picolés - arte embalagem"}, {s:"Degustação Sorvete", t:"Picolés - Produção"}, {s:"Degustação Sorvete", t:"Picolés - Rotulagem"}, {s:"Degustação Sorvete", t:"Picolés - Envio"}, {s:"Degustação Sorvete", t:"Pia (Água/Deságue)"}, {s:"Degustação Sorvete", t:"Aquecimento pia"}, {s:"Degustação Sorvete", t:"Promotoras para degustação - quantidade"}, {s:"Degustação Sorvete", t:"Promotoras para degustação - contratação"}, {s:"Degustação Sorvete", t:"Promotoras para degustação - capacitação e gestão"}, {s:"Degustação Sorvete", t:"Amostras"}, {s:"Degustação Sorvete", t:"Potinhos Amostras"}, {s:"Degustação Sorvete", t:"Potinhos - Adesivos"}, {s:"Degustação Sorvete", t:"Chocolatinho Logomarcado"},
+                        {s:"Açaí", t:"Construção Espaço"}, {s:"Açaí", t:"Açaizeiro"}, {s:"Açaí", t:"Estrutura Açaizeiro"}, {s:"Açaí", t:"Iluminação Açaizeiro"}, {s:"Açaí", t:"Freezer Açaís"}, {s:"Açaí", t:"freezer açaís - adesivos"}, {s:"Açaí", t:"Açaís - definição dos produtos"}, {s:"Açaí", t:"Açaís - compra dos produtos"}, {s:"Açaí", t:"Boleador Açaí"}, {s:"Açaí", t:"Copinhos Transparentes"}, {s:"Açaí", t:"Guardanapos"}, {s:"Açaí", t:"Copos de Açaí para montagem"}, {s:"Açaí", t:"Colher"}, {s:"Açaí", t:"Porta-pazinhas"}, {s:"Açaí", t:"Pia (Água/Deságue)"}, {s:"Açaí", t:"Aquecimento pia"}, {s:"Açaí", t:"Chocolatinho Logomarcado"}, {s:"Açaí", t:"Vitrine Refrigerada/ COPO"}, {s:"Açaí", t:"Lixeiras"},
+                        {s:"Espaço Café", t:"Letreiro - Affogato"}, {s:"Espaço Café", t:"Recheios p/ Affogato: Dorella, Pistache, Speculoos, Coffee Crunch"}, {s:"Espaço Café", t:"Xícaras para Affogato"}, {s:"Espaço Café", t:"Colheres"}, {s:"Espaço Café", t:"Guardanapos"}, {s:"Espaço Café", t:"Sorvete - neutro"}, {s:"Espaço Café", t:"Máquina Espresso"}, {s:"Espaço Café", t:"Máquina - Aerador Leite"}, {s:"Espaço Café", t:"Insumo - Café"}, {s:"Espaço Café", t:"Barista - Contratação"}, {s:"Espaço Café", t:"Barista - Equipamentos"}, {s:"Espaço Café", t:"Definição Menu Cafés"}, {s:"Espaço Café", t:"Lixeiras"}, {s:"Espaço Café", t:"Parceria Café"}, {s:"Espaço Café", t:"Freezer pequeno (Café/Smash)"},
+                        {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Máquinas de Soft"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Mixers de Milkshake"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Sanduicheiras de Sorvete (2)"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Letreiro Soft"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Letreiro Milkshake"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Letreiro Gelato Smash"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Sorvete para Gelato Smash"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Canudos para Milkshake"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Bombas para Caldas / Sabores"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Utensílios Smash"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Vitrine Refrigerada Plana para os Recheios"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Plaquinhas para expositor Recheios"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Pump aquecida para Skimo"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Furos para fontes e pump"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Promotora Degustação"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Copinhos"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Pazinhas"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Porta-pazinhas"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Guardanapos"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Chocolatinho Logomarcado"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Lixeiras"}, {s:"Soft, Milkshake, Sanduíche e Recheios", t:"Tomadas"},
+                        {s:"Confeitaria/Aulas Show", t:"Thiago Pedebis - Confirmar"}, {s:"Confeitaria/Aulas Show", t:"Thiago Pedebis - Definir data e horário"}, {s:"Confeitaria/Aulas Show", t:"Chocolatinho Logomarcado"}, {s:"Confeitaria/Aulas Show", t:"Vitrine - definir e alugar"}, {s:"Confeitaria/Aulas Show", t:"Limpeza dedicada"}, {s:"Confeitaria/Aulas Show", t:"Lixeiras"}, {s:"Confeitaria/Aulas Show", t:"Definição Aulas Paulo e Nani"}, {s:"Confeitaria/Aulas Show", t:"Definição Aula Thiago Pedebis"}, {s:"Confeitaria/Aulas Show", t:"Arte Agenda de Cursos"}, {s:"Confeitaria/Aulas Show", t:"Pratinhos"}, {s:"Confeitaria/Aulas Show", t:"Guardanapos"}, {s:"Confeitaria/Aulas Show", t:"Talheres Descartáveis"}, {s:"Confeitaria/Aulas Show", t:"Xícaras para Affogatos (Grande - Perfil Apresentação Sigep)"}, {s:"Confeitaria/Aulas Show", t:"Outros Utensílios Paulo"}, {s:"Confeitaria/Aulas Show", t:"Microondas"}, {s:"Confeitaria/Aulas Show", t:"GELADEIRA"}, {s:"Confeitaria/Aulas Show", t:"Tomadas"}, {s:"Confeitaria/Aulas Show", t:"Transporte para pré-preparados do Paulo"}
                     ]
                 },
                 {
                     title: "Staff & Logística", color: "emerald", icon: "users",
                     subcategories: ["Credenciamento / Cadastro", "Camisas", "Briefing Geral", "Evento na Doremus"],
                     tasks: [
-                        {s:"Credenciamento / Cadastro", t:"Credenciais time"}, {s:"Credenciamento / Cadastro", t:"Credenciais diretores"}, {s:"Credenciamento / Cadastro", t:"Credenciais - envio para Doremus"}, {s:"Credenciamento / Cadastro", t:"Preenchimento Portal - Credenciamento"}, {s:"Credenciamento / Cadastro", t:"Lista de Participantes"}, {s:"Credenciamento / Cadastro", t:"Credenciamento Equipes e Filmagem"},
-                        {s:"Camisas", t:"Levantamento, Compra e Entrega"},
-                        {s:"Briefing Geral", t:"Reserva Auditório e Apresentação"}, {s:"Briefing Geral", t:"Convites e Campanha"},
-                        {s:"Evento na Doremus", t:"Nome e KV do evento (#DoremusDay25)"}, {s:"Evento na Doremus", t:"Criar, Enviar convite, RSVP e Lembretes"}, {s:"Evento na Doremus", t:"Transfer"}, {s:"Evento na Doremus", t:"Água / Café"}, {s:"Evento na Doremus", t:"Organizar com portaria, fábrica e Qualidade"}, {s:"Evento na Doremus", t:"Responsáveis por visitas"}, {s:"Evento na Doremus", t:"EPIs - Organizar"}, {s:"Evento na Doremus", t:"Organizar almoço com Nutrição"}, {s:"Evento na Doremus", t:"Briefing para diretores"}, {s:"Evento na Doremus", t:"Freezer no refeitorio com picoles"}, {s:"Evento na Doremus", t:"Sacola Grande Doremus"}
+                        {s:"Credenciamento / Cadastro", t:"Credenciais time"}, {s:"Credenciamento / Cadastro", t:"Credenciais diretores"}, {s:"Credenciamento / Cadastro", t:"Credenciais - envio para Doremus"}, {s:"Credenciamento / Cadastro", t:"Preenchimento Portal - Credenciamento"}, {s:"Credenciamento / Cadastro", t:"Lista de Participantes"}, {s:"Credenciamento / Cadastro", t:"Credenciamento Equipe Catering"}, {s:"Credenciamento / Cadastro", t:"Credenciamento Equipe Montagem"}, {s:"Credenciamento / Cadastro", t:"Credenciamento Equipe Segurança"}, {s:"Credenciamento / Cadastro", t:"Credenciamento Equipe Filmagem"}, {s:"Credenciamento / Cadastro", t:"Credenciamento Equipe Barista"},
+                        {s:"Camisas", t:"Levantamento"}, {s:"Camisas", t:"Compra"}, {s:"Camisas", t:"Entrega"},
+                        {s:"Briefing Geral", t:"Reserva Auditório"}, {s:"Briefing Geral", t:"Preparação Material"}, {s:"Briefing Geral", t:"Convites"}, {s:"Briefing Geral", t:"Apresentação"}, {s:"Briefing Geral", t:"Campanha"},
+                        {s:"Evento na Doremus", t:"Thiago Pedebis - Confirmar"}, {s:"Evento na Doremus", t:"Thiago Pedebis - Passagem e Hospedagem"}, {s:"Evento na Doremus", t:"Nome do evento"}, {s:"Evento na Doremus", t:"KV do evento"}, {s:"Evento na Doremus", t:"Criar convite"}, {s:"Evento na Doremus", t:"Enviar convite"}, {s:"Evento na Doremus", t:"RSVP"}, {s:"Evento na Doremus", t:"Lembretes"}, {s:"Evento na Doremus", t:"Transfer"}, {s:"Evento na Doremus", t:"Água / Café"}, {s:"Evento na Doremus", t:"Organizar com portaria"}, {s:"Evento na Doremus", t:"Organizar com fábrica"}, {s:"Evento na Doremus", t:"Organizar com Qualidade"}, {s:"Evento na Doremus", t:"Responsáveis por visitas"}, {s:"Evento na Doremus", t:"EPIs - Tamanho no RSVP"}, {s:"Evento na Doremus", t:"EPIs - Organizar"}, {s:"Evento na Doremus", t:"Organizar almoço com Nutrição"}, {s:"Evento na Doremus", t:"Briefing para diretores e stakeholders"}, {s:"Evento na Doremus", t:"Guardanapos"}, {s:"Evento na Doremus", t:"freezer no refeitorio com picoles"}, {s:"Evento na Doremus", t:"Sacola Grande Doremus"}
                     ]
                 }
             ]
@@ -1555,7 +1555,10 @@
                  }
             };
             const handleUpdateEvent = (id, updates) => updateDoc(getDocPath('events', id), updates);
-            const handleCreateEvent = (newEvent, newTasks) => { setDoc(getDocPath('events', newEvent.id), newEvent); newTasks.forEach(t => setDoc(getDocPath('tasks', t.id), t)); };
+            const handleCreateEvent = (newEvent, newTasks) => { 
+                setDoc(getDocPath('events', newEvent.id), newEvent); 
+                newTasks.forEach(t => setDoc(getDocPath('tasks', t.id), t)); 
+            };
             const handleDeleteEvent = (eventId) => {
                 if(confirm("Tem certeza que deseja excluir este evento e todas as suas tarefas?")) {
                     deleteDoc(getDocPath('events', eventId));
@@ -1610,43 +1613,57 @@
             };
 
             const handleImportFispal2025 = async () => {
-                if (!confirm("Isso irá APAGAR as tarefas e eventos atuais com o nome 'Fispal' e importar a nova estrutura completa da planilha 2025.\n\nVocê tem certeza?")) return;
+                try {
+                    if (!confirm("Isso irá APAGAR as tarefas e eventos atuais com o nome 'Fispal' e importar a nova estrutura completa da planilha 2025.\n\nVocê tem certeza?")) return;
 
-                const oldFispalEvents = events.filter(e => e.title.toLowerCase().includes('fispal'));
-                for (const ev of oldFispalEvents) {
-                    deleteDoc(getDocPath('events', ev.id));
-                    tasks.filter(t => t.eventId === ev.id).forEach(t => deleteDoc(getDocPath('tasks', t.id)));
-                }
+                    const oldFispalEvents = events.filter(e => e.title?.toLowerCase().includes('fispal'));
+                    for (const ev of oldFispalEvents) {
+                        await deleteDoc(getDocPath('events', ev.id));
+                        const evTasks = tasks.filter(t => t.eventId === ev.id);
+                        for(const t of evTasks) {
+                            await deleteDoc(getDocPath('tasks', t.id));
+                        }
+                    }
 
-                const eventId = "fispal-" + Date.now();
-                
-                const importedCategories = FISPAL_2025_DATA.categories.map((c, i) => {
-                    const catId = `cat-${Date.now()}-${i}`;
-                    const subcats = c.subcategories.map((subTitle, j) => ({ id: `sub-${catId}-${j}`, title: subTitle }));
-                    return { id: catId, title: c.title, color: c.color, icon: c.icon, phases: ['pre', 'during', 'post'], responsibleId: null, subcategories: subcats, _rawTasks: c.tasks };
-                });
+                    const eventId = "fispal-" + Date.now();
+                    
+                    const importedCategories = FISPAL_2025_DATA.categories.map((c, i) => {
+                        const catId = `cat-${Date.now()}-${i}`;
+                        const subcats = c.subcategories.map((subTitle, j) => ({ id: `sub-${catId}-${j}`, title: subTitle }));
+                        return { id: catId, title: c.title, color: c.color, icon: c.icon, phases: ['pre', 'during', 'post'], responsibleId: null, subcategories: subcats, _rawTasks: c.tasks };
+                    });
 
-                const newEvent = {
-                    id: eventId, title: FISPAL_2025_DATA.title, location: "São Paulo, SP", driveLink: "", startDate: FISPAL_2025_DATA.date, endDate: FISPAL_2025_DATA.date, dateRange: "24/06/2025", responsibleId: members[0]?.id || null, teamIds: [],
-                    categories: importedCategories.map(c => { const { _rawTasks, ...rest } = c; return rest; }),
-                    agenda: [], coverIcon: FISPAL_2025_DATA.coverIcon
-                };
+                    const newEvent = {
+                        id: eventId, title: FISPAL_2025_DATA.title, location: "São Paulo, SP", driveLink: "", startDate: FISPAL_2025_DATA.date, endDate: FISPAL_2025_DATA.date, dateRange: "24/06/2025", responsibleId: members[0]?.id || null, teamIds: [],
+                        categories: importedCategories.map(c => { const { _rawTasks, ...rest } = c; return rest; }),
+                        agenda: [], coverIcon: FISPAL_2025_DATA.coverIcon
+                    };
 
-                let tasksToCreate = [];
-                let taskOrder = Date.now();
+                    let tasksToCreate = [];
+                    let taskOrder = Date.now();
 
-                importedCategories.forEach(cat => {
-                    cat._rawTasks.forEach((t, index) => {
-                        const subcat = cat.subcategories.find(s => s.title === t.s);
-                        tasksToCreate.push({
-                            id: Date.now() + Math.floor(Math.random() * 1000000) + index,
-                            eventId, text: t.t, category: cat.id, subcategoryId: subcat ? subcat.id : null, phase: 'pre', priority: 'medium', status: 'planning', cost: 0, responsible: null, messages: [], support: [], subtasks: [], transferHistory: [], order: taskOrder++
+                    importedCategories.forEach(cat => {
+                        cat._rawTasks.forEach((t, index) => {
+                            const subcat = cat.subcategories.find(s => s.title === t.s);
+                            tasksToCreate.push({
+                                id: (Date.now() + Math.floor(Math.random() * 1000000) + index).toString(),
+                                eventId, text: t.t, category: cat.id, subcategoryId: subcat ? subcat.id : null, phase: 'pre', priority: 'medium', status: 'planning', cost: 0, responsible: null, messages: [], support: [], subtasks: [], transferHistory: [], order: taskOrder++
+                            });
                         });
                     });
-                });
 
-                handleCreateEvent(newEvent, tasksToCreate);
-                alert("Fispal 2025 gerada com sucesso! Aguarde uns instantes para as tarefas aparecerem no seu painel.");
+                    await setDoc(getDocPath('events', newEvent.id), newEvent);
+                    
+                    // Salvando as tarefas
+                    for (const t of tasksToCreate) {
+                        await setDoc(getDocPath('tasks', t.id), t);
+                    }
+
+                    alert("Fispal 2025 gerada com sucesso! As informações foram importadas das planilhas.");
+                } catch(err) {
+                    console.error("Erro na importação:", err);
+                    alert("Houve um erro na importação. Verifique o console.");
+                }
             };
 
             const currentSelectedEvent = selectedEvent ? visibleEvents.find(e => e.id === selectedEvent.id) : null;
