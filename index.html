@@ -265,196 +265,52 @@
             "Gerencie o agora para celebrar o amanhã. 🥂"
         ];
 
-        // --- MODELO FISPAL 2025 ---
+        // DADOS COMPRIMIDOS DA FISPAL 2025 PARA IMPORTAÇÃO (s=Subcategoria, t=Texto da Tarefa)
         const FISPAL_2025_DATA = {
-            title: "Fispal 2025",
-            date: "2025-06-24",
-            coverIcon: "star",
+            title: "Fispal 2025", date: "2025-06-24", coverIcon: "star",
             categories: [
                 {
                     title: "Comunicação & Marketing", color: "purple", icon: "megaphone",
                     subcategories: ["Comunicação Institucional", "Painel de Led", "Comunicação Geral", "Ação Totens", "Dorecast"],
                     tasks: [
-                        { sub: "Comunicação Institucional", text: "Comunicação (Cronograma)" },
-                        { sub: "Comunicação Institucional", text: "Save the Date" },
-                        { sub: "Comunicação Institucional", text: "Convite oficial" },
-                        { sub: "Comunicação Institucional", text: "Sequencia de lembretes" },
-                        { sub: "Comunicação Institucional", text: "Contratação Storymaker - Dia do Evento" },
-                        { sub: "Comunicação Institucional", text: "Captação Lançamentos" },
-                        { sub: "Comunicação Institucional", text: "E-book de Receitas" },
-                        { sub: "Painel de Led", text: "Painel de Led" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Receber mapa de pixels" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Áudio" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Mapa de Conteúdos" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Roteiro" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Contratação de Produtora" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Produção Vídeos" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Envio e teste" },
-                        { sub: "Painel de Led", text: "Vídeos - Lançamentos e destaques" },
-                        { sub: "Painel de Led", text: "Vídeos - Sua próxima inovação" },
-                        { sub: "Painel de Led", text: "Vídeos - Casa de Aromas" },
-                        { sub: "Painel de Led", text: "Vídeos - Sensorial" },
-                        { sub: "Painel de Led", text: "Vídeos - ESG" },
-                        { sub: "Painel de Led", text: "Vídeos - Marque visita" },
-                        { sub: "Painel de Led", text: "Vídeos - Seja distribuidor" },
-                        { sub: "Painel de Led", text: "Videos - Dorecast 3ª Temporada" },
-                        { sub: "Comunicação Geral", text: "Paineis internos - Mapa" },
-                        { sub: "Comunicação Geral", text: "Painéis internos - Definição do conteúdo" },
-                        { sub: "Comunicação Geral", text: "Painéis internos - Arte" },
-                        { sub: "Comunicação Geral", text: "Painel anexo 1, 2 e 3" },
-                        { sub: "Comunicação Geral", text: "Flyers Lançamentos e Destaques" },
-                        { sub: "Comunicação Geral", text: "Catálogo - refação" },
-                        { sub: "Ação Totens", text: "Criar Convite" },
-                        { sub: "Ação Totens", text: "Criar forms" },
-                        { sub: "Ação Totens", text: "Definir participantes" },
-                        { sub: "Ação Totens", text: "Criar artes com logo e localidade" },
-                        { sub: "Ação Totens", text: "Enviar para Fispal - Arte" },
-                        { sub: "Ação Totens", text: "Totem entrada Bem-vindos" },
-                        { sub: "Ação Totens", text: "Acompanhar produção e instalação" },
-                        { sub: "Dorecast", text: "Definição de produtos p/ exposição" },
-                        { sub: "Dorecast", text: "Definir convidados" },
-                        { sub: "Dorecast", text: "Criar e Enviar convites" },
-                        { sub: "Dorecast", text: "RSVP" },
-                        { sub: "Dorecast", text: "Criar roteiros" },
-                        { sub: "Dorecast", text: "Agua e itens de decoração" },
-                        { sub: "Dorecast", text: "Suporte de acrílico para celular" },
-                        { sub: "Dorecast", text: "Criar Thumbs, títulos e cortes em massa" },
-                        { sub: "Dorecast", text: "Patrocinar Dorecast no Youtube" },
-                        { sub: "Dorecast", text: "Cronograma de publicação e divulgação" },
-                        { sub: "Dorecast", text: "Gravação convite oficial Geral- Reels" },
-                        { sub: "Dorecast", text: "Briefing Vinheta (abertura)" },
-                        { sub: "Dorecast", text: "Copo Stanley com logo Dorecast" }
+                        {s:"Comunicação Institucional", t:"Comunicação (Cronograma)"}, {s:"Comunicação Institucional", t:"Save the Date"}, {s:"Comunicação Institucional", t:"Convite oficial"}, {s:"Comunicação Institucional", t:"Sequencia de lembretes"}, {s:"Comunicação Institucional", t:"Contratação Storymaker"}, {s:"Comunicação Institucional", t:"Captação Lançamentos"}, {s:"Comunicação Institucional", t:"E-book de Receitas"},
+                        {s:"Painel de Led", t:"Painel de Led"}, {s:"Painel de Led", t:"Vídeo Led - Receber mapa de pixels"}, {s:"Painel de Led", t:"Vídeo Led - Áudio"}, {s:"Painel de Led", t:"Vídeo Led - Mapa de Conteúdos"}, {s:"Painel de Led", t:"Vídeo Led - Roteiro"}, {s:"Painel de Led", t:"Vídeo Led - Contratação de Produtora"}, {s:"Painel de Led", t:"Vídeo Led - Produção Vídeos"}, {s:"Painel de Led", t:"Vídeo Led - Envio e teste"}, {s:"Painel de Led", t:"Vídeos - Lançamentos e destaques"}, {s:"Painel de Led", t:"Vídeos - Sua próxima inovação"}, {s:"Painel de Led", t:"Vídeos - Casa de Aromas"}, {s:"Painel de Led", t:"Vídeos - Sensorial"}, {s:"Painel de Led", t:"Vídeos - ESG"}, {s:"Painel de Led", t:"Vídeos - Marque visita"}, {s:"Painel de Led", t:"Vídeos - Seja distribuidor"}, {s:"Painel de Led", t:"Videos - Dorecast 3ª Temporada"},
+                        {s:"Comunicação Geral", t:"Paineis internos - Mapa"}, {s:"Comunicação Geral", t:"Painéis internos - Definição do conteúdo"}, {s:"Comunicação Geral", t:"Painéis internos - Arte"}, {s:"Comunicação Geral", t:"Painel anexo 1, 2 e 3"}, {s:"Comunicação Geral", t:"Flyers Lançamentos e Destaques"}, {s:"Comunicação Geral", t:"Catálogo - refação"},
+                        {s:"Ação Totens", t:"Criar Convite"}, {s:"Ação Totens", t:"Criar forms"}, {s:"Ação Totens", t:"Definir participantes"}, {s:"Ação Totens", t:"Criar artes com logo e localidade"}, {s:"Ação Totens", t:"Enviar para Fispal - Arte"}, {s:"Ação Totens", t:"Totem entrada Bem-vindos"}, {s:"Ação Totens", t:"Acompanhar produção e instalação"},
+                        {s:"Dorecast", t:"Definição de produtos p/ exposição"}, {s:"Dorecast", t:"Definir convidados"}, {s:"Dorecast", t:"Criar e Enviar convites"}, {s:"Dorecast", t:"RSVP"}, {s:"Dorecast", t:"Criar roteiros"}, {s:"Dorecast", t:"Agua e itens de decoração"}, {s:"Dorecast", t:"Suporte de acrílico celular"}, {s:"Dorecast", t:"Criar Thumbs e cortes"}, {s:"Dorecast", t:"Patrocinar Dorecast no Youtube"}, {s:"Dorecast", t:"Cronograma de publicação"}, {s:"Dorecast", t:"Gravação convite oficial Reels"}, {s:"Dorecast", t:"Briefing Vinheta (abertura)"}, {s:"Dorecast", t:"Copo Stanley com logo Dorecast"}
                     ]
                 },
                 {
                     title: "Estande & Estrutura", color: "blue", icon: "layout",
                     subcategories: ["Estande", "Laboratório", "Depósito", "Geral / Montagem", "Copa"],
                     tasks: [
-                        { sub: "Estande", text: "Fechar projeto" },
-                        { sub: "Estande", text: "Formalização de Compras" },
-                        { sub: "Estande", text: "Submissão do projeto base para Fispal" },
-                        { sub: "Estande", text: "Ajustes e fechamento final do projeto" },
-                        { sub: "Estande", text: "Contrato Montadora" },
-                        { sub: "Estande", text: "Preenchimento Portal e Serviços" },
-                        { sub: "Estande", text: "EPIs - Capacete para montagem" },
-                        { sub: "Laboratório", text: "Geladeira grande" },
-                        { sub: "Laboratório", text: "Freezer tampa cega vertical" },
-                        { sub: "Laboratório", text: "Ultracongelador (2)" },
-                        { sub: "Laboratório", text: "Produtoras" },
-                        { sub: "Laboratório", text: "Carrinho Pneumático" },
-                        { sub: "Laboratório", text: "freezer horizontal - 2 portas" },
-                        { sub: "Laboratório", text: "Liquidificador, Mixer, Microondas" },
-                        { sub: "Laboratório", text: "Mangueira para lavagem" },
-                        { sub: "Laboratório", text: "Pia industrial funda com escorredor" },
-                        { sub: "Laboratório", text: "Prateleiras e tomadas" },
-                        { sub: "Depósito", text: "Lockers" },
-                        { sub: "Depósito", text: "Cadeados e Controle de Chaves" },
-                        { sub: "Depósito", text: "Tomadas" },
-                        { sub: "Depósito", text: "Toten de carregadores e Cabides" },
-                        { sub: "Geral / Montagem", text: "Quantidade e especificação de pontos de elétrica" },
-                        { sub: "Geral / Montagem", text: "Listagem de equipamentos" },
-                        { sub: "Geral / Montagem", text: "Conversão e Dimensionamento KVAs" },
-                        { sub: "Geral / Montagem", text: "Pontos de água e deságue" },
-                        { sub: "Geral / Montagem", text: "Planta técnica" },
-                        { sub: "Geral / Montagem", text: "Responsável eletricista e hidraulico" },
-                        { sub: "Geral / Montagem", text: "Responsável maquinário" },
-                        { sub: "Geral / Montagem", text: "Responsável limpeza e segurança" },
-                        { sub: "Geral / Montagem", text: "Responsável catering / garçons" },
-                        { sub: "Geral / Montagem", text: "Responsável Montadora / Feira / LED" },
-                        { sub: "Copa", text: "Freezer e Geladeira" },
-                        { sub: "Copa", text: "Pia (Água/Deságue)" },
-                        { sub: "Copa", text: "Prateleiras, Lixeiras e Tomadas" },
-                        { sub: "Copa", text: "Copeira, Garçom e Limpeza full time" }
+                        {s:"Estande", t:"Fechar projeto"}, {s:"Estande", t:"Formalização de Compras"}, {s:"Estande", t:"Submissão do projeto base"}, {s:"Estande", t:"Ajustes finais do projeto"}, {s:"Estande", t:"Contrato Montadora"}, {s:"Estande", t:"Preenchimento Portal e Serviços"}, {s:"Estande", t:"EPIs - Capacete montagem"},
+                        {s:"Laboratório", t:"Geladeira grande"}, {s:"Laboratório", t:"Freezer tampa cega vertical"}, {s:"Laboratório", t:"Ultracongelador (2)"}, {s:"Laboratório", t:"Produtoras"}, {s:"Laboratório", t:"Carrinho Pneumático"}, {s:"Laboratório", t:"freezer horizontal - 2 portas"}, {s:"Laboratório", t:"Liquidificador, Mixer, Microondas"}, {s:"Laboratório", t:"Mangueira para lavagem"}, {s:"Laboratório", t:"Pia industrial funda com escorredor"}, {s:"Laboratório", t:"Prateleiras e tomadas"},
+                        {s:"Depósito", t:"Lockers"}, {s:"Depósito", t:"Cadeados e Controle de Chaves"}, {s:"Depósito", t:"Tomadas"}, {s:"Depósito", t:"Toten carregadores e Cabides"},
+                        {s:"Geral / Montagem", t:"Pontos de elétrica"}, {s:"Geral / Montagem", t:"Listagem de equipamentos"}, {s:"Geral / Montagem", t:"Dimensionamento KVAs"}, {s:"Geral / Montagem", t:"Pontos de água e deságue"}, {s:"Geral / Montagem", t:"Planta técnica"}, {s:"Geral / Montagem", t:"Responsável eletricista e hidraulico"}, {s:"Geral / Montagem", t:"Responsável maquinário"}, {s:"Geral / Montagem", t:"Responsável limpeza e segurança"}, {s:"Geral / Montagem", t:"Responsável catering / garçons"}, {s:"Geral / Montagem", t:"Responsável Montadora / Feira / LED"},
+                        {s:"Copa", t:"Freezer e Geladeira"}, {s:"Copa", t:"Pia (Água/Deságue)"}, {s:"Copa", t:"Prateleiras, Lixeiras e Tomadas"}, {s:"Copa", t:"Copeira, Garçom e Limpeza"}
                     ]
                 },
                 {
                     title: "Operação & Ativações", color: "amber", icon: "star",
                     subcategories: ["Salão Principal", "Degustação Sorvete", "Açaí", "Espaço Café", "Soft / Milkshake", "Confeitaria/Aulas Show"],
                     tasks: [
-                        { sub: "Salão Principal", text: "Bistrôs - Locação e instalação" },
-                        { sub: "Salão Principal", text: "Quantidade de bistrôs e banquetas" },
-                        { sub: "Salão Principal", text: "Numeração das mesas" },
-                        { sub: "Salão Principal", text: "Água e Outras bebidas" },
-                        { sub: "Salão Principal", text: "Nuts, Sticks e aperitivos" },
-                        { sub: "Salão Principal", text: "Avelã e Pistache torrados na fábrica" },
-                        { sub: "Salão Principal", text: "Molhos Food Service (Bisnagas Fifo)" },
-                        { sub: "Salão Principal", text: "Arte e Adesivo para Bisnaga Molhos" },
-                        { sub: "Salão Principal", text: "Copinhos para degustação de molhos" },
-                        { sub: "Salão Principal", text: "Tomadas" },
-                        { sub: "Salão Principal", text: "Brindes e Sacolas Extras" },
-                        { sub: "Degustação Sorvete", text: "Vitrines - locação e instalação" },
-                        { sub: "Degustação Sorvete", text: "Plaquinhas e Artes com numeração" },
-                        { sub: "Degustação Sorvete", text: "Cubas locadas" },
-                        { sub: "Degustação Sorvete", text: "Definição Receitas, Produção e Decoração" },
-                        { sub: "Degustação Sorvete", text: "Envio Caldas" },
-                        { sub: "Degustação Sorvete", text: "Picolés - definição, arte, produção, rotulagem e envio" },
-                        { sub: "Degustação Sorvete", text: "Picolés - Freezer" },
-                        { sub: "Degustação Sorvete", text: "Pia (Água/Deságue) e Aquecimento pia" },
-                        { sub: "Degustação Sorvete", text: "Promotoras - quantidade, contratação e gestão" },
-                        { sub: "Degustação Sorvete", text: "Amostras, Potinhos e Adesivos" },
-                        { sub: "Açaí", text: "Construção Espaço Açaizeiro e Iluminação" },
-                        { sub: "Açaí", text: "Freezer Açaís e adesivos" },
-                        { sub: "Açaí", text: "Açaís - definição e compra dos produtos" },
-                        { sub: "Açaí", text: "Boleador Açaí, Colher e Porta-pazinhas" },
-                        { sub: "Açaí", text: "Copos de Açaí para montagem e Copinhos Transparentes" },
-                        { sub: "Açaí", text: "Guardanapos e Lixeiras" },
-                        { sub: "Açaí", text: "Pia (Água/Deságue)" },
-                        { sub: "Espaço Café", text: "Recheios p/ Affogato" },
-                        { sub: "Espaço Café", text: "Xícaras para Affogato, Colheres e Guardanapos" },
-                        { sub: "Espaço Café", text: "Sorvete - neutro" },
-                        { sub: "Espaço Café", text: "Máquina Espresso e Insumo" },
-                        { sub: "Espaço Café", text: "Barista - Contratação e Equipamentos" },
-                        { sub: "Espaço Café", text: "Definição Menu Cafés e Parceria" },
-                        { sub: "Espaço Café", text: "Freezer pequeno (Café/Smash)" },
-                        { sub: "Soft / Milkshake", text: "Máquinas de Soft e Tomadas Soft" },
-                        { sub: "Soft / Milkshake", text: "Mixers de Milkshake e Canudos" },
-                        { sub: "Soft / Milkshake", text: "Sanduicheiras de Sorvete" },
-                        { sub: "Soft / Milkshake", text: "Sorvete para Gelato Smash" },
-                        { sub: "Soft / Milkshake", text: "Bombas para Caldas e Utensílios" },
-                        { sub: "Soft / Milkshake", text: "Vitrine para Recheios e Plaquinhas" },
-                        { sub: "Soft / Milkshake", text: "Pump aquecida para Skimo" },
-                        { sub: "Soft / Milkshake", text: "Furos para fontes e pump" },
-                        { sub: "Soft / Milkshake", text: "Promotora Degustação" },
-                        { sub: "Soft / Milkshake", text: "Copinhos, Pazinhas e Guardanapos" },
-                        { sub: "Confeitaria/Aulas Show", text: "Confirmar Thiago Pedebis (data e horário)" },
-                        { sub: "Confeitaria/Aulas Show", text: "Definição Aulas Paulo, Nani e Thiago" },
-                        { sub: "Confeitaria/Aulas Show", text: "Vitrine - definir e alugar" },
-                        { sub: "Confeitaria/Aulas Show", text: "Limpeza dedicada e Lixeiras" },
-                        { sub: "Confeitaria/Aulas Show", text: "Pratinhos, Guardanapos e Talheres" },
-                        { sub: "Confeitaria/Aulas Show", text: "Xícaras para Affogatos" },
-                        { sub: "Confeitaria/Aulas Show", text: "Outros Utensílios Paulo" },
-                        { sub: "Confeitaria/Aulas Show", text: "Microondas, Geladeira e Tomadas" },
-                        { sub: "Confeitaria/Aulas Show", text: "Transporte para pré-preparados" }
+                        {s:"Salão Principal", t:"Bistrôs - Locação e instalação"}, {s:"Salão Principal", t:"Quantidade de bistrôs e banquetas"}, {s:"Salão Principal", t:"Numeração das mesas"}, {s:"Salão Principal", t:"Água e Outras bebidas"}, {s:"Salão Principal", t:"Nuts, Sticks e aperitivos"}, {s:"Salão Principal", t:"Avelã e Pistache torrados"}, {s:"Salão Principal", t:"Molhos Food Service (Bisnagas Fifo)"}, {s:"Salão Principal", t:"Arte e Adesivo para Bisnaga Molhos"}, {s:"Salão Principal", t:"Copinhos para degustação de molhos"}, {s:"Salão Principal", t:"Tomadas"}, {s:"Salão Principal", t:"Brindes e Sacolas Extras"},
+                        {s:"Degustação Sorvete", t:"Vitrines - locação e instalação"}, {s:"Degustação Sorvete", t:"Plaquinhas e Artes"}, {s:"Degustação Sorvete", t:"Cubas locadas"}, {s:"Degustação Sorvete", t:"Definição Receitas e Produção"}, {s:"Degustação Sorvete", t:"Envio Caldas"}, {s:"Degustação Sorvete", t:"Picolés - definição, produção, envio"}, {s:"Degustação Sorvete", t:"Picolés - Freezer"}, {s:"Degustação Sorvete", t:"Pia (Água/Deságue) e Aquecimento"}, {s:"Degustação Sorvete", t:"Promotoras - quantidade, contratação"}, {s:"Degustação Sorvete", t:"Amostras, Potinhos e Adesivos"},
+                        {s:"Açaí", t:"Construção Espaço Açaizeiro"}, {s:"Açaí", t:"Freezer Açaís e adesivos"}, {s:"Açaí", t:"Açaís - definição e compra"}, {s:"Açaí", t:"Boleador Açaí, Colher e Pazinhas"}, {s:"Açaí", t:"Copos de Açaí para montagem"}, {s:"Açaí", t:"Guardanapos e Lixeiras"}, {s:"Açaí", t:"Pia (Água/Deságue)"},
+                        {s:"Espaço Café", t:"Recheios p/ Affogato"}, {s:"Espaço Café", t:"Xícaras, Colheres e Guardanapos"}, {s:"Espaço Café", t:"Sorvete - neutro"}, {s:"Espaço Café", t:"Máquina Espresso e Insumo"}, {s:"Espaço Café", t:"Barista - Contratação e Equipamentos"}, {s:"Espaço Café", t:"Definição Menu Cafés"}, {s:"Espaço Café", t:"Freezer pequeno (Café/Smash)"},
+                        {s:"Soft / Milkshake", t:"Máquinas de Soft e Tomadas"}, {s:"Soft / Milkshake", t:"Mixers de Milkshake e Canudos"}, {s:"Soft / Milkshake", t:"Sanduicheiras de Sorvete"}, {s:"Soft / Milkshake", t:"Sorvete para Gelato Smash"}, {s:"Soft / Milkshake", t:"Bombas para Caldas e Utensílios"}, {s:"Soft / Milkshake", t:"Vitrine para Recheios e Plaquinhas"}, {s:"Soft / Milkshake", t:"Pump aquecida para Skimo"}, {s:"Soft / Milkshake", t:"Furos para fontes e pump"}, {s:"Soft / Milkshake", t:"Promotora Degustação"}, {s:"Soft / Milkshake", t:"Copinhos, Pazinhas e Guardanapos"},
+                        {s:"Confeitaria/Aulas Show", t:"Confirmar Thiago Pedebis"}, {s:"Confeitaria/Aulas Show", t:"Definição Aulas Paulo, Nani e Thiago"}, {s:"Confeitaria/Aulas Show", t:"Vitrine - definir e alugar"}, {s:"Confeitaria/Aulas Show", t:"Limpeza dedicada e Lixeiras"}, {s:"Confeitaria/Aulas Show", t:"Pratinhos, Guardanapos e Talheres"}, {s:"Confeitaria/Aulas Show", t:"Xícaras para Affogatos"}, {s:"Confeitaria/Aulas Show", t:"Outros Utensílios Paulo"}, {s:"Confeitaria/Aulas Show", t:"Microondas, Geladeira e Tomadas"}, {s:"Confeitaria/Aulas Show", t:"Transporte para pré-preparados"}
                     ]
                 },
                 {
                     title: "Staff & Logística", color: "emerald", icon: "users",
                     subcategories: ["Credenciamento / Cadastro", "Camisas", "Briefing Geral", "Evento na Doremus"],
                     tasks: [
-                        { sub: "Credenciamento / Cadastro", text: "Credenciais time" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciais diretores" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciais - envio para Doremus" },
-                        { sub: "Credenciamento / Cadastro", text: "Preenchimento Portal - Credenciamento" },
-                        { sub: "Credenciamento / Cadastro", text: "Lista de Participantes" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Catering" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Montagem" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Segurança" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Filmagem" },
-                        { sub: "Camisas", text: "Levantamento, Compra e Entrega" },
-                        { sub: "Briefing Geral", text: "Reserva Auditório" },
-                        { sub: "Briefing Geral", text: "Preparação Material e Apresentação" },
-                        { sub: "Briefing Geral", text: "Convites e Campanha" },
-                        { sub: "Evento na Doremus", text: "Nome e KV do evento (#DoremusDay25)" },
-                        { sub: "Evento na Doremus", text: "Criar, Enviar convite, RSVP e Lembretes" },
-                        { sub: "Evento na Doremus", text: "Transfer" },
-                        { sub: "Evento na Doremus", text: "Água / Café" },
-                        { sub: "Evento na Doremus", text: "Organizar com portaria, fábrica e Qualidade" },
-                        { sub: "Evento na Doremus", text: "Responsáveis por visitas" },
-                        { sub: "Evento na Doremus", text: "EPIs - Tamanho no RSVP e Organizar" },
-                        { sub: "Evento na Doremus", text: "Organizar almoço com Nutrição" },
-                        { sub: "Evento na Doremus", text: "Briefing para diretores" },
-                        { sub: "Evento na Doremus", text: "freezer no refeitorio com picoles" },
-                        { sub: "Evento na Doremus", text: "Sacola Grande Doremus" }
+                        {s:"Credenciamento / Cadastro", t:"Credenciais time"}, {s:"Credenciamento / Cadastro", t:"Credenciais diretores"}, {s:"Credenciamento / Cadastro", t:"Credenciais - envio para Doremus"}, {s:"Credenciamento / Cadastro", t:"Preenchimento Portal - Credenciamento"}, {s:"Credenciamento / Cadastro", t:"Lista de Participantes"}, {s:"Credenciamento / Cadastro", t:"Credenciamento Equipes e Filmagem"},
+                        {s:"Camisas", t:"Levantamento, Compra e Entrega"},
+                        {s:"Briefing Geral", t:"Reserva Auditório e Apresentação"}, {s:"Briefing Geral", t:"Convites e Campanha"},
+                        {s:"Evento na Doremus", t:"Nome e KV do evento (#DoremusDay25)"}, {s:"Evento na Doremus", t:"Criar, Enviar convite, RSVP e Lembretes"}, {s:"Evento na Doremus", t:"Transfer"}, {s:"Evento na Doremus", t:"Água / Café"}, {s:"Evento na Doremus", t:"Organizar com portaria, fábrica e Qualidade"}, {s:"Evento na Doremus", t:"Responsáveis por visitas"}, {s:"Evento na Doremus", t:"EPIs - Organizar"}, {s:"Evento na Doremus", t:"Organizar almoço com Nutrição"}, {s:"Evento na Doremus", t:"Briefing para diretores"}, {s:"Evento na Doremus", t:"Freezer no refeitorio com picoles"}, {s:"Evento na Doremus", t:"Sacola Grande Doremus"}
                     ]
                 }
             ]
@@ -1595,765 +1451,6 @@
             </div>
         );
 
-        // --- MODELO FISPAL 2025 ---
-        const FISPAL_2025_DATA = {
-            title: "Fispal 2025",
-            date: "2025-06-24",
-            coverIcon: "star",
-            categories: [
-                {
-                    title: "Comunicação & Marketing", color: "purple", icon: "megaphone",
-                    subcategories: ["Comunicação Institucional", "Painel de Led", "Comunicação Geral", "Ação Totens", "Dorecast"],
-                    tasks: [
-                        { sub: "Comunicação Institucional", text: "Comunicação (Cronograma)" },
-                        { sub: "Comunicação Institucional", text: "Save the Date" },
-                        { sub: "Comunicação Institucional", text: "Convite oficial" },
-                        { sub: "Comunicação Institucional", text: "Sequencia de lembretes" },
-                        { sub: "Comunicação Institucional", text: "Contratação Storymaker - Dia do Evento" },
-                        { sub: "Comunicação Institucional", text: "Captação Lançamentos" },
-                        { sub: "Comunicação Institucional", text: "E-book de Receitas" },
-                        { sub: "Painel de Led", text: "Painel de Led" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Receber mapa de pixels" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Áudio" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Mapa de Conteúdos" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Roteiro" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Contratação de Produtora" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Produção Vídeos" },
-                        { sub: "Painel de Led", text: "Vídeo Led - Envio e teste" },
-                        { sub: "Painel de Led", text: "Vídeos - Lançamentos e destaques" },
-                        { sub: "Painel de Led", text: "Vídeos - Sua próxima inovação" },
-                        { sub: "Painel de Led", text: "Vídeos - Casa de Aromas" },
-                        { sub: "Painel de Led", text: "Vídeos - Sensorial" },
-                        { sub: "Painel de Led", text: "Vídeos - ESG" },
-                        { sub: "Painel de Led", text: "Vídeos - Marque visita" },
-                        { sub: "Painel de Led", text: "Vídeos - Seja distribuidor" },
-                        { sub: "Painel de Led", text: "Videos - Dorecast 3ª Temporada" },
-                        { sub: "Comunicação Geral", text: "Paineis internos - Mapa" },
-                        { sub: "Comunicação Geral", text: "Painéis internos - Definição do conteúdo" },
-                        { sub: "Comunicação Geral", text: "Painéis internos - Arte" },
-                        { sub: "Comunicação Geral", text: "Painel anexo 1, 2 e 3" },
-                        { sub: "Comunicação Geral", text: "Flyers Lançamentos e Destaques" },
-                        { sub: "Comunicação Geral", text: "Catálogo - refação" },
-                        { sub: "Ação Totens", text: "Criar Convite" },
-                        { sub: "Ação Totens", text: "Criar forms" },
-                        { sub: "Ação Totens", text: "Definir participantes" },
-                        { sub: "Ação Totens", text: "Criar artes com logo e localidade" },
-                        { sub: "Ação Totens", text: "Enviar para Fispal - Arte" },
-                        { sub: "Ação Totens", text: "Totem entrada Bem-vindos" },
-                        { sub: "Ação Totens", text: "Acompanhar produção e instalação" },
-                        { sub: "Dorecast", text: "Definição de produtos p/ exposição" },
-                        { sub: "Dorecast", text: "Definir convidados" },
-                        { sub: "Dorecast", text: "Criar e Enviar convites" },
-                        { sub: "Dorecast", text: "RSVP" },
-                        { sub: "Dorecast", text: "Criar roteiros" },
-                        { sub: "Dorecast", text: "Agua e itens de decoração" },
-                        { sub: "Dorecast", text: "Suporte de acrílico para celular" },
-                        { sub: "Dorecast", text: "Criar Thumbs, títulos e cortes em massa" },
-                        { sub: "Dorecast", text: "Patrocinar Dorecast no Youtube" },
-                        { sub: "Dorecast", text: "Cronograma de publicação e divulgação" },
-                        { sub: "Dorecast", text: "Gravação convite oficial Geral- Reels" },
-                        { sub: "Dorecast", text: "Briefing Vinheta (abertura)" },
-                        { sub: "Dorecast", text: "Copo Stanley com logo Dorecast" }
-                    ]
-                },
-                {
-                    title: "Estande & Estrutura", color: "blue", icon: "layout",
-                    subcategories: ["Estande", "Laboratório", "Depósito", "Geral / Montagem", "Copa"],
-                    tasks: [
-                        { sub: "Estande", text: "Fechar projeto" },
-                        { sub: "Estande", text: "Formalização de Compras" },
-                        { sub: "Estande", text: "Submissão do projeto base para Fispal" },
-                        { sub: "Estande", text: "Ajustes e fechamento final do projeto" },
-                        { sub: "Estande", text: "Contrato Montadora" },
-                        { sub: "Estande", text: "Preenchimento Portal e Serviços" },
-                        { sub: "Estande", text: "EPIs - Capacete para montagem" },
-                        { sub: "Laboratório", text: "Geladeira grande" },
-                        { sub: "Laboratório", text: "Freezer tampa cega vertical" },
-                        { sub: "Laboratório", text: "Ultracongelador (2)" },
-                        { sub: "Laboratório", text: "Produtoras" },
-                        { sub: "Laboratório", text: "Carrinho Pneumático" },
-                        { sub: "Laboratório", text: "freezer horizontal - 2 portas" },
-                        { sub: "Laboratório", text: "Liquidificador, Mixer, Microondas" },
-                        { sub: "Laboratório", text: "Mangueira para lavagem" },
-                        { sub: "Laboratório", text: "Pia industrial funda com escorredor" },
-                        { sub: "Laboratório", text: "Prateleiras e tomadas" },
-                        { sub: "Depósito", text: "Lockers" },
-                        { sub: "Depósito", text: "Cadeados e Controle de Chaves" },
-                        { sub: "Depósito", text: "Tomadas" },
-                        { sub: "Depósito", text: "Toten de carregadores e Cabides" },
-                        { sub: "Geral / Montagem", text: "Quantidade e especificação de pontos de elétrica" },
-                        { sub: "Geral / Montagem", text: "Listagem de equipamentos" },
-                        { sub: "Geral / Montagem", text: "Conversão e Dimensionamento KVAs" },
-                        { sub: "Geral / Montagem", text: "Pontos de água e deságue" },
-                        { sub: "Geral / Montagem", text: "Planta técnica" },
-                        { sub: "Geral / Montagem", text: "Responsável eletricista e hidraulico" },
-                        { sub: "Geral / Montagem", text: "Responsável maquinário" },
-                        { sub: "Geral / Montagem", text: "Responsável limpeza e segurança" },
-                        { sub: "Geral / Montagem", text: "Responsável catering / garçons" },
-                        { sub: "Geral / Montagem", text: "Responsável Montadora / Feira / LED" },
-                        { sub: "Copa", text: "Freezer e Geladeira" },
-                        { sub: "Copa", text: "Pia (Água/Deságue)" },
-                        { sub: "Copa", text: "Prateleiras, Lixeiras e Tomadas" },
-                        { sub: "Copa", text: "Copeira, Garçom e Limpeza full time" }
-                    ]
-                },
-                {
-                    title: "Operação & Ativações", color: "amber", icon: "star",
-                    subcategories: ["Salão Principal", "Degustação Sorvete", "Açaí", "Espaço Café", "Soft / Milkshake", "Confeitaria/Aulas Show"],
-                    tasks: [
-                        { sub: "Salão Principal", text: "Bistrôs - Locação e instalação" },
-                        { sub: "Salão Principal", text: "Quantidade de bistrôs e banquetas" },
-                        { sub: "Salão Principal", text: "Numeração das mesas" },
-                        { sub: "Salão Principal", text: "Água e Outras bebidas" },
-                        { sub: "Salão Principal", text: "Nuts, Sticks e aperitivos" },
-                        { sub: "Salão Principal", text: "Avelã e Pistache torrados na fábrica" },
-                        { sub: "Salão Principal", text: "Molhos Food Service (Bisnagas Fifo)" },
-                        { sub: "Salão Principal", text: "Arte e Adesivo para Bisnaga Molhos" },
-                        { sub: "Salão Principal", text: "Copinhos para degustação de molhos" },
-                        { sub: "Salão Principal", text: "Tomadas" },
-                        { sub: "Salão Principal", text: "Brindes e Sacolas Extras" },
-                        { sub: "Degustação Sorvete", text: "Vitrines - locação e instalação" },
-                        { sub: "Degustação Sorvete", text: "Plaquinhas e Artes com numeração" },
-                        { sub: "Degustação Sorvete", text: "Cubas locadas" },
-                        { sub: "Degustação Sorvete", text: "Definição Receitas, Produção e Decoração" },
-                        { sub: "Degustação Sorvete", text: "Envio Caldas" },
-                        { sub: "Degustação Sorvete", text: "Picolés - definição, arte, produção, rotulagem e envio" },
-                        { sub: "Degustação Sorvete", text: "Picolés - Freezer" },
-                        { sub: "Degustação Sorvete", text: "Pia (Água/Deságue) e Aquecimento pia" },
-                        { sub: "Degustação Sorvete", text: "Promotoras - quantidade, contratação e gestão" },
-                        { sub: "Degustação Sorvete", text: "Amostras, Potinhos e Adesivos" },
-                        { sub: "Açaí", text: "Construção Espaço Açaizeiro e Iluminação" },
-                        { sub: "Açaí", text: "Freezer Açaís e adesivos" },
-                        { sub: "Açaí", text: "Açaís - definição e compra dos produtos" },
-                        { sub: "Açaí", text: "Boleador Açaí, Colher e Porta-pazinhas" },
-                        { sub: "Açaí", text: "Copos de Açaí para montagem e Copinhos Transparentes" },
-                        { sub: "Açaí", text: "Guardanapos e Lixeiras" },
-                        { sub: "Açaí", text: "Pia (Água/Deságue)" },
-                        { sub: "Espaço Café", text: "Recheios p/ Affogato" },
-                        { sub: "Espaço Café", text: "Xícaras para Affogato, Colheres e Guardanapos" },
-                        { sub: "Espaço Café", text: "Sorvete - neutro" },
-                        { sub: "Espaço Café", text: "Máquina Espresso e Insumo" },
-                        { sub: "Espaço Café", text: "Barista - Contratação e Equipamentos" },
-                        { sub: "Espaço Café", text: "Definição Menu Cafés e Parceria" },
-                        { sub: "Espaço Café", text: "Freezer pequeno (Café/Smash)" },
-                        { sub: "Soft / Milkshake", text: "Máquinas de Soft e Tomadas Soft" },
-                        { sub: "Soft / Milkshake", text: "Mixers de Milkshake e Canudos" },
-                        { sub: "Soft / Milkshake", text: "Sanduicheiras de Sorvete" },
-                        { sub: "Soft / Milkshake", text: "Sorvete para Gelato Smash" },
-                        { sub: "Soft / Milkshake", text: "Bombas para Caldas e Utensílios" },
-                        { sub: "Soft / Milkshake", text: "Vitrine para Recheios e Plaquinhas" },
-                        { sub: "Soft / Milkshake", text: "Pump aquecida para Skimo" },
-                        { sub: "Soft / Milkshake", text: "Furos para fontes e pump" },
-                        { sub: "Soft / Milkshake", text: "Promotora Degustação" },
-                        { sub: "Soft / Milkshake", text: "Copinhos, Pazinhas e Guardanapos" },
-                        { sub: "Confeitaria/Aulas Show", text: "Confirmar Thiago Pedebis (data e horário)" },
-                        { sub: "Confeitaria/Aulas Show", text: "Definição Aulas Paulo, Nani e Thiago" },
-                        { sub: "Confeitaria/Aulas Show", text: "Vitrine - definir e alugar" },
-                        { sub: "Confeitaria/Aulas Show", text: "Limpeza dedicada e Lixeiras" },
-                        { sub: "Confeitaria/Aulas Show", text: "Pratinhos, Guardanapos e Talheres" },
-                        { sub: "Confeitaria/Aulas Show", text: "Xícaras para Affogatos" },
-                        { sub: "Confeitaria/Aulas Show", text: "Outros Utensílios Paulo" },
-                        { sub: "Confeitaria/Aulas Show", text: "Microondas, Geladeira e Tomadas" },
-                        { sub: "Confeitaria/Aulas Show", text: "Transporte para pré-preparados" }
-                    ]
-                },
-                {
-                    title: "Staff & Logística", color: "emerald", icon: "users",
-                    subcategories: ["Credenciamento / Cadastro", "Camisas", "Briefing Geral", "Evento na Doremus"],
-                    tasks: [
-                        { sub: "Credenciamento / Cadastro", text: "Credenciais time" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciais diretores" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciais - envio para Doremus" },
-                        { sub: "Credenciamento / Cadastro", text: "Preenchimento Portal - Credenciamento" },
-                        { sub: "Credenciamento / Cadastro", text: "Lista de Participantes" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Catering" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Montagem" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Segurança" },
-                        { sub: "Credenciamento / Cadastro", text: "Credenciamento Equipe Filmagem" },
-                        { sub: "Camisas", text: "Levantamento, Compra e Entrega" },
-                        { sub: "Briefing Geral", text: "Reserva Auditório" },
-                        { sub: "Briefing Geral", text: "Preparação Material e Apresentação" },
-                        { sub: "Briefing Geral", text: "Convites e Campanha" },
-                        { sub: "Evento na Doremus", text: "Nome e KV do evento (#DoremusDay25)" },
-                        { sub: "Evento na Doremus", text: "Criar, Enviar convite, RSVP e Lembretes" },
-                        { sub: "Evento na Doremus", text: "Transfer" },
-                        { sub: "Evento na Doremus", text: "Água / Café" },
-                        { sub: "Evento na Doremus", text: "Organizar com portaria, fábrica e Qualidade" },
-                        { sub: "Evento na Doremus", text: "Responsáveis por visitas" },
-                        { sub: "Evento na Doremus", text: "EPIs - Tamanho no RSVP e Organizar" },
-                        { sub: "Evento na Doremus", text: "Organizar almoço com Nutrição" },
-                        { sub: "Evento na Doremus", text: "Briefing para diretores" },
-                        { sub: "Evento na Doremus", text: "freezer no refeitorio com picoles" },
-                        { sub: "Evento na Doremus", text: "Sacola Grande Doremus" }
-                    ]
-                }
-            ]
-        };
-
-        const TaskDetailModal = ({ isOpen, onClose, task, members, categories, dbOperations, deleteTask, currentUser, createNotification }) => {
-            const [messageText, setMessageText] = useState("");
-            const [chatAttachment, setChatAttachment] = useState(null);
-            const [newSubtask, setNewSubtask] = useState("");
-            const [showEmojis, setShowEmojis] = useState(false);
-            const [editingMessageId, setEditingMessageId] = useState(null);
-            const [editingText, setEditingText] = useState("");
-
-            // Novos estados para edição de título da Tarefa
-            const [isEditingTitle, setIsEditingTitle] = useState(false);
-            const [editTitleText, setEditTitleText] = useState("");
-
-            const [isTransferring, setIsTransferring] = useState(false);
-            const [transferTargetId, setTransferTargetId] = useState('');
-            const [transferReason, setTransferReason] = useState('');
-
-            const chatEndRef = useRef(null);
-            const fileInputRef = useRef(null);
-
-            const currentTask = task; 
-
-            // Reseta os estados quando a tarefa modal muda ou fecha
-            useEffect(() => {
-                if (currentTask) {
-                    setEditTitleText(currentTask.text || "");
-                    setIsEditingTitle(false);
-                }
-            }, [currentTask?.id]);
-
-            if (!isOpen || !currentTask) return null;
-
-            useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [currentTask.messages]);
-
-            const handleSaveTitle = () => {
-                if (editTitleText.trim() && editTitleText !== currentTask.text) {
-                    dbOperations.updateTask(currentTask.id, { text: editTitleText });
-                }
-                setIsEditingTitle(false);
-            };
-
-            const handleSendMessage = () => {
-                if (!messageText.trim() && !chatAttachment) return;
-                
-                const sender = currentUser || members[0]; 
-                
-                const newMessage = {
-                    id: Date.now(),
-                    senderId: sender.id,
-                    senderName: sender.name,
-                    text: messageText,
-                    image: chatAttachment,
-                    timestamp: new Date().toISOString()
-                };
-                
-                const updatedMessages = [...(currentTask.messages || []), newMessage];
-                dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
-                
-                const mentions = members.filter(m => messageText.includes(`@${m.name.split(' ')[0]}`) || messageText.includes(`@${m.name}`));
-                mentions.forEach(m => {
-                    if (m.id !== sender.id) {
-                        createNotification({
-                            userId: m.id, title: "Menção no Chat", 
-                            text: `${sender.name} mencionou você na tarefa "${currentTask.text}".`,
-                            taskId: currentTask.id, read: false, createdAt: new Date().toISOString()
-                        });
-                    }
-                });
-
-                if (currentTask.responsible && currentTask.responsible.id !== sender.id && !mentions.some(m => m.id === currentTask.responsible.id)) {
-                    createNotification({
-                        userId: currentTask.responsible.id, title: "Nova Mensagem na Tarefa",
-                        text: `${sender.name} comentou na sua tarefa "${currentTask.text}".`,
-                        taskId: currentTask.id, read: false, createdAt: new Date().toISOString()
-                    });
-                }
-
-                setMessageText("");
-                setChatAttachment(null);
-            };
-
-            const handleStartEditing = (msg) => { setEditingMessageId(msg.id); setEditingText(msg.text); };
-            const handleCancelEditing = () => { setEditingMessageId(null); setEditingText(""); };
-
-            const handleSaveEdit = (msgId) => {
-                if (!editingText.trim()) return; 
-                const updatedMessages = currentTask.messages.map(m => m.id === msgId ? { ...m, text: editingText, editedAt: new Date().toISOString() } : m);
-                dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
-                setEditingMessageId(null); setEditingText("");
-            };
-
-            const formatEditedDate = (isoDate) => {
-                if (!isoDate) return "";
-                const date = new Date(isoDate); const today = new Date();
-                const isToday = date.toDateString() === today.toDateString();
-                const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                return isToday ? `Editado às ${timeStr}` : `Editado em ${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às ${timeStr}`;
-            };
-
-            const handleAddSubtask = () => {
-                if (!newSubtask.trim()) return;
-                const newSub = { id: Date.now(), text: newSubtask, completed: false };
-                dbOperations.updateTask(currentTask.id, { subtasks: [...(currentTask.subtasks || []), newSub] });
-                setNewSubtask("");
-            };
-
-            const toggleSubtask = (subId) => {
-                const updatedSubtasks = currentTask.subtasks.map(s => s.id === subId ? { ...s, completed: !s.completed } : s);
-                dbOperations.updateTask(currentTask.id, { subtasks: updatedSubtasks });
-            };
-
-            const handleFileSelect = async (e) => {
-                const file = e.target.files[0];
-                if (file) { const url = await compressImage(file, 400); setChatAttachment(url); }
-            };
-            const addEmoji = (emoji) => { setMessageText(prev => prev + emoji); setShowEmojis(false); };
-
-            const toggleSupport = (memberId) => {
-                const currentSupport = currentTask.support || [];
-                const newSupport = currentSupport.some(m => m.id === memberId) ? currentSupport.filter(m => m.id !== memberId) : [...currentSupport, members.find(m => m.id === memberId)];
-                dbOperations.updateTask(currentTask.id, { support: newSupport });
-            };
-
-            const handleDeleteTask = () => { if(confirm("Tem a certeza que deseja excluir esta tarefa?")) { deleteTask(currentTask.id); onClose(); } };
-
-            const confirmTransfer = () => {
-                if (!transferTargetId) { alert("Por favor, selecione o novo responsável."); return; }
-                if (!transferReason.trim()) { alert("Por favor, preencha o motivo da transferência."); return; }
-                const newResponsible = members.find(m => m.id === transferTargetId);
-                const sender = currentUser || members[0];
-
-                const historyEntry = {
-                    date: new Date().toISOString(),
-                    from: currentTask.responsible || null,
-                    to: newResponsible || null,
-                    reason: transferReason,
-                    by: sender
-                };
-
-                dbOperations.updateTask(currentTask.id, {
-                    responsible: newResponsible || null,
-                    transferHistory: [...(currentTask.transferHistory || []), historyEntry]
-                });
-
-                if (newResponsible) {
-                    createNotification({
-                        userId: newResponsible.id,
-                        title: "Tarefa Transferida",
-                        text: `${sender.name} transferiu a tarefa "${currentTask.text}" para você. Motivo: ${transferReason}`,
-                        taskId: currentTask.id,
-                        read: false,
-                        createdAt: new Date().toISOString()
-                    });
-                }
-
-                setIsTransferring(false);
-            };
-
-            // Para seleção de Categoria e Subcategoria
-            const activeCategory = categories.find(c => c.id === currentTask.category);
-
-            return (
-                <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa: ${currentTask.text}`} fullScreen={true}>
-                    {isTransferring && (
-                        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-in">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Repeat size={20} className="text-blue-600"/> Transferir Tarefa</h3>
-                                
-                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Novo Responsável</label>
-                                <select className="w-full p-3 border rounded-xl mb-4 bg-gray-50 outline-none focus:border-blue-500" value={transferTargetId} onChange={e=>setTransferTargetId(e.target.value)}>
-                                    <option value="">Selecione...</option>
-                                    {members.filter(m => m.id !== currentTask.responsible?.id && m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                </select>
-
-                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Motivo da Transferência</label>
-                                <textarea 
-                                    className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 mb-4 text-sm resize-none bg-gray-50" 
-                                    rows="3" placeholder="Por que está transferindo esta tarefa?"
-                                    value={transferReason} onChange={e=>setTransferReason(e.target.value)} autoFocus
-                                />
-                                <div className="flex justify-end gap-2">
-                                    <button onClick={() => setIsTransferring(false)} className="px-4 py-2 text-sm text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancelar</button>
-                                    <button onClick={confirmTransfer} className="px-4 py-2 text-sm bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700">Confirmar</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex flex-col md:flex-row h-full">
-                        <div className="flex-1 p-6 overflow-y-auto border-r border-gray-200 custom-scrollbar">
-                            
-                            {/* TÍTULO EDITÁVEL */}
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="flex-1 mr-4">
-                                    {isEditingTitle ? (
-                                        <div className="flex items-center gap-2">
-                                            <input 
-                                                className="flex-1 text-2xl font-bold text-gray-900 border-b-2 border-blue-500 outline-none bg-transparent py-1" 
-                                                value={editTitleText} 
-                                                onChange={e => setEditTitleText(e.target.value)}
-                                                autoFocus
-                                                onKeyDown={e => e.key === 'Enter' && handleSaveTitle()}
-                                            />
-                                            <button onClick={handleSaveTitle} className="text-emerald-600 bg-emerald-50 p-2 rounded hover:bg-emerald-100" title="Salvar Título"><Check size={20}/></button>
-                                            <button onClick={() => { setIsEditingTitle(false); setEditTitleText(currentTask.text); }} className="text-gray-500 bg-gray-100 p-2 rounded hover:bg-gray-200" title="Cancelar"><X size={20}/></button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-3 group/title cursor-pointer w-fit" onClick={() => setIsEditingTitle(true)}>
-                                            <h2 className="text-2xl font-bold text-gray-900 hover:text-blue-900 transition-colors" title="Clique para editar o título">{currentTask.text}</h2>
-                                            <button className="text-gray-400 hover:text-blue-600 opacity-0 group-hover/title:opacity-100 transition-opacity"><Edit2 size={18}/></button>
-                                        </div>
-                                    )}
-                                </div>
-                                <button onClick={handleDeleteTask} className="text-red-500 hover:bg-red-50 p-2 rounded shrink-0"><Trash2 size={20}/></button>
-                            </div>
-                            
-                            <div className="mb-4 bg-white p-3 border border-gray-200 rounded-xl shadow-sm flex flex-col sm:flex-row gap-4">
-                                <div className="flex-1">
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status</label>
-                                    <select 
-                                        className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-bold text-gray-700 outline-none focus:border-blue-400" 
-                                        value={currentTask.status || 'planning'} 
-                                        onChange={(e) => dbOperations.updateTask(currentTask.id, { status: e.target.value })}
-                                    >
-                                        {STATUS_COLUMNS.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                                    </select>
-                                </div>
-                                <div className="flex-1">
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Categoria Principal</label>
-                                    <select 
-                                        className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-bold text-gray-700 outline-none focus:border-blue-400" 
-                                        value={currentTask.category || ''} 
-                                        onChange={(e) => {
-                                            const newCatId = e.target.value;
-                                            const newCatObj = categories.find(c => c.id === newCatId);
-                                            // Se mudar de categoria e a nova não tiver a subcategoria atual, limpa a subcategoria
-                                            if(!newCatObj?.subcategories?.some(s => s.id === currentTask.subcategoryId)) {
-                                                dbOperations.updateTask(currentTask.id, { category: newCatId, subcategoryId: null });
-                                            } else {
-                                                dbOperations.updateTask(currentTask.id, { category: newCatId });
-                                            }
-                                        }}
-                                    >
-                                        {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                                    </select>
-                                </div>
-                                {activeCategory && activeCategory.subcategories && activeCategory.subcategories.length > 0 && (
-                                    <div className="flex-1">
-                                        <label className="block text-[10px] font-bold text-blue-500 uppercase mb-1 flex items-center gap-1"><Layers size={10}/> Subcategoria</label>
-                                        <select 
-                                            className="w-full p-2.5 border border-blue-200 rounded-lg bg-blue-50 text-sm font-bold text-blue-800 outline-none focus:border-blue-400" 
-                                            value={currentTask.subcategoryId || ''} 
-                                            onChange={(e) => dbOperations.updateTask(currentTask.id, { subcategoryId: e.target.value || null })}
-                                        >
-                                            <option value="">Geral</option>
-                                            {activeCategory.subcategories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                                        </select>
-                                    </div>
-                                )}
-                            </div>
-
-                             <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 border-b pb-1">Detalhes Operacionais</h4>
-                                <div className="grid grid-cols-2 gap-4 mb-3">
-                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Quantidade</label><input type="number" className="w-full p-2 border rounded-lg text-sm" value={currentTask.quantity || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { quantity: e.target.value })}/></div>
-                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Custo (R$)</label><input type="number" className="w-full p-2 border rounded-lg text-sm" value={currentTask.cost || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { cost: e.target.value })}/></div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 mb-3">
-                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Fornecedor</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.supplier || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { supplier: e.target.value })}/></div>
-                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">ID Nimbi</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.nimbiId || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { nimbiId: e.target.value })}/></div>
-                                </div>
-                                 <div className="mb-3">
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Entrega / Prazo Limite</label>
-                                    <input type="datetime-local" className="w-full p-2 border rounded-lg text-sm" value={currentTask.deliveryDate || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { deliveryDate: e.target.value })}/>
-                                </div>
-                             </div>
-
-                             <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 border-b pb-1">Especificações Técnicas</h4>
-                                <div className="flex items-center gap-2 mb-3">
-                                    <input type="checkbox" id="elec_detail" checked={currentTask.electrical} onChange={e=>dbOperations.updateTask(currentTask.id, { electrical: e.target.checked })} className="rounded text-blue-600"/>
-                                    <label htmlFor="elec_detail" className="text-sm font-bold text-gray-700">Requer Elétrica</label>
-                                </div>
-                                {currentTask.electrical && (
-                                    <div className="grid grid-cols-2 gap-4 mb-3 pl-4 border-l-2 border-blue-200">
-                                        <div><label className="block text-[10px] font-bold text-gray-500">KVA</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.kva || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { kva: e.target.value })}/></div>
-                                        <div><label className="block text-[10px] font-bold text-gray-500">Tensão</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.voltage || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { voltage: e.target.value })}/></div>
-                                    </div>
-                                )}
-                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Hidráulica</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.hydraulic || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { hydraulic: e.target.value })} placeholder="Detalhes..."/></div>
-                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1"><UserCheck size={14}/> Responsável</label>
-                                    {currentTask.responsible ? (
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-xl border border-blue-100 flex-1">
-                                                <Avatar member={currentTask.responsible} size="w-6 h-6"/>
-                                                <span className="text-sm font-bold text-blue-900 truncate">{currentTask.responsible.name}</span>
-                                            </div>
-                                            <button onClick={() => { setIsTransferring(true); setTransferTargetId(''); setTransferReason(''); }} className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-blue-600 transition-colors text-sm font-bold flex items-center gap-2 shadow-sm" title="Transferir Tarefa">
-                                                <Repeat size={16}/> Transferir
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <select 
-                                            className="w-full p-3 border border-blue-200 rounded-xl bg-blue-50/30 text-sm font-bold text-blue-900 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
-                                            value="" 
-                                            onChange={(e) => {
-                                                const member = members.find(m => m.id === e.target.value);
-                                                dbOperations.updateTask(currentTask.id, { responsible: member || null });
-                                            }}
-                                        >
-                                            <option value="">Atribuir a alguém...</option>
-                                            {members.filter(m => m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                        </select>
-                                    )}
-                                </div>
-                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Apoio</label><div className="flex flex-wrap gap-2">{members.map(m => (<button key={m.id} onClick={() => toggleSupport(m.id)} className={`p-1.5 rounded-full border-2 transition-all ${currentTask.support?.some(s => s.id === m.id) ? 'border-blue-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}><Avatar member={m} size="w-8 h-8"/></button>))}</div></div>
-                            </div>
-
-                            {(currentTask.transferHistory || []).length > 0 && (
-                                <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2"><History size={14}/> Histórico de Transferências</h4>
-                                    <div className="space-y-3">
-                                        {currentTask.transferHistory.map((h, i) => (
-                                            <div key={i} className="text-xs bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative pl-8">
-                                                <div className="absolute left-3 top-4 w-2 h-2 rounded-full bg-blue-500"></div>
-                                                {i < currentTask.transferHistory.length - 1 && <div className="absolute left-[15px] top-6 w-px h-[120%] bg-slate-200"></div>}
-                                                <div className="flex justify-between items-start mb-1">
-                                                    <p className="font-medium text-slate-700">De <strong className="text-slate-900">{h.from?.name || 'Ninguém'}</strong> para <strong className="text-blue-700">{h.to?.name || 'Ninguém'}</strong></p>
-                                                    <span className="text-[9px] text-slate-400">{new Date(h.date).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</span>
-                                                </div>
-                                                <p className="text-slate-600 mb-1"><strong>Motivo:</strong> {h.reason}</p>
-                                                <p className="text-[9px] text-slate-400 font-medium">Registrado por: {h.by?.name || 'Sistema'}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="mb-8"><h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><CheckSquare size={18}/> Tarefas Complementares</h3><div className="space-y-2 mb-3">{currentTask.subtasks?.map(sub => (<div key={sub.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group"><input type="checkbox" checked={sub.completed} onChange={() => toggleSubtask(sub.id)} className="w-4 h-4 text-blue-600 rounded cursor-pointer"/><span className={`text-sm flex-1 ${sub.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{sub.text}</span><button onClick={() => { const newSubs = currentTask.subtasks.filter(s => s.id !== sub.id); dbOperations.updateTask(currentTask.id, { subtasks: newSubs }); }} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button></div>))}</div><div className="flex gap-2"><input className="flex-1 p-2 border rounded-lg text-sm" placeholder="Adicionar item..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddSubtask()}/><button onClick={handleAddSubtask} className="bg-blue-100 text-blue-700 p-2 rounded-lg"><Plus size={18}/></button></div></div>
-                        </div>
-                        
-                        <div className="w-full md:w-[400px] bg-gray-50 flex flex-col border-l border-gray-200">
-                            <div className="p-4 border-b bg-white font-bold text-gray-700 flex items-center gap-2"><MessageSquare size={18}/> Chat da Tarefa</div>
-                            <div className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar">
-                                {(currentTask.messages || []).length === 0 && <p className="text-center text-gray-400 text-xs mt-10">Inicie a conversa sobre esta tarefa.<br/>Dica: Digite @nome para notificar alguém!</p>}
-                                {(currentTask.messages || []).map(msg => (
-                                    <div key={msg.id} className={`flex gap-2 group/msg ${msg.senderId === currentUser?.id ? 'flex-row-reverse' : ''}`}>
-                                        <div className="flex-shrink-0 mt-1"><Avatar member={members.find(m => m.id === msg.senderId)} size="w-8 h-8"/></div>
-                                        <div className={`p-3 rounded-xl text-sm max-w-[80%] relative shadow-sm ${msg.senderId === currentUser?.id ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 rounded-tl-none'}`}>
-                                            <p className="text-[10px] font-bold opacity-70 mb-1">{msg.senderName}</p>
-                                            
-                                            {editingMessageId === msg.id ? (
-                                                <div className="flex flex-col gap-2 min-w-[200px]">
-                                                    <textarea 
-                                                        className="w-full p-2 text-gray-800 rounded bg-white/90 border-none outline-none text-sm resize-none custom-scrollbar" 
-                                                        rows={2} value={editingText} onChange={e => setEditingText(e.target.value)} autoFocus
-                                                    />
-                                                    <div className="flex justify-end gap-2">
-                                                        <button onClick={handleCancelEditing} className="text-xs opacity-80 hover:opacity-100 font-bold">Cancelar</button>
-                                                        <button onClick={() => handleSaveEdit(msg.id)} className="bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-xs font-bold">Salvar</button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {msg.image && <img src={msg.image} className="w-full rounded-lg mb-2"/>}
-                                                    <p style={{whiteSpace: 'pre-wrap'}}>
-                                                        {msg.text.split(/(@\w+)/g).map((part, index) => 
-                                                            part.startsWith('@') ? <strong key={index} className={msg.senderId === currentUser?.id ? "text-amber-200" : "text-blue-600"}>{part}</strong> : part
-                                                        )}
-                                                    </p>
-                                                    {msg.editedAt && (
-                                                        <div className={`text-[9px] mt-1 flex items-center gap-1 ${msg.senderId === currentUser?.id ? 'text-blue-100 justify-end' : 'text-gray-400 justify-end'}`}>
-                                                            <Edit2 size={8} /> {formatEditedDate(msg.editedAt)}
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-
-                                            {msg.senderId === currentUser?.id && !editingMessageId && (
-                                                <button 
-                                                    onClick={() => handleStartEditing(msg)} 
-                                                    className="absolute -top-2 -right-2 bg-gray-200 text-gray-600 hover:bg-blue-500 hover:text-white rounded-full p-1 opacity-0 group-hover/msg:opacity-100 transition-opacity shadow-sm"
-                                                    title="Editar mensagem"
-                                                >
-                                                    <Edit2 size={10}/>
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                                <div ref={chatEndRef}></div>
-                            </div>
-                            <div className="p-3 bg-white border-t">
-                                {chatAttachment && (<div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg mb-2 text-xs text-blue-700"><ImageIcon size={14}/> Imagem selecionada <button onClick={() => setChatAttachment(null)}><X size={14}/></button></div>)}
-                                <div className="flex items-end gap-2">
-                                    <div className="flex-1 bg-gray-100 rounded-xl flex items-center p-1 relative border border-gray-200 focus-within:border-blue-400 transition-colors">
-                                        <button onClick={() => fileInputRef.current.click()} className="p-2 text-gray-400 hover:text-blue-600"><Paperclip size={18}/></button>
-                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
-                                        <button onClick={() => setShowEmojis(!showEmojis)} className="p-2 text-gray-400 hover:text-yellow-500"><Smile size={18}/></button>
-                                        {showEmojis && (<div className="absolute bottom-12 left-0 bg-white shadow-xl border rounded-xl p-2 grid grid-cols-6 gap-2 z-10 w-64">{['👍','👎','🔥','🎉','✅','❌','📅','😊','🤔','👀','🚀','💡'].map(e => (<button key={e} onClick={() => addEmoji(e)} className="text-xl hover:bg-gray-100 rounded p-1">{e}</button>))}</div>)}
-                                        <textarea className="flex-1 bg-transparent border-none outline-none text-sm p-2 max-h-24 resize-none custom-scrollbar" rows={1} placeholder="Escreva uma mensagem... Use @nome para notificar." value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}/>
-                                    </div>
-                                    <button onClick={handleSendMessage} className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md"><Send size={18}/></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </Modal>
-            );
-        };
-
-        const Dashboard = ({ events, tasks, members, currentUser, notifications, onMarkAsReadNotification, onClearAllNotifications, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId, onLogout, onImportFispal2025 }) => {
-            const [eventViewMode, setEventViewMode] = useState('active');
-            
-            const activeEvents = events.filter(e => !isEventFinished(e)).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-            const finishedEvents = events.filter(e => isEventFinished(e)).sort((a, b) => new Date(b.endDate || b.startDate) - new Date(a.endDate || a.startDate));
-            const activeEventIds = activeEvents.map(e => e.id);
-            
-            const workload = members.filter(m => m.role !== 'Temporário').map(m => {
-                const memberTasks = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id);
-                const pending = memberTasks.filter(t => t.status !== 'done').length;
-                const done = memberTasks.filter(t => t.status === 'done').length;
-                return { ...m, pending, done, total: pending + done };
-            });
-            
-            const manager = members.find(m => m.id === managerId) || members[0];
-            const activeTasks = tasks.filter(t => activeEventIds.includes(t.eventId));
-            const completedActiveTasks = activeTasks.filter(t => t.status === 'done').length;
-            const totalActiveTasks = activeTasks.length;
-            const progress = totalActiveTasks > 0 ? Math.round((completedActiveTasks / totalActiveTasks) * 100) : 0;
-            const eventsToDisplay = eventViewMode === 'active' ? activeEvents : finishedEvents;
-
-            // Frase motivacional aleatória
-            const randomQuote = useMemo(() => MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)], []);
-
-            return (
-                <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24">
-                    <div className="flex justify-between items-center mb-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 flex items-center justify-center font-bold text-xs bg-transparent rounded-2xl overflow-hidden">{globalLogo ? <img src={globalLogo} className="w-full h-full object-contain"/> : 'LOGO'}</div>
-                            <div>
-                                <h1 className="text-2xl font-extrabold text-blue-950">Event Hub</h1>
-                                <p className="text-sm text-gray-500">Olá, <strong className="text-blue-600">{currentUser?.name.split(' ')[0] || 'Usuário'}</strong></p>
-                                <p className="text-xs text-gray-400 mt-1 italic">{randomQuote}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <NotificationCenter notifications={notifications} currentUser={currentUser} tasks={tasks} onMarkAsRead={onMarkAsReadNotification} onClearAll={onClearAllNotifications} />
-                            <div onClick={onLogout} className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-sm border border-gray-100 pr-4 cursor-pointer hover:bg-red-50 hover:border-red-200 transition-colors group" title="Sair / Trocar de Perfil">
-                                <Avatar member={currentUser} size="w-10 h-10"/>
-                                <div className="text-left hidden sm:block">
-                                    <p className="text-xs font-bold text-gray-800 group-hover:text-red-700">{currentUser?.name}</p>
-                                    <p className="text-[10px] text-gray-500 truncate max-w-[100px] group-hover:text-red-500">Trocar Perfil</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-8">
-                        <div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-auto min-h-[14rem]">
-                                    <div className="relative w-32 h-32 flex-shrink-0">
-                                        <svg className="w-full h-full -rotate-90">
-                                            <circle cx="64" cy="64" r="54" stroke="#F3F4F6" strokeWidth="12" fill="none"/>
-                                            <circle cx="64" cy="64" r="54" stroke="#1e3a8a" strokeWidth="12" fill="none" strokeDasharray="339" strokeDashoffset={339 - (339*progress)/100} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}/>
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="font-bold text-2xl text-blue-900 leading-none">{progress}%</span>
-                                        </div>
-                                    </div>
-                                    <div className="ml-8 flex-1">
-                                        <h3 className="font-bold text-gray-900 mb-3 text-lg">Status Global (Ativos)</h3>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                                                <span className="text-xs font-bold text-emerald-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Concluídas</span>
-                                                <span className="text-sm font-extrabold text-emerald-800">{completedActiveTasks}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between bg-amber-50 p-2 rounded-lg border border-amber-100">
-                                                <span className="text-xs font-bold text-amber-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Pendentes</span>
-                                                <span className="text-sm font-extrabold text-amber-800">{totalActiveTasks - completedActiveTasks}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col justify-center h-auto min-h-[14rem]">
-                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Users size={18} className="text-blue-600"/> Carga de Trabalho</h3>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {workload.map(m => (
-                                            <div key={m.id} onClick={() => onMemberClick(m)} className="flex items-center gap-3 p-2 rounded-xl border border-gray-50 hover:bg-gray-50 hover:border-gray-200 transition-all cursor-pointer group bg-white shadow-sm">
-                                                <div className="relative shrink-0"><Avatar member={m} size="w-10 h-10"/>{m.total > 0 && (<div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-white font-bold border border-white ${m.total > 5 ? 'bg-blue-600' : 'bg-blue-400'}`}>{m.total}</div>)}</div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[11px] font-bold text-gray-800 truncate">{m.name.split(' ')[0]}</p>
-                                                    <div className="flex gap-2 mt-0.5">
-                                                        <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5" title="Pendentes"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> {m.pending}</span>
-                                                        <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5" title="Concluídas"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {m.done}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-                                <h2 className="text-xl font-bold text-blue-950 flex items-center gap-2">
-                                    {eventViewMode === 'active' ? <Clock size={24}/> : <CheckSquare size={24}/>} 
-                                    {eventViewMode === 'active' ? 'Eventos em Andamento' : 'Eventos Concluídos'}
-                                </h2>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <button onClick={onImportFispal2025} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow-lg flex items-center gap-2 transition-all hover:scale-105">
-                                        <Wand2 size={16}/> 🔄 Importar Fispal (Planilha 2025)
-                                    </button>
-                                    <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
-                                        <button onClick={() => setEventViewMode('active')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'active' ? 'bg-blue-100 text-blue-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><Clock size={14}/> Em Andamento</button>
-                                        <button onClick={() => setEventViewMode('completed')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'completed' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><CheckSquare size={14}/> Concluídos</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10 min-h-[200px]">
-                                {eventsToDisplay.length === 0 ? (
-                                    <div className="col-span-full flex flex-col items-center justify-center py-12 opacity-50 bg-white rounded-2xl border border-dashed border-gray-200">
-                                        <div className="bg-gray-50 p-4 rounded-full mb-3 text-gray-400">{eventViewMode === 'active' ? <Rocket size={32}/> : <Archive size={32}/>}</div>
-                                        <p className="text-sm font-bold text-gray-500">{eventViewMode === 'active' ? 'Nenhum evento ativo no momento.' : 'Nenhum evento concluído ainda.'}</p>
-                                    </div>
-                                ) : (
-                                    eventsToDisplay.map(evt => (
-                                        <div key={evt.id} onClick={() => onSelectEvent(evt)} className={`bg-white rounded-xl border shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden aspect-square flex flex-col relative transform hover:-translate-y-1 ${eventViewMode === 'completed' ? 'grayscale border-gray-200' : 'border-gray-100'}`}>
-                                            <div className="flex-1 bg-slate-100 relative overflow-hidden">
-                                                {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>}
-                                                {!evt.coverUrl && (
-                                                    <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-indigo-50 flex items-center justify-center">
-                                                        {evt.coverIcon && React.createElement(COVER_ICONS_MAP[evt.coverIcon] || Star, { size: 64, className: "text-blue-900/10" })}
-                                                    </div>
-                                                )}
-                                                {evt.coverUrl && evt.coverIcon && (
-                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                        {React.createElement(COVER_ICONS_MAP[evt.coverIcon] || Star, { size: 80, className: "text-white/40 drop-shadow-xl" })}
-                                                    </div>
-                                                )}
-                                                
-                                                {eventViewMode === 'active' && <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold shadow-sm text-blue-900 border border-white/50">{getDaysLeft(evt)} dias</div>}
-                                                {eventViewMode === 'completed' && <div className="absolute inset-0 bg-white/10 flex items-center justify-center"><div className="bg-emerald-500 text-white p-2 rounded-full shadow-lg"><Check size={20}/></div></div>}
-                                                {evt.driveLink && <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-md shadow-sm border border-white/50" title="Possui pasta no Drive"><img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-3.5 h-3.5" /></div>}
-                                            </div>
-                                            <div className="p-3 shrink-0 bg-white border-t border-gray-50">
-                                                <h3 className="font-bold text-gray-900 mb-0.5 truncate text-sm">{evt.title}</h3>
-                                                <p className="text-[10px] text-gray-500 flex items-center gap-1"><MapPin size={10}/> {evt.location || 'Local a definir'}</p>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         function App() {
             const [view, setView] = useState('dashboard');
             const [selectedEvent, setSelectedEvent] = useState(null);
@@ -2518,4 +1615,106 @@
                 const oldFispalEvents = events.filter(e => e.title.toLowerCase().includes('fispal'));
                 for (const ev of oldFispalEvents) {
                     deleteDoc(getDocPath('events', ev.id));
-                    const evTasks = tasks.filter(t => t.eventId === ev.id);
+                    tasks.filter(t => t.eventId === ev.id).forEach(t => deleteDoc(getDocPath('tasks', t.id)));
+                }
+
+                const eventId = "fispal-" + Date.now();
+                
+                const importedCategories = FISPAL_2025_DATA.categories.map((c, i) => {
+                    const catId = `cat-${Date.now()}-${i}`;
+                    const subcats = c.subcategories.map((subTitle, j) => ({ id: `sub-${catId}-${j}`, title: subTitle }));
+                    return { id: catId, title: c.title, color: c.color, icon: c.icon, phases: ['pre', 'during', 'post'], responsibleId: null, subcategories: subcats, _rawTasks: c.tasks };
+                });
+
+                const newEvent = {
+                    id: eventId, title: FISPAL_2025_DATA.title, location: "São Paulo, SP", driveLink: "", startDate: FISPAL_2025_DATA.date, endDate: FISPAL_2025_DATA.date, dateRange: "24/06/2025", responsibleId: members[0]?.id || null, teamIds: [],
+                    categories: importedCategories.map(c => { const { _rawTasks, ...rest } = c; return rest; }),
+                    agenda: [], coverIcon: FISPAL_2025_DATA.coverIcon
+                };
+
+                let tasksToCreate = [];
+                let taskOrder = Date.now();
+
+                importedCategories.forEach(cat => {
+                    cat._rawTasks.forEach((t, index) => {
+                        const subcat = cat.subcategories.find(s => s.title === t.s);
+                        tasksToCreate.push({
+                            id: Date.now() + Math.floor(Math.random() * 1000000) + index,
+                            eventId, text: t.t, category: cat.id, subcategoryId: subcat ? subcat.id : null, phase: 'pre', priority: 'medium', status: 'planning', cost: 0, responsible: null, messages: [], support: [], subtasks: [], transferHistory: [], order: taskOrder++
+                        });
+                    });
+                });
+
+                handleCreateEvent(newEvent, tasksToCreate);
+                alert("Fispal 2025 gerada com sucesso! Aguarde uns instantes para as tarefas aparecerem no seu painel.");
+            };
+
+            const currentSelectedEvent = selectedEvent ? visibleEvents.find(e => e.id === selectedEvent.id) : null;
+
+            if (!activeUserId && members.length > 0) { 
+                return <ProfileSelectionScreen members={members} onSelect={(id) => { localStorage.setItem('eventhub_active_user_id', id); setActiveUserId(id); }} />; 
+            }
+            
+            if (user && members.length === 0) {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 font-bold animate-pulse">Carregando painel...</p>
+                    </div>
+                );
+            }
+
+            if (user && members.length > 0 && !currentUserMember) {
+                return (
+                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+                        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="text-gray-500 font-bold animate-pulse">Sincronizando perfil...</p>
+                        <button onClick={handleLogout} className="mt-4 text-xs text-blue-600 underline">Voltar para seleção</button>
+                    </div>
+                );
+            }
+
+            return (
+                <>
+                    {view === 'dashboard' && <Dashboard events={visibleEvents} tasks={visibleTasks} members={members} currentUser={currentUserMember} notifications={notifications} onMarkAsReadNotification={handleMarkAsReadNotification} onClearAllNotifications={handleClearAllNotifications} onSelectEvent={(e) => { setSelectedEvent(e); setView('detail'); }} onNewEvent={() => setIsNewEventOpen(true)} onMemberClick={setSelectedWorkloadMember} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda} globalLogo={logo} managerId={managerId} onLogout={handleLogout} onImportFispal2025={handleImportFispal2025} />}
+                    {view === 'detail' && currentSelectedEvent && (
+                        <EventDetail 
+                            event={currentSelectedEvent} onBack={() => setView('dashboard')} 
+                            tasks={visibleTasks} members={members} currentUser={currentUserMember}
+                            categories={currentSelectedEvent.categories || DEFAULT_CATEGORIES}
+                            onUpdateTask={handleUpdateTask} onUpdateEvent={handleUpdateEvent} onDeleteTask={handleDeleteTask}
+                            onOpenCategorySettings={() => setIsCatSettingsOpen(true)} onAddTask={() => setIsNewTaskOpen(true)}
+                            onAddTeamMember={handleAddTeamMember} onRemoveTeamMember={handleRemoveTeamMember}
+                            onDeleteEvent={handleDeleteEvent} onCreateMember={handleAddMember} createNotification={handleCreateNotification}
+                        />
+                    )}
+                    {view === 'agenda' && <GlobalAgendaView events={visibleEvents} tasks={visibleTasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
+                    {view === 'team' && <GlobalTeamView members={members} onEdit={() => setIsSettingsOpen(true)} />}
+                    {view === 'settings' && <SettingsModal isOpen={true} onClose={() => setView('dashboard')} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onDeleteMember={handleDeleteMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>}
+                    
+                    <BottomNav activeTab={view} onChangeTab={(v) => { if(v === 'settings') setIsSettingsOpen(true); else setView(v); }} onAdd={() => setIsNewEventOpen(true)} />
+                    
+                    <button onClick={() => setIsAIOpen(!isAIOpen)} className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-xl shadow-blue-600/30 flex items-center justify-center text-white z-[150] hover:scale-110 transition-transform duration-300 animate-in">
+                        {isAIOpen ? <X size={24}/> : <Sparkles size={24}/>}
+                    </button>
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: visibleTasks.reduce((a,b)=>a+(b.cost||0),0), tasks: visibleTasks, members, events: visibleEvents}} apiKey={geminiKey} />
+
+                    <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
+                    <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onDeleteMember={handleDeleteMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>
+                    <WorkloadDetailModal isOpen={!!selectedWorkloadMember} onClose={() => setSelectedWorkloadMember(null)} member={selectedWorkloadMember} memberTasks={visibleTasks.filter(t => t.responsible?.id === selectedWorkloadMember?.id)} allMembers={members} onUpdateTask={handleUpdateTask} events={visibleEvents} />
+                    <ManageCategoriesModal isOpen={isCatSettingsOpen} onClose={() => setIsCatSettingsOpen(false)} members={members} categories={currentSelectedEvent?.categories || DEFAULT_CATEGORIES} onUpdateCategories={handleUpdateEventCategories} />
+                    {currentSelectedEvent && <NewTaskModal isOpen={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} eventId={currentSelectedEvent.id} eventCategories={currentSelectedEvent.categories || DEFAULT_CATEGORIES} onCreate={handleCreateTask} members={members} />}
+                </>
+            );
+        };
+
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+            const root = createRoot(rootElement);
+            root.render(<App />);
+        } else {
+            console.error("Root element not found");
+        }
+    </script>
+</body>
+</html>
