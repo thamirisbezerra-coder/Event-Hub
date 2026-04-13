@@ -91,7 +91,7 @@
             Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase, Rocket, Star,
             PieChart, Timer, UserCheck, RefreshCw, Key, Archive, Download, Cloud,
             Home, List, Grid, Smile, LogOut, Repeat, Columns, Database, Lock, ShieldCheck,
-            Folder, HardDrive, History, Upload
+            Folder, HardDrive, History
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -214,11 +214,166 @@
         const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift, coffee: Coffee, music: Music, layout: Layout, search: Search, smile: Smile, star: Star, cloud: Cloud, key: Key, lock: Archive, map: MapPin, camera: Camera, folder: Folder };
         const ICON_KEYS = Object.keys(ICON_MAP);
 
+        // --- MAPA ESTRUTURAL DA FISPAL ---
         const DEFAULT_CATEGORIES = [
-            { id: 'planning', title: 'Planejamento & Produto', icon: 'box', color: 'blue', phases: ['pre', 'during', 'post'], responsibleId: null, subcategories: [] },
-            { id: 'logistics', title: 'Logística & Estande', icon: 'truck', color: 'amber', phases: ['pre', 'during'], responsibleId: null, subcategories: [] },
-            { id: 'staff', title: 'Staff & Viagem', icon: 'users', color: 'purple', phases: ['pre', 'during'], responsibleId: null, subcategories: [] },
-            { id: 'post', title: 'Pós-Evento & Leads', icon: 'trending', color: 'emerald', phases: ['post'], responsibleId: null, subcategories: [] }
+            { 
+                id: 'pre_event', title: 'Pré-Evento', icon: 'clipboard', color: 'blue', phases: ['pre'], responsibleId: null, 
+                subcategories: [
+                    {id: 'com_inst', title: 'Comunicação Institucional'}, 
+                    {id: 'estande', title: 'Estande'}, 
+                    {id: 'amostras', title: 'Amostras e Produção Sorvetes'}, 
+                    {id: 'credenciamento', title: 'Credenciamento / Cadastro'}, 
+                    {id: 'camisas', title: 'Camisas'}, 
+                    {id: 'briefing', title: 'Briefing Geral'}
+                ] 
+            },
+            { 
+                id: 'event_spaces', title: 'Espaços Físicos', icon: 'map', color: 'orange', phases: ['pre', 'during'], responsibleId: null, 
+                subcategories: [
+                    {id: 'lab', title: 'Laboratório'}, 
+                    {id: 'deposito', title: 'Depósito'}, 
+                    {id: 'salao', title: 'Salão Principal'}, 
+                    {id: 'copa', title: 'Copa'}, 
+                    {id: 'cafe', title: 'Espaço Café'}, 
+                    {id: 'confeitaria', title: 'Confeitaria/Aulas Show'}
+                ] 
+            },
+            { 
+                id: 'activations', title: 'Ativações & Ações', icon: 'zap', color: 'purple', phases: ['pre', 'during'], responsibleId: null, 
+                subcategories: [
+                    {id: 'led', title: 'Painel de Led'}, 
+                    {id: 'degustacao', title: 'Degustação Sorvete'}, 
+                    {id: 'acai', title: 'Açaí'}, 
+                    {id: 'dorecast', title: 'Dorecast'}, 
+                    {id: 'soft', title: 'Soft, Milkshake, Sanduíche'}, 
+                    {id: 'totens', title: 'Ação Totens'}
+                ] 
+            },
+            { 
+                id: 'general', title: 'Geral & Comunicação', icon: 'layers', color: 'emerald', phases: ['pre', 'during', 'post'], responsibleId: null, 
+                subcategories: [
+                    {id: 'com_geral', title: 'Comunicação Geral'}, 
+                    {id: 'evento_doremus', title: 'Evento na Doremus'}, 
+                    {id: 'montagem', title: 'Geral / Montagem'}
+                ] 
+            }
+        ];
+
+        // Base de tarefas extraídas da planilha Fispal
+        const FISPAL_TEMPLATE_TASKS = [
+            // Briefing
+            { text: 'Reserva Auditório', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: 'Ok' },
+            { text: 'Preparação Material', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: '' },
+            { text: 'Convites', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: '' },
+            { text: 'Apresentação', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: '' },
+            { text: 'Campanha', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: 'Ok' },
+            
+            // Camisas
+            { text: 'Levantamento Camisas', cat: 'pre_event', sub: 'camisas', resp: 'Claudiano', obs: '' },
+            { text: 'Compra Camisas', cat: 'pre_event', sub: 'camisas', resp: 'Claudiano', obs: 'Tratando' },
+            { text: 'Entrega Camisas', cat: 'pre_event', sub: 'camisas', resp: 'Claudiano', forn: 'Abilitá', obs: 'Tratando' },
+
+            // Credenciamento
+            { text: 'Credenciais time', cat: 'pre_event', sub: 'credenciamento', resp: 'Claudiano', obs: '' },
+            { text: 'Credenciais diretores', cat: 'pre_event', sub: 'credenciamento', resp: 'Claudiano', obs: '' },
+            { text: 'Preenchimento Portal - Credenciamento', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
+            { text: 'Lista de Participantes', cat: 'pre_event', sub: 'credenciamento', resp: 'Claudiano', obs: 'Verificar se está completa' },
+            { text: 'Credenciamento Equipe Catering', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
+            { text: 'Credenciamento Equipe Montagem/Segurança', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
+
+            // Estande
+            { text: 'Fechar projeto Estande', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
+            { text: 'Formalização de Compras', cat: 'pre_event', sub: 'estande', resp: 'Matheus', obs: '' },
+            { text: 'Contrato Montadora', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
+            { text: 'Preenchimento Portal (Serviços adicionais)', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: 'Cadastrar segurança, energia, coletor, etc.' },
+
+            // Com Institucional
+            { text: 'Comunicação Oficial (Posts)', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: 'Em produção' },
+            { text: 'Save the Date', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: 'Em produção' },
+            { text: 'Sequencia de lembretes', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: 'Em produção' },
+            { text: 'Contratação Storymaker', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', forn: 'Elion', obs: 'Contratado e combinado' },
+
+            // Laboratório
+            { text: 'Geladeira grande', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: 'Confirmar com Glaus' },
+            { text: 'Ultracongelador', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Tortelli', obs: '' },
+            { text: 'Produtoras', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '2', forn: 'Tortelli', elec: true, kva: '380', volt: 'Trifásica' },
+            { text: 'Carrinho Pneumático', cat: 'event_spaces', sub: 'lab', resp: 'Matheus', qt: '2', obs: 'Paula solicitou maior' },
+            { text: 'Pia industrial funda (com água e deságue)', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '2', forn: 'Montadora', hydr: 'Sim' },
+
+            // Depósito
+            { text: 'Lockers', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', qt: '4', forn: 'Montadora', obs: 'Confirmar com Glaus' },
+            { text: 'Cadeados', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', forn: 'Mercado Livre', obs: '' },
+            { text: 'Tomadas para carregadores', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+
+            // Painel de Led
+            { text: 'Painel de Led Geral', cat: 'activations', sub: 'led', resp: 'Suzana', obs: '' },
+            { text: 'Vídeo Led - Receber mapa de pixels', cat: 'activations', sub: 'led', resp: 'Suzana', obs: 'Aguardando teste da montadora' },
+            { text: 'Vídeo Led - Produção Vídeos', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Em andamento' },
+
+            // Comunicação Geral
+            { text: 'Paineis internos - Mapa', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Ok' },
+            { text: 'Catálogo - refação', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Em andamento' },
+
+            // Salão Principal
+            { text: 'Bistrôs - Locação e instalação', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', forn: 'Montadora', obs: 'Em definição (2024 foram 40)' },
+            { text: 'Numeração das mesas', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', forn: 'Gráfica', obs: 'Até 60' },
+            { text: 'Brindes', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', qt: '150', obs: 'Separação dia 19' },
+            { text: 'Nuts e outros aperitivos', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', forn: 'Catering', obs: 'Tratando - pegar contato' },
+
+            // Degustação
+            { text: 'Vitrines de Sorvete - locação e instalação', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', qt: '4', forn: 'Tortelli', elec: true, volt: '220V Monofásico' },
+            { text: 'Plaquinhas de identificação', cat: 'activations', sub: 'degustacao', resp: 'Matheus', qt: '58', obs: 'Incluir numeração' },
+            { text: 'Cubas locadas', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', qt: '56', forn: 'Tortelli', obs: '360x250x80' },
+            { text: 'Definição Receitas', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: 'Ok' },
+
+            // Açaí
+            { text: 'Estrutura Açaizeiro', cat: 'activations', sub: 'acai', resp: 'Claudiano', forn: 'Montadora', obs: 'Ok' },
+            { text: 'Freezer Açaís', cat: 'activations', sub: 'acai', resp: 'Claudiano', qt: '1', forn: 'FRICON', obs: '' },
+            { text: 'Copinhos Transparentes', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '5000', forn: 'Mercado livre', obs: '100ml' },
+            { text: 'Colher de açaí', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '10000', obs: '' },
+
+            // Dorecast
+            { text: 'Definir convidados Dorecast', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: '11 confirmados' },
+            { text: 'Criar roteiros Dorecast', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Em andamento' },
+            { text: 'Gravação convite oficial Geral - Reels', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Primeiro dia' },
+
+            // Copa
+            { text: 'Freezer Copa', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: '' },
+            { text: 'Geladeira Copa', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: '' },
+            { text: 'Copeira', cat: 'event_spaces', sub: 'copa', resp: 'Matheus', qt: '2', forn: 'Catering', obs: 'Tratando' },
+            { text: 'Garçom', cat: 'event_spaces', sub: 'copa', resp: 'Matheus', qt: '5', forn: 'Catering', obs: 'Tratando' },
+            { text: 'Limpeza full time', cat: 'event_spaces', sub: 'copa', resp: 'Matheus', qt: '2', forn: 'Catering', obs: 'Tratando' },
+
+            // Café
+            { text: 'Sorvete - neutro', cat: 'event_spaces', sub: 'cafe', resp: 'Claudiano', obs: '' },
+            { text: 'Máquina Espresso', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: 'Barista', obs: '' },
+            { text: 'Insumo - Café', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: 'Barista', obs: '' },
+            { text: 'Barista - Contratação', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: 'Barista', obs: 'Em negociação' },
+
+            // SMSR
+            { text: 'Máquinas de Soft', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '1', elec: true, volt: '220 trifasico', kva: '5kva', forn: 'Adriel' },
+            { text: 'Mixers de Milkshake', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '2', forn: 'Doremus', obs: '' },
+            { text: 'Sanduicheiras de Sorvete', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '2', forn: 'SuperMix', obs: '' },
+
+            // Confeitaria
+            { text: 'Vitrine Confeitaria (Locação)', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', forn: 'LOCA COZINHA', elec: true, volt: '220', obs: '' },
+            { text: 'Definição Aulas Paulo e Nani', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', obs: 'Ok' },
+            { text: 'Pratinhos para confeitaria', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', qt: '1000', obs: '' },
+            { text: 'Talheres Descartáveis', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', qt: '1000', obs: '' },
+
+            // Totens
+            { text: '1 totem entrada (Bem-vindos, Mapa)', cat: 'activations', sub: 'totens', resp: 'Larissa', forn: 'AGÊNCIA LR', obs: '' },
+            { text: 'Criar artes com logo e localidade (18 totens)', cat: 'activations', sub: 'totens', resp: 'Larissa', qt: '18', obs: 'Enviado' },
+
+            // Evento Doremus
+            { text: 'Nome do evento Doremus', cat: 'general', sub: 'evento_doremus', resp: 'Larissa', obs: '#DoremusDay25' },
+            { text: 'Transfer Anhembi x Doremus', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', forn: 'DAYTONA', obs: 'Reservado ás 07h e ás 12:30' },
+            { text: 'Organizar almoço com Nutrição', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', obs: '' },
+
+            // Geral Montagem
+            { text: 'Responsável eletricista e hidráulico', cat: 'general', sub: 'montagem', resp: 'Claudiano', forn: 'Montadora', obs: 'Eletricista de plantão' },
+            { text: 'Responsável maquinário', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Responsável segurança (25 a 30 pessoas)', cat: 'general', sub: 'montagem', resp: 'Claudiano', forn: 'Vanderlei / Sr Carlos', obs: '' }
         ];
 
         const AGENDA_COLORS = [
@@ -227,15 +382,6 @@
             { id: 'red', bg: 'bg-rose-100', text: 'text-rose-700', ring: 'ring-rose-500' },
             { id: 'orange', bg: 'bg-orange-100', text: 'text-orange-700', ring: 'ring-orange-500' },
             { id: 'purple', bg: 'bg-purple-100', text: 'text-purple-700', ring: 'ring-purple-500' },
-        ];
-
-        const OPTIONAL_STARTUP_TASKS = [
-            { id: 'p1', text: 'Definir tema e conceito do evento', category: 'planning', phase: 'pre' },
-            { id: 'p2', text: 'Aprovar orçamento preliminar', category: 'planning', phase: 'pre' },
-            { id: 'l1', text: 'Reservar local/espaço', category: 'logistics', phase: 'pre' },
-            { id: 'l2', text: 'Contratar serviço de Buffet', category: 'logistics', phase: 'pre' },
-            { id: 's1', text: 'Contratar recepcionistas', category: 'staff', phase: 'pre' },
-            { id: 'po1', text: 'Consolidar relatório de leads', category: 'post', phase: 'post' }
         ];
 
         const Avatar = ({ member, size = "w-10 h-10", title }) => {
@@ -1047,7 +1193,7 @@
                                                 </div>
 
                                                 <div className="p-5 border border-gray-100 bg-white rounded-2xl shadow-sm">
-                                                    <div className="flex items-start gap-3 mb-4"><div className="p-2 bg-purple-100 rounded-lg text-purple-600"><Sparkles size={20}/></div><div><h5 className="font-bold text-gray-800 text-sm">Inteligência Artificial (Gemini)</h5><p className="text-xs text-gray-500">Chave da API para o assistente virtual e importação de tarefas.</p></div></div>
+                                                    <div className="flex items-start gap-3 mb-4"><div className="p-2 bg-purple-100 rounded-lg text-purple-600"><Sparkles size={20}/></div><div><h5 className="font-bold text-gray-800 text-sm">Inteligência Artificial (Gemini)</h5><p className="text-xs text-gray-500">Chave da API para o assistente virtual.</p></div></div>
                                                     <div className="flex gap-2"><input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} className="flex-1 p-2.5 text-sm border rounded-xl outline-none focus:border-purple-500 bg-gray-50" placeholder="Cole sua API Key aqui..."/><button onClick={handleSaveKey} className="bg-purple-600 text-white px-4 rounded-xl text-xs font-bold hover:bg-purple-700 shadow-sm">Salvar</button></div>
                                                 </div>
 
@@ -1075,25 +1221,46 @@
             const [isSingleDay, setIsSingleDay] = useState(false);
             const [responsible, setResponsible] = useState('');
             const [team, setTeam] = useState([]);
-            const [selectedOptionalTasks, setSelectedOptionalTasks] = useState([]);
+            const [useTemplate, setUseTemplate] = useState(true);
             
             useEffect(() => { if (isSingleDay) setEndDate(startDate); }, [isSingleDay, startDate]);
             if (!isOpen) return null;
             
-            const toggleTask = (taskId) => { if (selectedOptionalTasks.includes(taskId)) setSelectedOptionalTasks(prev => prev.filter(id => id !== taskId)); else setSelectedOptionalTasks(prev => [...prev, taskId]); };
             const toggleTeamMember = (memberId) => { if (team.includes(memberId)) setTeam(prev => prev.filter(id => id !== memberId)); else setTeam(prev => [...prev, memberId]); };
             
             const handleSubmit = () => {
                 if (!title || !startDate || !responsible) { alert("Preencha Nome, Data e Responsável."); return; }
                 const newEventId = Date.now().toString();
-                const initialTasksToCreate = OPTIONAL_STARTUP_TASKS
-                    .filter(t => selectedOptionalTasks.includes(t.id))
-                    .map((t, index) => ({ 
-                        id: (Date.now() + index + 1).toString(), eventId: newEventId, text: t.text, category: t.category, 
-                        phase: t.phase, priority: 'medium', status: 'planning', cost: 0, 
-                        responsible: members.find(m => m.id === responsible) || null,
-                        messages: [], support: [], subtasks: [], transferHistory: [], order: Date.now() + index 
-                    }));
+                
+                const tasksToCreate = [];
+                
+                if (useTemplate) {
+                    FISPAL_TEMPLATE_TASKS.forEach((t, i) => {
+                        const respMember = members.find(m => m.name.toLowerCase().includes(t.resp.toLowerCase()));
+                        tasksToCreate.push({
+                            id: (Date.now() + i).toString(),
+                            eventId: newEventId,
+                            text: t.text,
+                            category: t.cat,
+                            subcategoryId: t.sub || null,
+                            phase: 'pre',
+                            priority: 'medium',
+                            status: 'planning',
+                            cost: 0,
+                            responsible: respMember || null,
+                            messages: [], support: [], subtasks: [], transferHistory: [], order: Date.now() + i,
+                            quantity: t.qt || '',
+                            supplier: t.forn || '',
+                            nimbiId: '',
+                            deliveryDate: '',
+                            electrical: t.elec || false,
+                            kva: t.kva || '',
+                            voltage: t.volt || '',
+                            hydraulic: t.hydr || '',
+                            observacao: t.obs || ''
+                        });
+                    });
+                }
 
                 const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
                 const dateRange = isSingleDay || !endDate ? formatDate(startDate) : `${formatDate(startDate)} - ${formatDate(endDate)}`;
@@ -1102,7 +1269,7 @@
                     id: newEventId, title, location: location || 'Local a definir', driveLink, startDate, 
                     endDate: isSingleDay ? startDate : endDate, dateRange, responsibleId: responsible, 
                     teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [] 
-                }, initialTasksToCreate);
+                }, tasksToCreate);
                 onClose(); 
             };
 
@@ -1123,195 +1290,18 @@
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável *</label><div className="space-y-2 max-h-40 overflow-y-auto">{members.map(m => (<div key={m.id} onClick={() => setResponsible(m.id)} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${responsible === m.id ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}><Avatar member={m} size="w-8 h-8"/><span className="text-xs font-bold flex-1">{m.name}</span>{responsible === m.id && <Check size={14} className="text-blue-600"/>}</div>))}</div></div>
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe</label><div className="flex flex-wrap gap-2">{members.filter(m => m.id !== responsible).map(m => (<button key={m.id} onClick={() => toggleTeamMember(m.id)} className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs ${team.includes(m.id) ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200'}`}><Avatar member={m} size="w-5 h-5"/> {m.name}</button>))}</div></div>
                         </div>
-                        <div className="pt-2 border-t border-gray-100"><label className="block text-xs font-bold text-gray-500 uppercase mb-3">Tarefas Iniciais (Opcional)</label><div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-h-40 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3">{OPTIONAL_STARTUP_TASKS.map(task => (<label key={task.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${selectedOptionalTasks.includes(task.id) ? 'bg-white border-blue-300 shadow-sm' : 'border-transparent'}`}><input type="checkbox" className="rounded text-blue-600" checked={selectedOptionalTasks.includes(task.id)} onChange={() => toggleTask(task.id)}/><span className="text-xs text-gray-700">{task.text}</span></label>))}</div></div>
-                        <button onClick={handleSubmit} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:shadow-lg animate-shine bg-[length:200%_auto]">Criar Evento</button>
-                    </div>
-                </Modal>
-            );
-        };
 
-        const EditEventModal = ({ isOpen, onClose, event, onUpdate, onDelete, members }) => {
-            const [title, setTitle] = useState(event?.title || '');
-            const [startDate, setStartDate] = useState(event?.startDate || '');
-            const [endDate, setEndDate] = useState(event?.endDate || '');
-            const [location, setLocation] = useState(event?.location || '');
-            const [driveLink, setDriveLink] = useState(event?.driveLink || '');
-            const [cover, setCover] = useState(event?.coverUrl || '');
-            const [responsible, setResponsible] = useState(event?.responsibleId || '');
-            const fileInputRef = useRef(null);
-
-            useEffect(() => {
-                if(event) { setTitle(event.title || ''); setStartDate(event.startDate || ''); setEndDate(event.endDate || ''); setLocation(event.location || ''); setDriveLink(event.driveLink || ''); setCover(event.coverUrl || ''); setResponsible(event.responsibleId || ''); }
-            }, [event]);
-
-            if(!isOpen || !event) return null;
-
-            const handleSave = () => { onUpdate(event.id, { title, startDate, endDate, location, driveLink, coverUrl: cover, responsibleId: responsible }); onClose(); };
-            const handleCoverUpload = async (e) => { if(e.target.files[0]) { const url = await compressImage(e.target.files[0], 800); setCover(url); } };
-
-            const getLocalDaysLeft = () => {
-                if (!startDate) return 0;
-                const [year, month, day] = startDate.split('-').map(Number);
-                const target = new Date(year, month - 1, day);
-                const today = new Date(); today.setHours(0,0,0,0);
-                return Math.ceil((target - today) / (86400000));
-            };
-            const daysLeft = getLocalDaysLeft();
-            const daysLeftText = daysLeft < 0 ? `Terminou há ${Math.abs(daysLeft)} dias` : daysLeft === 0 ? "É hoje!" : `Faltam ${daysLeft} dias`;
-            const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; };
-
-            return (
-                <Modal isOpen={isOpen} onClose={onClose} title="Editar Evento">
-                    <div className={`mb-4 p-3 rounded-xl text-center flex flex-col gap-1 ${daysLeft < 0 ? 'bg-gray-100 text-gray-600' : 'bg-blue-50 text-blue-700'}`}>
-                        <span className="text-lg font-bold">{daysLeftText}</span>
-                        <span className="text-xs font-normal opacity-80">{formatDate(startDate)} {endDate && endDate !== startDate ? ` - ${formatDate(endDate)}` : ''}{location ? ` • ${location}` : ''}</span>
-                    </div>
-
-                    <div className="space-y-4">
-                        <div onClick={()=>fileInputRef.current.click()} className="h-32 bg-gray-100 rounded-xl flex items-center justify-center cursor-pointer overflow-hidden relative group border border-gray-200">
-                            {cover ? <img src={cover} className="w-full h-full object-cover"/> : <span className="text-gray-400 font-bold">Alterar Capa</span>}
-                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold"><Camera size={24}/></div>
-                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleCoverUpload}/>
-                        </div>
-
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento</label><input className="w-full p-3 border rounded-xl font-bold text-gray-800" placeholder="Nome" value={title} onChange={e=>setTitle(e.target.value)}/></div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Início</label><input type="date" className="w-full p-3 border rounded-xl text-sm" value={startDate} onChange={e=>setStartDate(e.target.value)}/></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fim</label><input type="date" className="w-full p-3 border rounded-xl text-sm" value={endDate} onChange={e=>setEndDate(e.target.value)}/></div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Localização</label><input className="w-full p-3 border rounded-xl text-sm" placeholder="Ex: São Paulo, SP" value={location} onChange={e=>setLocation(e.target.value)}/></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">Link do Drive <HardDrive size={12} className="text-gray-400"/></label><input className="w-full p-3 border rounded-xl text-sm" placeholder="https://drive.google.com/..." value={driveLink} onChange={e=>setDriveLink(e.target.value)}/></div>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Responsável</label>
-                            <select className="w-full p-3 border rounded-xl bg-white text-sm" value={responsible} onChange={(e) => setResponsible(e.target.value)}>
-                                <option value="">Selecione...</option>
-                                {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                            </select>
-                        </div>
-                        
-                        <div className="flex gap-2 pt-2">
-                            <button onClick={handleSave} className="flex-1 bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700 transition-colors">Salvar</button>
-                            {onDelete && (<button onClick={() => onDelete(event.id)} className="bg-red-50 text-red-600 p-3 rounded-xl font-bold hover:bg-red-100 transition-colors" title="Excluir Evento"><Trash2 size={20}/></button>)}
-                        </div>
-                    </div>
-                </Modal>
-            );
-        };
-
-        const NewTaskModal = ({ isOpen, onClose, eventCategories, onCreate, members, eventId }) => {
-            const [text, setText] = useState('');
-            const [category, setCategory] = useState(eventCategories[0]?.id || '');
-            const [subcategoryId, setSubcategoryId] = useState('');
-            const [phase, setPhase] = useState('pre');
-            const [responsible, setResponsible] = useState('');
-            const [support, setSupport] = useState([]);
-            const [cost, setCost] = useState(0);
-
-            const [quantity, setQuantity] = useState('');
-            const [supplier, setSupplier] = useState('');
-            const [nimbiId, setNimbiId] = useState('');
-            const [deliveryDate, setDeliveryDate] = useState('');
-            const [electrical, setElectrical] = useState(false); 
-            const [kva, setKva] = useState('');
-            const [voltage, setVoltage] = useState('');
-            const [hydraulic, setHydraulic] = useState('');
-
-            // Pega o objeto da categoria selecionada para ver as subcategorias
-            const selectedCatObj = eventCategories.find(c => c.id === category);
-
-            useEffect(() => {
-                if(isOpen && category) {
-                    if(selectedCatObj && selectedCatObj.responsibleId && !responsible) {
-                        setResponsible(selectedCatObj.responsibleId);
-                    }
-                    // Reset subcategory if category changes and doesn't have it
-                    if(!selectedCatObj?.subcategories?.some(s => s.id === subcategoryId)) {
-                        setSubcategoryId('');
-                    }
-                }
-            }, [category, isOpen]);
-
-            if (!isOpen) return null;
-
-            const handleCreate = () => {
-                if (!text) return;
-                const responsibleMember = members.find(m => m.id === responsible);
-                const supportMembers = support.map(id => members.find(m => m.id === id)).filter(Boolean);
-
-                onCreate({
-                    id: Date.now().toString(), eventId, text, category, subcategoryId: subcategoryId || null, phase,
-                    responsible: responsibleMember || null, support: supportMembers,
-                    status: 'planning', priority: 'medium', subtasks: [], messages: [], transferHistory: [],
-                    cost: Number(cost), order: Date.now(),
-                    quantity, supplier, nimbiId, deliveryDate, electrical, kva, voltage, hydraulic
-                });
-                
-                setText(''); setResponsible(''); setSupport([]); setCost(0);
-                setQuantity(''); setSupplier(''); setNimbiId(''); setDeliveryDate('');
-                setElectrical(false); setKva(''); setVoltage(''); setHydraulic(''); setSubcategoryId('');
-                onClose();
-            };
-
-            const toggleSupport = (id) => {
-                if(support.includes(id)) setSupport(prev => prev.filter(s => s !== id));
-                else setSupport(prev => [...prev, id]);
-            };
-
-            return (
-                <Modal isOpen={isOpen} onClose={onClose} title="Nova Tarefa">
-                    <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-                        <input className="w-full p-3 border rounded-xl" placeholder="Descrição da Tarefa" value={text} onChange={e=>setText(e.target.value)} autoFocus/>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase">Categoria Principal</label>
-                                <select className="w-full p-2 border rounded-lg mt-1" value={category} onChange={e=>setCategory(e.target.value)}>{eventCategories.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select>
-                            </div>
-                            <div><label className="text-xs font-bold text-gray-500 uppercase">Fase</label><select className="w-full p-2 border rounded-lg mt-1" value={phase} onChange={e=>setPhase(e.target.value)}><option value="pre">Pré-Evento</option><option value="during">Durante</option><option value="post">Pós-Evento</option></select></div>
-                        </div>
-
-                        {selectedCatObj && selectedCatObj.subcategories && selectedCatObj.subcategories.length > 0 && (
-                            <div className="animate-in bg-blue-50/50 p-3 rounded-lg border border-blue-100">
-                                <label className="text-xs font-bold text-blue-800 uppercase flex items-center gap-1"><Layers size={14}/> Subcategoria (Opcional)</label>
-                                <select className="w-full p-2 border border-blue-200 rounded-lg mt-1 bg-white" value={subcategoryId} onChange={e=>setSubcategoryId(e.target.value)}>
-                                    <option value="">Geral (Sem subcategoria)</option>
-                                    {selectedCatObj.subcategories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                                </select>
-                            </div>
-                        )}
-                        
                         <div className="pt-2 border-t border-gray-100">
-                             <p className="text-xs font-bold text-blue-600 uppercase mb-2">Detalhes Operacionais (Opcional)</p>
-                             <div className="grid grid-cols-2 gap-3 mb-2">
-                                <div><label className="text-xs font-bold text-gray-500">Qtd.</label><input type="text" className="w-full p-2 border rounded-lg" value={quantity} onChange={e=>setQuantity(e.target.value)}/></div>
-                                <div><label className="text-xs font-bold text-gray-500">Custo (R$)</label><input type="number" className="w-full p-2 border rounded-lg" value={cost} onChange={e=>setCost(e.target.value)}/></div>
-                             </div>
-                             <div className="grid grid-cols-2 gap-3 mb-2">
-                                <div><label className="text-xs font-bold text-gray-500">Fornecedor</label><input className="w-full p-2 border rounded-lg" value={supplier} onChange={e=>setSupplier(e.target.value)}/></div>
-                                <div><label className="text-xs font-bold text-gray-500">ID Nimbi</label><input className="w-full p-2 border rounded-lg" value={nimbiId} onChange={e=>setNimbiId(e.target.value)}/></div>
-                             </div>
-                             <div className="mb-2"><label className="text-xs font-bold text-gray-500">Data/Hora Entrega (Prazo)</label><input type="datetime-local" className="w-full p-2 border rounded-lg" value={deliveryDate} onChange={e=>setDeliveryDate(e.target.value)}/></div>
-                        </div>
-
-                         <div className="pt-2 border-t border-gray-100">
-                             <p className="text-xs font-bold text-blue-600 uppercase mb-2">Especificações Técnicas (Opcional)</p>
-                             <div className="flex items-center gap-2 mb-2">
-                                <input type="checkbox" id="elec" checked={electrical} onChange={e=>setElectrical(e.target.checked)} className="rounded text-blue-600"/>
-                                <label htmlFor="elec" className="text-sm text-gray-700 font-bold">Necessita Elétrica?</label>
-                             </div>
-                             {electrical && (
-                                <div className="grid grid-cols-2 gap-3 mb-2 animate-in pl-6 border-l-2 border-gray-100">
-                                    <div><label className="text-xs font-bold text-gray-500">KVA</label><input className="w-full p-2 border rounded-lg" value={kva} onChange={e=>setKva(e.target.value)}/></div>
-                                    <div><label className="text-xs font-bold text-gray-500">Tensão</label><input className="w-full p-2 border rounded-lg" value={voltage} onChange={e=>setVoltage(e.target.value)} placeholder="Ex: 220v"/></div>
+                            <label className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors">
+                                <input type="checkbox" className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" checked={useTemplate} onChange={e => setUseTemplate(e.target.checked)} />
+                                <div>
+                                    <p className="text-sm font-bold text-blue-900">Preencher automaticamente com as tarefas da Fispal 2025</p>
+                                    <p className="text-[10px] text-blue-700">Irá carregar as +60 tarefas, equipamentos e responsáveis extraídos da planilha de planeamento original.</p>
                                 </div>
-                             )}
-                             <div><label className="text-xs font-bold text-gray-500">Infos Hidráulica</label><input className="w-full p-2 border rounded-lg" placeholder="Ex: Ponto de água/esgoto" value={hydraulic} onChange={e=>setHydraulic(e.target.value)}/></div>
+                            </label>
                         </div>
 
-                        <div><label className="text-xs font-bold text-gray-500 uppercase">Responsável</label><select className="w-full p-2 border rounded-lg mt-1" value={responsible} onChange={e=>setResponsible(e.target.value)}><option value="">Selecione...</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
-                        <div><label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Apoio (Opcional)</label><div className="flex flex-wrap gap-2">{members.filter(m=>m.id!==responsible).map(m=><button key={m.id} onClick={()=>toggleSupport(m.id)} className={`p-1.5 rounded-full border-2 ${support.includes(m.id)?'border-blue-500':'border-transparent opacity-50'}`}><Avatar member={m} size="w-8 h-8"/></button>)}</div></div>
-                        <button onClick={handleCreate} className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Adicionar Tarefa</button>
+                        <button onClick={handleSubmit} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:shadow-lg animate-shine bg-[length:200%_auto]">Criar Evento</button>
                     </div>
                 </Modal>
             );
@@ -1324,635 +1314,6 @@
                 <div className="relative -top-6"><button onClick={onAdd} className="w-14 h-14 bg-gradient-to-r from-blue-900 to-blue-800 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 transition-transform"><Plus size={28} /></button></div>
                 <button onClick={() => onChangeTab('team')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'team' ? 'text-blue-900' : 'text-gray-400'}`}><Users size={20} /><span className="text-[10px]">Equipe</span></button>
                 <button onClick={() => onChangeTab('settings')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'settings' ? 'text-blue-900' : 'text-gray-400'}`}><Settings size={20} /><span className="text-[10px]">Ajustes</span></button>
-            </div>
-        );
-
-        const EventDetail = ({ event, onBack, tasks, members, currentUser, onUpdateTask, onUpdateEvent, categories, onOpenCategorySettings, onAddTask, onDeleteTask, onAddTeamMember, onRemoveTeamMember, onDeleteEvent, onCreateMember, createNotification, geminiKey, onCreateTask }) => {
-            const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-            const [selectedTaskId, setSelectedTaskId] = useState(null); 
-            const [filterPhase, setFilterPhase] = useState('all');
-            const [viewGrouping, setViewGrouping] = useState('category'); 
-            const [isEditEventOpen, setIsEditEventOpen] = useState(false);
-            const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
-            const [isCreatingMember, setIsCreatingMember] = useState(false);
-            const [tempMemberName, setTempMemberName] = useState('');
-            const [searchQuery, setSearchQuery] = useState('');
-            const [memberFilter, setMemberFilter] = useState('');
-            const [expandedCategories, setExpandedCategories] = useState([]);
-
-            const [isImporting, setIsImporting] = useState(false);
-            const importInputRef = useRef(null);
-
-            const toggleCategory = (id) => { setExpandedCategories(prev => prev.includes(id) ? [] : [id]); };
-
-            const handleImportFile = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                setIsImporting(true);
-                try {
-                    const text = await file.text();
-                    
-                    // Interpretador Local de CSV adaptado para o formato Fispal
-                    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-                    let headerRowIndex = -1;
-                    let headers = [];
-
-                    // 1. Procurar a linha de cabeçalho
-                    for (let i = 0; i < lines.length; i++) {
-                        const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                        if (cols.some(c => c.toLowerCase().includes('responsável') || c.toLowerCase().includes('responsavel') || c.toLowerCase().includes('status'))) {
-                            headerRowIndex = i;
-                            headers = cols.map(c => c.replace(/^"|"$/g, '').trim().toLowerCase());
-                            break;
-                        }
-                    }
-
-                    if (headerRowIndex === -1) {
-                         alert("Não foi possível encontrar a linha de cabeçalho (que contenha 'Responsável' ou 'Status').");
-                         setIsImporting(false);
-                         return;
-                    }
-
-                    // Função auxiliar para encontrar a coluna correta
-                    const getColIndex = (keywords) => {
-                        for (let i = 0; i < headers.length; i++) {
-                            if (keywords.some(k => headers[i].includes(k))) return i;
-                        }
-                        return -1;
-                    };
-
-                    const idxQtde = getColIndex(['qtde', 'quantidade']);
-                    const idxResp = getColIndex(['responsável', 'responsavel']);
-                    const idxForn = getColIndex(['fornecedor']);
-                    const idxData = getColIndex(['data', 'entrega']);
-                    const idxElec = getColIndex(['elétrica', 'eletrica']);
-                    const idxKva = getColIndex(['kva']);
-                    const idxVolt = getColIndex(['tensão', 'tensao']);
-                    const idxHydr = getColIndex(['hidráulica', 'hidraulica']);
-                    const idxObs = getColIndex(['observação', 'observacao', 'obs']);
-
-                    const defaultCategory = categories[0]?.id || 'planning';
-                    let importedCount = 0;
-
-                    for (let i = headerRowIndex + 1; i < lines.length; i++) {
-                        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
-                        
-                        // Encontrar o nome da Tarefa (geralmente a primeira coluna preenchida antes de 'Qtde' ou 'Responsavel')
-                        let taskName = "";
-                        for(let col = 0; col < (idxQtde !== -1 ? idxQtde : (idxResp !== -1 ? idxResp : row.length)); col++) {
-                             if (row[col] && row[col] !== '') {
-                                 taskName = row[col];
-                                 break;
-                             }
-                        }
-                        if (!taskName) taskName = row[1]; // Fallback
-                        
-                        // Ignorar linhas de contagem no final do arquivo (ex: "Claudiano-VERDE", "D")
-                        if (!taskName || taskName === 'D' || taskName.includes('-VERDE') || taskName.includes('-AMARELO') || taskName.includes('-VERMELHO')) continue;
-
-                        let responsibleMember = null;
-                        if (idxResp !== -1 && row[idxResp]) {
-                            const respStr = row[idxResp].toLowerCase();
-                            responsibleMember = members.find(m => respStr.includes(m.name.toLowerCase().split(' ')[0])) || null;
-                        }
-
-                        let finalTaskName = taskName;
-                        if (idxObs !== -1 && row[idxObs] && row[idxObs] !== '') {
-                            finalTaskName += ` (Obs: ${row[idxObs]})`;
-                        }
-
-                        let electrical = false;
-                        if (idxElec !== -1 && row[idxElec]) {
-                            const elStr = row[idxElec].toLowerCase();
-                            electrical = elStr === 'sim' || elStr === 's' || elStr === 'ok';
-                        }
-                        
-                        onCreateTask({
-                            id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                            eventId: event.id,
-                            text: finalTaskName,
-                            category: defaultCategory,
-                            subcategoryId: null,
-                            phase: 'pre',
-                            responsible: responsibleMember,
-                            support: [],
-                            status: 'planning',
-                            priority: 'medium',
-                            subtasks: [],
-                            messages: [],
-                            transferHistory: [],
-                            cost: 0,
-                            order: Date.now() + i,
-                            quantity: idxQtde !== -1 && row[idxQtde] ? String(row[idxQtde]) : '',
-                            supplier: idxForn !== -1 && row[idxForn] ? row[idxForn] : '',
-                            nimbiId: '',
-                            deliveryDate: '', 
-                            electrical: electrical,
-                            kva: idxKva !== -1 && row[idxKva] ? row[idxKva] : '',
-                            voltage: idxVolt !== -1 && row[idxVolt] ? row[idxVolt] : '',
-                            hydraulic: idxHydr !== -1 && row[idxHydr] ? row[idxHydr] : ''
-                        });
-                        importedCount++;
-                    }
-                    alert(`${importedCount} tarefas importadas com sucesso!`);
-                    
-                } catch (error) {
-                    console.error("Erro na importação local:", error);
-                    alert("Ocorreu um erro ao interpretar a planilha. Verifique se o arquivo está salvo como .CSV.");
-                } finally {
-                    setIsImporting(false);
-                    if (importInputRef.current) importInputRef.current.value = null;
-                }
-            };
-
-            const selectedTask = tasks.find(t => t.id === selectedTaskId);
-
-            const handleDragStart = (e, task) => { e.dataTransfer.setData("taskId", task.id); };
-            const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); };
-
-            const handleDrop = (e, targetId, targetType, targetTaskOrder, targetSubcategoryId = null) => { 
-                e.preventDefault(); e.stopPropagation();
-                const taskId = e.dataTransfer.getData("taskId"); 
-                const droppedTask = tasks.find(t => t.id == taskId);
-                if (!droppedTask) return;
-
-                if (viewGrouping === 'status') {
-                    if (targetType === 'column') { onUpdateTask(parseInt(taskId), { status: targetId, order: Date.now() }); } 
-                    else if (targetType === 'task') { onUpdateTask(parseInt(taskId), { status: targetId, order: targetTaskOrder - 1 }); }
-                } else {
-                     if (targetType === 'column') { 
-                         onUpdateTask(parseInt(taskId), { category: targetId, subcategoryId: targetSubcategoryId || null, order: Date.now() }); 
-                     } 
-                     else if (targetType === 'task') { 
-                         onUpdateTask(parseInt(taskId), { category: targetId, subcategoryId: targetSubcategoryId || null, order: targetTaskOrder - 1 }); 
-                     }
-                }
-            };
-            
-            const filteredTasks = tasks.filter(t => {
-                if (t.eventId !== event.id) return false;
-                if (filterPhase !== 'all' && t.phase !== filterPhase) return false;
-                if (searchQuery) {
-                    const query = searchQuery.toLowerCase();
-                    const textMatch = t.text.toLowerCase().includes(query);
-                    const subtaskMatch = t.subtasks && t.subtasks.some(sub => sub.text.toLowerCase().includes(query));
-                    if (!textMatch && !subtaskMatch) return false;
-                }
-                if (memberFilter && t.responsible?.id !== memberFilter) return false;
-                return true;
-            }).sort((a, b) => (a.order || 0) - (b.order || 0));
-
-            const handleAddAgenda = (item) => onUpdateEvent(event.id, { agenda: [...(event.agenda||[]), item] });
-            const handleDeleteAgenda = (id) => onUpdateEvent(event.id, { agenda: (event.agenda||[]).filter(a=>a.id!==id) });
-            const handleUpdateAgenda = (id, newItem) => { const newAgenda = (event.agenda || []).map(a => a.id === id ? { ...a, ...newItem } : a); onUpdateEvent(event.id, { agenda: newAgenda }); };
-            const cyclePriority = (task) => { const map = { low: 'medium', medium: 'high', high: 'low' }; onUpdateTask(task.id, { priority: map[task.priority || 'low'] }); };
-            
-            const eventTeam = [members.find(m => m.id === event.responsibleId), ...members.filter(m => event.teamIds?.includes(m.id) && m.id !== event.responsibleId)].filter(Boolean);
-
-            const handleCreateTempMember = () => {
-                if(!tempMemberName.trim()) return;
-                const newId = Date.now().toString();
-                const newMember = { id: newId, name: tempMemberName, role: 'Temporário', photoUrl: null, active: true }; 
-                onCreateMember(newMember);
-                onAddTeamMember(event.id, newId);
-                setTempMemberName(''); setIsCreatingMember(false);
-            };
-
-            const columns = useMemo(() => {
-                if (viewGrouping === 'status') return STATUS_COLUMNS;
-                const cats = event.categories || DEFAULT_CATEGORIES;
-                if (filterPhase === 'all') return cats;
-                return cats.filter(c => !c.phases || c.phases.length === 0 || c.phases.includes(filterPhase));
-            }, [viewGrouping, event.categories, filterPhase]);
-
-            const totalEventCost = filteredTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
-            const daysLeft = getDaysLeft(event);
-            const daysLeftText = daysLeft < 0 ? `Terminou há ${Math.abs(daysLeft)} dias` : daysLeft === 0 ? "É hoje!" : `Faltam ${daysLeft} dias`;
-            const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; };
-
-            return (
-                <div className="min-h-screen bg-transparent pb-24 animate-in">
-                    {/* HERO SECTION */}
-                    <div className="h-64 sm:h-72 bg-slate-900 relative rounded-b-[2.5rem] shadow-sm overflow-hidden mb-6 group/hero">
-                        {event.coverUrl ? (
-                            <img src={event.coverUrl} className="w-full h-full object-cover opacity-50 mix-blend-overlay transition-transform duration-[10s] group-hover/hero:scale-105"/>
-                        ) : (
-                            <div className="absolute inset-0 bg-gradient-to-r from-blue-900 to-indigo-900 opacity-80"></div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
-                        
-                        <button onClick={onBack} className="absolute top-6 left-6 p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all shadow-sm"><ArrowLeft size={20}/></button>
-                        <button onClick={() => setIsEditEventOpen(true)} className="absolute top-6 right-6 p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all shadow-sm"><Settings size={20}/></button>
-
-                        <div className="absolute bottom-6 left-6 right-6">
-                            <h1 className="text-3xl lg:text-4xl font-extrabold text-white mb-3 drop-shadow-md">{event.title}</h1>
-                            <div className="flex flex-wrap items-center gap-3 mb-3">
-                                 <span className="text-xs font-bold text-slate-900 bg-white px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 shadow-lg">
-                                    <Clock size={14} className="text-blue-600"/> {daysLeftText} • {formatDate(event.startDate)} {event.endDate && event.endDate !== event.startDate ? `- ${formatDate(event.endDate)}` : ''}
-                                 </span>
-                                 <span className="text-xs text-white font-medium bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
-                                    <MapPin size={14}/> {event.location || 'Local não definido'}
-                                 </span>
-                                 
-                                 {event.driveLink ? (
-                                     <a href={event.driveLink} target="_blank" rel="noopener noreferrer" className="text-xs bg-white text-gray-800 px-4 py-1.5 rounded-full flex items-center gap-2 font-bold transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 group">
-                                         <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-4 h-4 group-hover:animate-pulse" />
-                                         Acessar Pasta do Drive
-                                     </a>
-                                 ) : (
-                                     <button onClick={() => setIsEditEventOpen(true)} className="text-xs bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/30 px-4 py-1.5 rounded-full flex items-center gap-1.5 font-bold transition-all border-dashed shadow-lg">
-                                         <Plus size={14}/> Adicionar Drive
-                                     </button>
-                                 )}
-                            </div>
-                            <div className="inline-flex">
-                                <p className="text-sm font-bold text-emerald-400 flex items-center gap-1.5 bg-slate-900/50 backdrop-blur-md px-3 py-1.5 rounded-lg border border-emerald-500/30 shadow-lg">
-                                    <DollarSign size={16}/> Custo Total: {formatCurrency(totalEventCost)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="max-w-[1800px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-1 space-y-6">
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><Users size={16} className="text-blue-600"/> Equipe do Evento</h3>
-                                    <div className="flex gap-1">
-                                        <button onClick={()=>setIsAddTeamOpen(!isAddTeamOpen)} className="text-blue-600 hover:bg-blue-100 p-1.5 rounded-lg bg-blue-50 transition-colors" title="Adicionar existente"><UserPlus size={16}/></button>
-                                        <button onClick={()=>setIsCreatingMember(!isCreatingMember)} className="text-emerald-600 hover:bg-emerald-100 p-1.5 rounded-lg bg-emerald-50 transition-colors" title="Criar Novo"><Plus size={16}/></button>
-                                    </div>
-                                </div>
-                                
-                                {isCreatingMember && (
-                                    <div className="mb-3 p-2 bg-emerald-50 rounded-lg border border-emerald-100 animate-in">
-                                        <p className="text-[10px] font-bold text-emerald-700 uppercase mb-1">Novo Colaborador</p>
-                                        <div className="flex gap-1">
-                                            <input className="flex-1 p-1.5 text-xs border border-emerald-200 rounded outline-none focus:border-emerald-400" placeholder="Nome..." value={tempMemberName} onChange={e => setTempMemberName(e.target.value)} autoFocus/>
-                                            <button onClick={handleCreateTempMember} className="bg-emerald-600 hover:bg-emerald-700 transition-colors text-white px-2 rounded text-xs font-bold shadow-sm"><Check size={14}/></button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {isAddTeamOpen && (<div className="mb-3 p-2 bg-blue-50 rounded-lg max-h-32 overflow-y-auto animate-in border border-blue-100">{members.filter(m => !eventTeam.some(et => et.id === m.id) && m.active !== false).map(m => (<div key={m.id} className="flex justify-between items-center p-1 hover:bg-white rounded cursor-pointer transition-colors" onClick={() => { onAddTeamMember(event.id, m.id); setIsAddTeamOpen(false); }}><div className="flex items-center gap-2"><Avatar member={m} size="w-5 h-5"/><span className="text-xs font-medium text-gray-700">{m.name}</span></div><Plus size={12} className="text-blue-500"/></div>))} {members.filter(m => !eventTeam.some(et => et.id === m.id) && m.active !== false).length === 0 && <p className="text-[10px] text-gray-400 text-center">Todos já estão no time.</p>}</div>)}
-                                
-                                <div className="space-y-3">{eventTeam.map(m => (<div key={m.id} className="flex items-center gap-3 group"><Avatar member={m}/><div className="flex-1 min-w-0"><p className={`text-xs font-bold truncate ${m.active === false ? 'text-gray-400' : ''}`}>{m.name}</p><p className="text-[10px] text-gray-500 truncate">{m.role}</p></div>{m.id === event.responsibleId ? <Crown size={14} className="text-amber-500" title="Responsável Geral"/> : <button onClick={() => onRemoveTeamMember(event.id, m.id)} className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 rounded opacity-0 group-hover:opacity-100 transition-all"><X size={14}/></button>}</div>))}</div>
-                            </div>
-                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-[500px] hover:shadow-md transition-shadow">
-                                <div className="p-4 border-b bg-gray-50/50 font-bold text-gray-800 flex items-center gap-2"><CalendarIcon size={16} className="text-blue-600"/> Agenda do Evento</div>
-                                <div className="flex-1 overflow-visible">
-                                    <AgendaComponent agendaItems={event.agenda || []} selectedDateFilter={null} onAdd={handleAddAgenda} onDelete={handleDeleteAgenda} onUpdate={handleUpdateAgenda} contextTitle="" scrollable={true} />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="lg:col-span-3 space-y-6 flex flex-col">
-                            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col xl:flex-row justify-between gap-4 items-start xl:items-center">
-                                {/* Filtros Fases */}
-                                <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100 shrink-0 overflow-x-auto max-w-full">
-                                    {['all', 'pre', 'during', 'post'].map(ph => (
-                                        <button key={ph} onClick={()=>setFilterPhase(ph)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${filterPhase===ph ? 'bg-white shadow-sm text-blue-700 ring-1 ring-gray-200' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>
-                                            {ph === 'all' ? 'Todos' : ph === 'pre' ? 'Pré' : ph === 'during' ? 'Durante' : 'Pós'}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Busca */}
-                                <div className="flex-1 flex flex-col sm:flex-row gap-3 w-full">
-                                    <div className="relative flex-1">
-                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                                        <input className="w-full pl-9 pr-3 py-2 text-xs border rounded-xl bg-gray-50 focus:bg-white outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-50 transition-all" placeholder="Buscar tarefa ou complemento..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}/>
-                                    </div>
-                                    <select className="p-2 text-xs border rounded-xl bg-gray-50 outline-none min-w-[140px] text-gray-700 cursor-pointer hover:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-50 transition-all" value={memberFilter} onChange={e=>setMemberFilter(e.target.value)}>
-                                        <option value="">Todos Responsáveis</option>
-                                        {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                                    </select>
-                                </div>
-
-                                {/* Ações */}
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100 mr-1">
-                                        <button onClick={() => setViewGrouping('category')} className={`p-1.5 rounded-lg transition-all ${viewGrouping === 'category' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-gray-200' : 'text-gray-400 hover:bg-gray-100'}`} title="Ver por Categoria"><Grid size={16}/></button>
-                                        <button onClick={() => setViewGrouping('status')} className={`p-1.5 rounded-lg transition-all ${viewGrouping === 'status' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-gray-200' : 'text-gray-400 hover:bg-gray-100'}`} title="Ver por Status"><Columns size={16}/></button>
-                                    </div>
-                                    <button onClick={onOpenCategorySettings} className="p-2 border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-blue-600 transition-colors bg-white shadow-sm" title="Ajustes de Categoria"><Settings size={16}/></button>
-                                    
-                                    <button onClick={() => importInputRef.current.click()} disabled={isImporting} className="p-2 border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-blue-600 transition-colors bg-white shadow-sm flex items-center justify-center min-w-[34px]" title="Importar Tarefas via Planilha (CSV) com IA">
-                                        {isImporting ? <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> : <Upload size={16}/>}
-                                    </button>
-                                    <input type="file" ref={importInputRef} className="hidden" accept=".csv,.txt" onChange={handleImportFile}/>
-
-                                    <button onClick={onAddTask} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2"><Plus size={14}/> Nova Tarefa</button>
-                                </div>
-                            </div>
-                            
-                            {/* BOARD */}
-                            <div className={`${viewGrouping === 'status' ? 'flex overflow-x-auto gap-4 pb-4 items-start' : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start pb-4'}`}>
-                                {columns.map(col => {
-                                    const colTasks = filteredTasks.filter(t => viewGrouping === 'status' ? t.status === col.id : t.category === col.id);
-                                    
-                                    // CATEGORY VIEW 
-                                    if (viewGrouping === 'category') {
-                                        const isExpanded = expandedCategories.includes(col.id);
-                                        const catResponsible = members.find(m => m.id === col.responsibleId);
-                                        
-                                        const total = colTasks.length || 1;
-                                        const planningPct = (colTasks.filter(t => t.status === 'planning').length / total) * 100;
-                                        const inProgressPct = (colTasks.filter(t => t.status === 'in_progress').length / total) * 100;
-                                        const reviewPct = (colTasks.filter(t => t.status === 'review').length / total) * 100;
-                                        const donePct = (colTasks.filter(t => t.status === 'done').length / total) * 100;
-
-                                        return (
-                                            <div key={col.id} className={`bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all flex flex-col ${isExpanded ? 'col-span-full ring-2 ring-blue-400 shadow-lg z-10 order-first lg:order-none' : 'hover:shadow-md hover:border-gray-300'}`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id, 'column')}>
-                                                <div onClick={() => toggleCategory(col.id)} className={`p-4 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}>
-                                                    <div className="flex items-start justify-between mb-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`p-2.5 rounded-xl shadow-sm bg-${col.color}-100 text-${col.color}-700 border border-${col.color}-200`}>
-                                                                {React.createElement(ICON_MAP[col.icon] || Box, { size: 20 })}
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <h3 className="font-bold text-gray-800 text-sm md:text-base flex items-center gap-2">
-                                                                    {col.title}
-                                                                </h3>
-                                                                {catResponsible ? (
-                                                                    <span className="text-[10px] text-gray-600 flex items-center gap-1.5 mt-1 font-medium bg-gray-100/80 px-2 py-0.5 rounded-full w-fit border border-gray-200">
-                                                                        <Avatar member={catResponsible} size="w-4 h-4" /> 
-                                                                        Resp: <strong className="text-blue-700">{catResponsible.name}</strong>
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-[10px] text-gray-400 flex items-center gap-1 mt-1 border border-transparent px-1">
-                                                                        <UserCheck size={10}/> Sem responsável
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isExpanded ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>{colTasks.length}</span>
-                                                            <div className={`p-1 rounded-full transition-transform ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>{isExpanded ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    {/* GANTT PROGRESS BAR */}
-                                                    {colTasks.length > 0 ? (
-                                                        <div className="w-full mt-2">
-                                                            <div className="flex justify-between text-[9px] font-bold text-gray-400 mb-1.5 px-1">
-                                                                <span className="flex gap-2">
-                                                                    <span className="flex items-center gap-1" title="Planejamento"><div className="w-1.5 h-1.5 rounded-full bg-purple-600"></div>Plan</span>
-                                                                    <span className="flex items-center gap-1" title="Andamento"><div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>And</span>
-                                                                    <span className="flex items-center gap-1" title="Finalização"><div className="w-1.5 h-1.5 rounded-full bg-purple-400"></div>Fin</span>
-                                                                    <span className="flex items-center gap-1" title="Concluído"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>Concl</span>
-                                                                </span>
-                                                                <span className={donePct === 100 ? 'text-emerald-500' : ''}>{Math.round(donePct)}% Concluído</span>
-                                                            </div>
-                                                            <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden flex shadow-inner">
-                                                                {planningPct > 0 && <div style={{width: `${planningPct}%`}} className="bg-purple-600 transition-all duration-500" title={`Planejamento: ${Math.round(planningPct)}%`}></div>}
-                                                                {inProgressPct > 0 && <div style={{width: `${inProgressPct}%`}} className="bg-amber-400 transition-all duration-500" title={`Andamento: ${Math.round(inProgressPct)}%`}></div>}
-                                                                {reviewPct > 0 && <div style={{width: `${reviewPct}%`}} className="bg-purple-400 transition-all duration-500" title={`Finalização: ${Math.round(reviewPct)}%`}></div>}
-                                                                {donePct > 0 && <div style={{width: `${donePct}%`}} className="bg-emerald-500 transition-all duration-500" title={`Concluído: ${Math.round(donePct)}%`}></div>}
-                                                            </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="h-2.5 w-full bg-gray-100 rounded-full mt-4"></div>
-                                                    )}
-                                                </div>
-
-                                                {/* ÁREA EXPANDIDA DA CATEGORIA COM SUBCATEGORIAS */}
-                                                {isExpanded && (
-                                                    <div className="p-5 bg-[#fcfcfc] border-t border-gray-100 animate-in space-y-6">
-                                                        {colTasks.length === 0 && <p className="text-sm text-gray-400 italic text-center py-6 border-2 border-dashed border-gray-200 rounded-xl bg-white">Nenhuma tarefa nesta categoria.<br/>Arraste tarefas para cá ou crie novas.</p>}
-                                                        
-                                                        {(() => {
-                                                            const subCats = col.subcategories || [];
-                                                            const generalTasks = colTasks.filter(t => !t.subcategoryId);
-
-                                                            const renderTaskGrid = (tasks, title, subId) => (
-                                                                <div key={subId || 'general'} className="mb-4" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id, 'column', null, subId)}>
-                                                                    {(title || subCats.length > 0) && (
-                                                                        <h4 className="text-sm font-bold text-gray-600 mb-3 flex items-center gap-2 border-b border-gray-200 pb-2">
-                                                                            <Layers size={14} className="text-blue-400"/> {title || 'Geral'}
-                                                                            <span className="bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded text-[10px]">{tasks.length}</span>
-                                                                        </h4>
-                                                                    )}
-                                                                    {tasks.length === 0 && (title || subCats.length > 0) && (
-                                                                        <div className="p-4 border border-dashed border-gray-200 rounded-xl text-center text-xs text-gray-400 bg-gray-50/50">Arraste tarefas para esta subcategoria</div>
-                                                                    )}
-                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                                                                        {tasks.map(task => (
-                                                                            <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task)} onDrop={(e) => handleDrop(e, col.id, 'task', task.order || 0, subId)} onClick={() => { setSelectedTaskId(task.id); setIsTaskModalOpen(true); }} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer group relative hover:border-blue-400 transition-all transform hover:-translate-y-0.5">
-                                                                                <div className="flex justify-between items-start mb-2"><FlagPriority level={task.priority} onClick={()=>cyclePriority(task)}/><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button className="text-gray-400 hover:text-blue-600 bg-gray-50 p-1 rounded-md"><Edit2 size={12}/></button></div></div>
-                                                                                <p className="text-sm font-semibold text-gray-800 mb-4 line-clamp-3 leading-snug">{task.text}</p>
-                                                                                <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-                                                                                    <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-md"><Avatar member={task.responsible} size="w-5 h-5"/><span className="text-[10px] font-bold text-gray-600">{task.responsible?.name.split(' ')[0]}</span></div>
-                                                                                    {task.cost > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md border border-emerald-200">{formatCurrency(task.cost)}</span>}
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            );
-
-                                                            return (
-                                                                <>
-                                                                    {(generalTasks.length > 0 || subCats.length === 0) && renderTaskGrid(generalTasks, subCats.length > 0 ? 'Geral (Sem subcategoria)' : null, null)}
-                                                                    {subCats.map(sub => renderTaskGrid(colTasks.filter(t => t.subcategoryId === sub.id), sub.title, sub.id))}
-                                                                </>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    }
-
-                                    // STATUS VIEW
-                                    return (
-                                        <div key={col.id} className="min-w-[320px] w-80 shrink-0 bg-gray-100/60 rounded-2xl p-3 border border-gray-200 flex flex-col shadow-sm" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, col.id, 'column')}>
-                                            <div className="flex items-center justify-between px-2 py-1 mb-3">
-                                                <span className={`text-xs font-bold uppercase flex items-center gap-2 ${col.color ? `text-${col.color}-700` : 'text-gray-700'}`}>{col.icon && React.createElement(ICON_MAP[col.icon] || Box, { size: 16 })} {col.title}</span>
-                                                <span className="bg-white text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-sm">{colTasks.length}</span>
-                                            </div>
-                                            <div className="space-y-3 flex-1 min-h-[150px]">
-                                                {colTasks.length === 0 && <div className="h-full flex items-center justify-center border-2 border-dashed border-gray-300 rounded-xl text-xs text-gray-400 font-medium py-8 bg-gray-50/50">Solte as tarefas aqui</div>}
-                                                {colTasks.map(task => {
-                                                    const taskCat = categories.find(c => c.id === task.category);
-                                                    const taskSubCat = taskCat?.subcategories?.find(s => s.id === task.subcategoryId);
-                                                    return (
-                                                        <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task)} onDrop={(e) => handleDrop(e, col.id, 'task', task.order || 0)} onClick={() => { setSelectedTaskId(task.id); setIsTaskModalOpen(true); }} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md cursor-pointer group relative hover:border-blue-400 transition-all transform hover:-translate-y-0.5">
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <FlagPriority level={task.priority} onClick={()=>cyclePriority(task)}/>
-                                                                {taskSubCat && <span className="text-[9px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold ml-2 truncate max-w-[120px]">{taskSubCat.title}</span>}
-                                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-auto"><button className="text-gray-400 hover:text-blue-600 bg-gray-50 p-1 rounded-md"><Edit2 size={12}/></button></div>
-                                                            </div>
-                                                            <p className="text-sm font-semibold text-gray-800 mb-4 line-clamp-3 leading-snug">{task.text}</p>
-                                                            <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-                                                                <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-md"><Avatar member={task.responsible} size="w-5 h-5"/><span className="text-[10px] font-bold text-gray-600">{task.responsible?.name.split(' ')[0]}</span></div>
-                                                                {task.cost > 0 && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md border border-emerald-200">{formatCurrency(task.cost)}</span>}
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                <div className="min-w-[20px] shrink-0"></div>
-                            </div>
-                        </div>
-                    </div>
-                    {selectedTask && <TaskDetailModal isOpen={isTaskModalOpen} onClose={() => { setIsTaskModalOpen(false); setSelectedTaskId(null); }} task={selectedTask} members={members} categories={categories} dbOperations={{ updateTask: (id, updates) => onUpdateTask(id, updates) }} deleteTask={onDeleteTask} currentUser={currentUser} createNotification={createNotification}/>}
-                    <EditEventModal isOpen={isEditEventOpen} onClose={() => setIsEditEventOpen(false)} event={event} onUpdate={onUpdateEvent} members={members} onDelete={onDeleteEvent} />
-                </div>
-            );
-        };
-
-        const Dashboard = ({ events, tasks, members, currentUser, notifications, onMarkAsReadNotification, onClearAllNotifications, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId, onLogout }) => {
-            const [eventViewMode, setEventViewMode] = useState('active');
-            
-            const activeEvents = events.filter(e => !isEventFinished(e)).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-            const finishedEvents = events.filter(e => isEventFinished(e)).sort((a, b) => new Date(b.endDate || b.startDate) - new Date(a.endDate || a.startDate));
-            const activeEventIds = activeEvents.map(e => e.id);
-            
-            const workload = members.filter(m => m.role !== 'Temporário').map(m => {
-                const memberTasks = tasks.filter(t => activeEventIds.includes(t.eventId) && t.responsible?.id === m.id);
-                const pending = memberTasks.filter(t => t.status !== 'done').length;
-                const done = memberTasks.filter(t => t.status === 'done').length;
-                return { ...m, pending, done, total: pending + done };
-            });
-            
-            const manager = members.find(m => m.id === managerId) || members[0];
-            const activeTasks = tasks.filter(t => activeEventIds.includes(t.eventId));
-            const completedActiveTasks = activeTasks.filter(t => t.status === 'done').length;
-            const totalActiveTasks = activeTasks.length;
-            const progress = totalActiveTasks > 0 ? Math.round((completedActiveTasks / totalActiveTasks) * 100) : 0;
-            const eventsToDisplay = eventViewMode === 'active' ? activeEvents : finishedEvents;
-
-            return (
-                <div className="max-w-[1600px] mx-auto p-6 md:p-8 animate-in pb-24">
-                    <div className="flex justify-between items-center mb-8">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 flex items-center justify-center font-bold text-xs bg-transparent rounded-2xl overflow-hidden">{globalLogo ? <img src={globalLogo} className="w-full h-full object-contain"/> : 'LOGO'}</div>
-                            <div>
-                                <h1 className="text-2xl font-extrabold text-blue-950">Event Hub</h1>
-                                <p className="text-sm text-gray-500">Olá, <strong className="text-blue-600">{currentUser?.name.split(' ')[0] || 'Usuário'}</strong></p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <NotificationCenter notifications={notifications} currentUser={currentUser} tasks={tasks} onMarkAsRead={onMarkAsReadNotification} onClearAll={onClearAllNotifications} />
-                            <div onClick={onLogout} className="flex items-center gap-3 bg-white p-1.5 rounded-full shadow-sm border border-gray-100 pr-4 cursor-pointer hover:bg-red-50 hover:border-red-200 transition-colors group" title="Sair / Trocar de Perfil">
-                                <Avatar member={currentUser} size="w-10 h-10"/>
-                                <div className="text-left hidden sm:block">
-                                    <p className="text-xs font-bold text-gray-800 group-hover:text-red-700">{currentUser?.name}</p>
-                                    <p className="text-[10px] text-gray-500 truncate max-w-[100px] group-hover:text-red-500">Trocar Perfil</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-8">
-                        <div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 relative overflow-hidden flex items-center justify-between h-auto min-h-[14rem]">
-                                    <div className="relative w-32 h-32 flex-shrink-0">
-                                        <svg className="w-full h-full -rotate-90">
-                                            <circle cx="64" cy="64" r="54" stroke="#F3F4F6" strokeWidth="12" fill="none"/>
-                                            <circle cx="64" cy="64" r="54" stroke="#1e3a8a" strokeWidth="12" fill="none" strokeDasharray="339" strokeDashoffset={339 - (339*progress)/100} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}/>
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="font-bold text-2xl text-blue-900 leading-none">{progress}%</span>
-                                        </div>
-                                    </div>
-                                    <div className="ml-8 flex-1">
-                                        <h3 className="font-bold text-gray-900 mb-3 text-lg">Status Global (Ativos)</h3>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                                                <span className="text-xs font-bold text-emerald-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Concluídas</span>
-                                                <span className="text-sm font-extrabold text-emerald-800">{completedActiveTasks}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between bg-amber-50 p-2 rounded-lg border border-amber-100">
-                                                <span className="text-xs font-bold text-amber-700 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"></div> Pendentes</span>
-                                                <span className="text-sm font-extrabold text-amber-800">{totalActiveTasks - completedActiveTasks}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col justify-center h-auto min-h-[14rem]">
-                                    <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Users size={18} className="text-blue-600"/> Carga de Trabalho</h3>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                        {workload.map(m => (
-                                            <div key={m.id} onClick={() => onMemberClick(m)} className="flex items-center gap-3 p-2 rounded-xl border border-gray-50 hover:bg-gray-50 hover:border-gray-200 transition-all cursor-pointer group bg-white shadow-sm">
-                                                <div className="relative shrink-0"><Avatar member={m} size="w-10 h-10"/>{m.total > 0 && (<div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-white font-bold border border-white ${m.total > 5 ? 'bg-blue-600' : 'bg-blue-400'}`}>{m.total}</div>)}</div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-[11px] font-bold text-gray-800 truncate">{m.name.split(' ')[0]}</p>
-                                                    <div className="flex gap-2 mt-0.5">
-                                                        <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5" title="Pendentes"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> {m.pending}</span>
-                                                        <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5" title="Concluídas"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {m.done}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-blue-950 flex items-center gap-2">
-                                    {eventViewMode === 'active' ? <Clock size={24}/> : <CheckSquare size={24}/>} 
-                                    {eventViewMode === 'active' ? 'Eventos em Andamento' : 'Eventos Concluídos'}
-                                </h2>
-                                <div className="bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
-                                    <button onClick={() => setEventViewMode('active')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'active' ? 'bg-blue-100 text-blue-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><Clock size={14}/> Em Andamento</button>
-                                    <button onClick={() => setEventViewMode('completed')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${eventViewMode === 'completed' ? 'bg-emerald-100 text-emerald-800 shadow-sm' : 'text-gray-500 hover:bg-gray-50'}`}><CheckSquare size={14}/> Concluídos</button>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-10 min-h-[200px]">
-                                {eventsToDisplay.length === 0 ? (
-                                    <div className="col-span-full flex flex-col items-center justify-center py-12 opacity-50 bg-white rounded-2xl border border-dashed border-gray-200">
-                                        <div className="bg-gray-50 p-4 rounded-full mb-3 text-gray-400">{eventViewMode === 'active' ? <Rocket size={32}/> : <Archive size={32}/>}</div>
-                                        <p className="text-sm font-bold text-gray-500">{eventViewMode === 'active' ? 'Nenhum evento ativo no momento.' : 'Nenhum evento concluído ainda.'}</p>
-                                    </div>
-                                ) : (
-                                    eventsToDisplay.map(evt => (
-                                        <div key={evt.id} onClick={() => onSelectEvent(evt)} className={`bg-white rounded-xl border shadow-sm hover:shadow-lg transition-all cursor-pointer group overflow-hidden aspect-square flex flex-col relative transform hover:-translate-y-1 ${eventViewMode === 'completed' ? 'grayscale border-gray-200' : 'border-gray-100'}`}>
-                                            <div className="flex-1 bg-slate-100 relative overflow-hidden">
-                                                {evt.coverUrl && <img src={evt.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"/>}
-                                                {!evt.coverUrl && <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-indigo-50"></div>}
-                                                {eventViewMode === 'active' && <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold shadow-sm text-blue-900 border border-white/50">{getDaysLeft(evt)} dias</div>}
-                                                {eventViewMode === 'completed' && <div className="absolute inset-0 bg-white/10 flex items-center justify-center"><div className="bg-emerald-500 text-white p-2 rounded-full shadow-lg"><Check size={20}/></div></div>}
-                                                {evt.driveLink && <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-md shadow-sm border border-white/50" title="Possui pasta no Drive"><img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-3.5 h-3.5" /></div>}
-                                            </div>
-                                            <div className="p-3 shrink-0 bg-white border-t border-gray-50">
-                                                <h3 className="font-bold text-gray-900 mb-0.5 truncate text-sm">{evt.title}</h3>
-                                                <p className="text-[10px] text-gray-500 flex items-center gap-1"><MapPin size={10}/> {evt.location || 'Local a definir'}</p>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const GlobalAgendaView = ({ events, tasks, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem }) => {
-            const agendaItems = events.flatMap(e => (e.agenda || []).map(a => ({...a, eventName: e.title})));
-            const taskItems = tasks.filter(t => t.date).map(t => ({ id: `t-${t.id}`, title: t.text, date: t.date, color: 'green', eventName: 'Tarefa' }));
-            const items = agendaItems.concat(taskItems);
-            
-            return (
-                <div className="p-6 pb-24 bg-transparent min-h-screen">
-                    <h1 className="text-2xl font-bold text-blue-950 mb-6 flex items-center gap-2"><CalendarIcon/> Agenda Geral</h1>
-                    <div className="h-[600px]"><AgendaComponent agendaItems={items} selectedDateFilter={null} onAdd={(item) => onAddAgendaItem('global', item)} onDelete={onDeleteAgendaItem} onUpdate={onUpdateAgendaItem} contextTitle="Todos os Compromissos" events={events} scrollable={true} /></div>
-                </div>
-            );
-        };
-
-        const GlobalTeamView = ({ members, onEdit }) => (
-            <div className="p-6 pb-24 bg-transparent min-h-screen">
-                <div className="flex justify-between items-center mb-6"><h1 className="text-2xl font-bold text-blue-950">Equipe</h1><button onClick={onEdit} className="text-blue-600 font-bold text-sm bg-blue-50 px-3 py-2 rounded-lg hover:bg-blue-100">Gerenciar</button></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{members.filter(m => m.role !== 'Temporário').map(m => (<div key={m.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4"><div className="w-16 h-16 rounded-full overflow-hidden"><Avatar member={m} size="w-full h-full"/></div><div><p className="font-bold text-gray-900 text-lg">{m.name}</p><p className="text-sm text-gray-500">{m.role}</p></div></div>))}</div>
             </div>
         );
 
