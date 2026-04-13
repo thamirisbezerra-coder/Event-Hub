@@ -91,7 +91,7 @@
             Wand2, Copy, Share2, ZoomIn, Layers, Zap, Megaphone, Palette, Maximize2, MapPin, Briefcase, Rocket, Star,
             PieChart, Timer, UserCheck, RefreshCw, Key, Archive, Download, Cloud,
             Home, List, Grid, Smile, LogOut, Repeat, Columns, Database, Lock, ShieldCheck,
-            Folder, HardDrive, History
+            Folder, HardDrive, History, Upload
         } from 'https://esm.sh/lucide-react@0.294.0';
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -259,129 +259,255 @@
             }
         ];
 
-        // Base de tarefas extraídas da planilha Fispal
+        // Base de tarefas extraídas da planilha Fispal (Extaustiva)
         const FISPAL_TEMPLATE_TASKS = [
-            // Briefing
+            // Pré-Evento -> Briefing Geral
             { text: 'Reserva Auditório', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: 'Ok' },
             { text: 'Preparação Material', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: '' },
             { text: 'Convites', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: '' },
             { text: 'Apresentação', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: '' },
             { text: 'Campanha', cat: 'pre_event', sub: 'briefing', resp: 'Claudiano', obs: 'Ok' },
             
-            // Camisas
+            // Pré-Evento -> Camisas
             { text: 'Levantamento Camisas', cat: 'pre_event', sub: 'camisas', resp: 'Claudiano', obs: '' },
             { text: 'Compra Camisas', cat: 'pre_event', sub: 'camisas', resp: 'Claudiano', obs: 'Tratando' },
             { text: 'Entrega Camisas', cat: 'pre_event', sub: 'camisas', resp: 'Claudiano', forn: 'Abilitá', obs: 'Tratando' },
 
-            // Credenciamento
+            // Pré-Evento -> Credenciamento
             { text: 'Credenciais time', cat: 'pre_event', sub: 'credenciamento', resp: 'Claudiano', obs: '' },
             { text: 'Credenciais diretores', cat: 'pre_event', sub: 'credenciamento', resp: 'Claudiano', obs: '' },
+            { text: 'Credenciais - envio para Doremus', cat: 'pre_event', sub: 'credenciamento', resp: 'Claudiano', obs: '' },
             { text: 'Preenchimento Portal - Credenciamento', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
             { text: 'Lista de Participantes', cat: 'pre_event', sub: 'credenciamento', resp: 'Claudiano', obs: 'Verificar se está completa' },
             { text: 'Credenciamento Equipe Catering', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
-            { text: 'Credenciamento Equipe Montagem/Segurança', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
+            { text: 'Credenciamento Equipe Montagem', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
+            { text: 'Credenciamento Equipe Segurança', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
+            { text: 'Credenciamento Equipe Filmagem', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: 'Fazer no CAEX' },
+            { text: 'Credenciamento Equipe Barista', cat: 'pre_event', sub: 'credenciamento', resp: 'Matheus', obs: '' },
 
-            // Estande
+            // Pré-Evento -> Estande
             { text: 'Fechar projeto Estande', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
             { text: 'Formalização de Compras', cat: 'pre_event', sub: 'estande', resp: 'Matheus', obs: '' },
+            { text: 'Submissão do projeto base para Fispal', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
+            { text: 'Ajustes no projeto', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
+            { text: 'Fechamento final do projeto', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
             { text: 'Contrato Montadora', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
             { text: 'Preenchimento Portal (Serviços adicionais)', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: 'Cadastrar segurança, energia, coletor, etc.' },
+            { text: 'Retirar Credencial', cat: 'pre_event', sub: 'estande', resp: 'Claudiano', obs: '' },
+            { text: 'EPIs - Capacete para acompanhar montagem', cat: 'pre_event', sub: 'estande', resp: 'Matheus', obs: '' },
 
-            // Com Institucional
+            // Pré-Evento -> Com Institucional
             { text: 'Comunicação Oficial (Posts)', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: 'Em produção' },
             { text: 'Save the Date', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: 'Em produção' },
+            { text: 'Convite oficial', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: 'Em produção' },
             { text: 'Sequencia de lembretes', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: 'Em produção' },
-            { text: 'Contratação Storymaker', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', forn: 'Elion', obs: 'Contratado e combinado' },
+            { text: 'Contratação Storymaker - Dia do Evento', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', forn: 'Elion', obs: 'Contratado e combinado' },
+            { text: 'Captação Lançamentos', cat: 'pre_event', sub: 'com_inst', resp: 'Suzana', obs: '' },
 
-            // Laboratório
+            // Espaços Físicos -> Laboratório
             { text: 'Geladeira grande', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: 'Confirmar com Glaus' },
+            { text: 'Freezer tampa cega vertical', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: 'Confirmar com Glaus' },
             { text: 'Ultracongelador', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Tortelli', obs: '' },
+            { text: 'Ultracongelador Doremus', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Doremus', obs: 'Quem leva?' },
             { text: 'Produtoras', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '2', forn: 'Tortelli', elec: true, kva: '380', volt: 'Trifásica' },
             { text: 'Carrinho Pneumático', cat: 'event_spaces', sub: 'lab', resp: 'Matheus', qt: '2', obs: 'Paula solicitou maior' },
-            { text: 'Pia industrial funda (com água e deságue)', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '2', forn: 'Montadora', hydr: 'Sim' },
+            { text: 'Teste dos equipamentos', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', obs: 'Na montagem' },
+            { text: 'Mangueira para lavagem com esguicho', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: 'Confirmar com Glaus' },
+            { text: 'Pia industrial funda (com água e deságue)', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '2', forn: 'Montadora', hydr: 'Sim', obs: 'Confirmar com Glaus' },
+            { text: 'Escorredor', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '2', forn: 'Montadora', obs: '' },
+            { text: 'Prateleiras várias', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', obs: '' },
+            { text: 'Várias tomadas', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Doremus', obs: '' },
+            { text: 'Liquidificador', cat: 'event_spaces', sub: 'lab', resp: 'Claudiano', qt: '1', forn: 'Doremus', obs: '' },
 
-            // Depósito
+            // Espaços Físicos -> Depósito
             { text: 'Lockers', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', qt: '4', forn: 'Montadora', obs: 'Confirmar com Glaus' },
-            { text: 'Cadeados', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', forn: 'Mercado Livre', obs: '' },
+            { text: 'Cadeados - comprar', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', forn: 'Mercado Livre', obs: '' },
+            { text: 'Responsáveis Chave - Porta', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', obs: '' },
+            { text: 'Cópias Chave - Porta', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', obs: '' },
             { text: 'Tomadas para carregadores', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Totem de carregadores de Celular', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Cabide', cat: 'event_spaces', sub: 'deposito', resp: 'Claudiano', forn: 'Montadora', obs: '' },
 
-            // Painel de Led
-            { text: 'Painel de Led Geral', cat: 'activations', sub: 'led', resp: 'Suzana', obs: '' },
-            { text: 'Vídeo Led - Receber mapa de pixels', cat: 'activations', sub: 'led', resp: 'Suzana', obs: 'Aguardando teste da montadora' },
-            { text: 'Vídeo Led - Produção Vídeos', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Em andamento' },
-
-            // Comunicação Geral
-            { text: 'Paineis internos - Mapa', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Ok' },
-            { text: 'Catálogo - refação', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Em andamento' },
-
-            // Salão Principal
+            // Espaços Físicos -> Salão Principal
             { text: 'Bistrôs - Locação e instalação', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', forn: 'Montadora', obs: 'Em definição (2024 foram 40)' },
+            { text: 'Quantidade de bistrôs e banquetas', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', forn: 'Montadora', obs: '' },
             { text: 'Numeração das mesas', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', forn: 'Gráfica', obs: 'Até 60' },
-            { text: 'Brindes', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', qt: '150', obs: 'Separação dia 19' },
+            { text: 'Água', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', forn: 'Catering', obs: '' },
+            { text: 'Outras bebidas', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', forn: 'Catering', obs: 'Água com gás, coca, coca zero, água saborizada' },
             { text: 'Nuts e outros aperitivos', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', forn: 'Catering', obs: 'Tratando - pegar contato' },
+            { text: 'Sticks / Grissini', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', obs: 'Confirmar com Paula para amostras' },
+            { text: 'Molhos Food Service', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', obs: 'Confirmado com a Paula' },
+            { text: 'Bisnagas Fifo para Molhos', cat: 'event_spaces', sub: 'salao', resp: 'Larissa', obs: 'Compra das bisnagas para testes' },
+            { text: 'Arte para Bisnaga Molhos', cat: 'event_spaces', sub: 'salao', resp: 'Larissa', forn: 'LR Agência', obs: 'Aprovar orçamento' },
+            { text: 'Adesivo Bisnaga Molhos', cat: 'event_spaces', sub: 'salao', resp: 'Larissa', forn: 'LR Agência', obs: 'Aguardando arte' },
+            { text: 'Copinhos para degustação de molhos', cat: 'event_spaces', sub: 'salao', resp: 'Larissa', obs: 'Modelo definido' },
+            { text: 'Lixeiras', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Extintor', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', forn: 'Informa', obs: '' },
+            { text: 'Tomadas', cat: 'event_spaces', sub: 'salao', resp: 'Claudiano', forn: 'Montadora', elec: true, obs: '' },
+            { text: 'Brindes', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', qt: '150', obs: 'Separação dia 19' },
+            { text: 'Sacolas Extras', cat: 'event_spaces', sub: 'salao', resp: 'Matheus', qt: '100', obs: 'Separação dia 19' },
 
-            // Degustação
-            { text: 'Vitrines de Sorvete - locação e instalação', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', qt: '4', forn: 'Tortelli', elec: true, volt: '220V Monofásico' },
-            { text: 'Plaquinhas de identificação', cat: 'activations', sub: 'degustacao', resp: 'Matheus', qt: '58', obs: 'Incluir numeração' },
-            { text: 'Cubas locadas', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', qt: '56', forn: 'Tortelli', obs: '360x250x80' },
-            { text: 'Definição Receitas', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: 'Ok' },
-
-            // Açaí
-            { text: 'Estrutura Açaizeiro', cat: 'activations', sub: 'acai', resp: 'Claudiano', forn: 'Montadora', obs: 'Ok' },
-            { text: 'Freezer Açaís', cat: 'activations', sub: 'acai', resp: 'Claudiano', qt: '1', forn: 'FRICON', obs: '' },
-            { text: 'Copinhos Transparentes', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '5000', forn: 'Mercado livre', obs: '100ml' },
-            { text: 'Colher de açaí', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '10000', obs: '' },
-
-            // Dorecast
-            { text: 'Definir convidados Dorecast', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: '11 confirmados' },
-            { text: 'Criar roteiros Dorecast', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Em andamento' },
-            { text: 'Gravação convite oficial Geral - Reels', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Primeiro dia' },
-
-            // Copa
+            // Espaços Físicos -> Copa
             { text: 'Freezer Copa', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: '' },
             { text: 'Geladeira Copa', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', qt: '1', forn: 'Montadora', obs: '' },
+            { text: 'Pia (Água/Deságue)', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', qt: '1', forn: 'Montadora', hydr: 'Sim', obs: '' },
+            { text: 'Prateleiras', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Lixeiras', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', qt: '2', forn: 'Montadora', obs: '' },
+            { text: 'Tomadas', cat: 'event_spaces', sub: 'copa', resp: 'Claudiano', forn: 'Montadora', obs: '' },
             { text: 'Copeira', cat: 'event_spaces', sub: 'copa', resp: 'Matheus', qt: '2', forn: 'Catering', obs: 'Tratando' },
             { text: 'Garçom', cat: 'event_spaces', sub: 'copa', resp: 'Matheus', qt: '5', forn: 'Catering', obs: 'Tratando' },
-            { text: 'Limpeza full time', cat: 'event_spaces', sub: 'copa', resp: 'Matheus', qt: '2', forn: 'Catering', obs: 'Tratando' },
+            { text: 'Limpeza full time estande', cat: 'event_spaces', sub: 'copa', resp: 'Matheus', qt: '2', forn: 'Catering', obs: 'Tratando' },
 
-            // Café
+            // Espaços Físicos -> Espaço Café
+            { text: 'Recheios p/ Affogato', cat: 'event_spaces', sub: 'cafe', resp: 'Claudiano', obs: 'Dorella, Pistache, Speculoos, Coffee Crunch' },
+            { text: 'Xícaras para Affogato', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', obs: '180 ml de porcelana' },
+            { text: 'Colheres', cat: 'event_spaces', sub: 'cafe', resp: 'Matheus', obs: 'Solicitado' },
+            { text: 'Guardanapos', cat: 'event_spaces', sub: 'cafe', resp: 'Matheus', qt: '2', obs: 'Interfolhados' },
             { text: 'Sorvete - neutro', cat: 'event_spaces', sub: 'cafe', resp: 'Claudiano', obs: '' },
             { text: 'Máquina Espresso', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: 'Barista', obs: '' },
             { text: 'Insumo - Café', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: 'Barista', obs: '' },
             { text: 'Barista - Contratação', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: 'Barista', obs: 'Em negociação' },
+            { text: 'Barista - Equipamentos', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: 'Barista', obs: 'Em confirmação' },
+            { text: 'Definição Menu Cafés', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', obs: 'Definido' },
+            { text: 'Lixeiras', cat: 'event_spaces', sub: 'cafe', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Parceria Café', cat: 'event_spaces', sub: 'cafe', resp: 'Larissa', forn: '3 corações', obs: '' },
 
-            // SMSR
-            { text: 'Máquinas de Soft', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '1', elec: true, volt: '220 trifasico', kva: '5kva', forn: 'Adriel' },
-            { text: 'Mixers de Milkshake', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '2', forn: 'Doremus', obs: '' },
-            { text: 'Sanduicheiras de Sorvete', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '2', forn: 'SuperMix', obs: '' },
-
-            // Confeitaria
-            { text: 'Vitrine Confeitaria (Locação)', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', forn: 'LOCA COZINHA', elec: true, volt: '220', obs: '' },
+            // Espaços Físicos -> Confeitaria
+            { text: 'Vitrine Confeitaria (Locação)', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', forn: 'LOCA COZINHA', elec: true, volt: '220', obs: 'Confirmar pagamento' },
+            { text: 'Limpeza dedicada', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', obs: '' },
+            { text: 'Lixeiras', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', obs: '' },
             { text: 'Definição Aulas Paulo e Nani', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', obs: 'Ok' },
-            { text: 'Pratinhos para confeitaria', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', qt: '1000', obs: '' },
-            { text: 'Talheres Descartáveis', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', qt: '1000', obs: '' },
+            { text: 'Definição Aula Thiago Pedebis', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', obs: 'Feito. 28/05 16h30' },
+            { text: 'Arte Agenda de Cursos', cat: 'event_spaces', sub: 'confeitaria', resp: 'Larissa', obs: 'Ok' },
+            { text: 'Pratinhos', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', qt: '1000', obs: 'Solicitar compra' },
+            { text: 'Guardanapos', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', qt: '1000', obs: '' },
+            { text: 'Talheres Descartáveis', cat: 'event_spaces', sub: 'confeitaria', resp: 'Matheus', qt: '1000', obs: 'Verificar como será servido' },
+            { text: 'Xícaras para Affogatos (Grande)', cat: 'event_spaces', sub: 'confeitaria', resp: 'Larissa', qt: '6', obs: '' },
+            { text: 'Outros Utensílios Paulo', cat: 'event_spaces', sub: 'confeitaria', resp: 'Larissa', obs: 'Batedeira planetária 220V, caixa p/ sobremesas, etc.' },
+            { text: 'Microondas', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', forn: 'Montadora', obs: 'Solicitado' },
+            { text: 'GELADEIRA', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', forn: 'Montadora', obs: 'Solicitado' },
+            { text: 'Tomadas', cat: 'event_spaces', sub: 'confeitaria', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Transporte para pré-preparados do Paulo', cat: 'event_spaces', sub: 'confeitaria', resp: 'Larissa', obs: 'Em contato' },
 
-            // Totens
-            { text: '1 totem entrada (Bem-vindos, Mapa)', cat: 'activations', sub: 'totens', resp: 'Larissa', forn: 'AGÊNCIA LR', obs: '' },
-            { text: 'Criar artes com logo e localidade (18 totens)', cat: 'activations', sub: 'totens', resp: 'Larissa', qt: '18', obs: 'Enviado' },
+            // Ativações & Ações -> Painel de Led
+            { text: 'Painel de Led Geral', cat: 'activations', sub: 'led', resp: 'Suzana', obs: '' },
+            { text: 'Vídeo Led - Receber mapa de pixels', cat: 'activations', sub: 'led', resp: 'Suzana', obs: 'Aguardando teste da montadora' },
+            { text: 'Vídeo Led - Mapa de Conteúdos', cat: 'activations', sub: 'led', resp: 'Suzana', obs: 'Feito' },
+            { text: 'Vídeo Led - Roteiro', cat: 'activations', sub: 'led', resp: 'Suzana', obs: 'Feito' },
+            { text: 'Vídeo Led - Contratação de Produtora', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Realizando orçamento' },
+            { text: 'Vídeo Led - Produção Vídeos', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Em andamento' },
+            { text: 'Vídeos - Lançamentos', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Em andamento' },
+            { text: 'Vídeos - Institucional', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Em andamento' },
+            { text: 'Vídeos - ESG', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Em andamento' },
+            { text: 'Videos - Dorecast 3ª Temporada', cat: 'activations', sub: 'led', resp: 'Suzana', forn: 'Elion', obs: 'Em andamento' },
 
-            // Evento Doremus
-            { text: 'Nome do evento Doremus', cat: 'general', sub: 'evento_doremus', resp: 'Larissa', obs: '#DoremusDay25' },
-            { text: 'Transfer Anhembi x Doremus', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', forn: 'DAYTONA', obs: 'Reservado ás 07h e ás 12:30' },
+            // Ativações & Ações -> Degustação Sorvete
+            { text: 'Vitrines - locação e instalação', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', qt: '4', forn: 'Tortelli', elec: true, volt: '220V Monofásico' },
+            { text: 'Plaquinhas', cat: 'activations', sub: 'degustacao', resp: 'Matheus', qt: '58', obs: '' },
+            { text: 'Artes Plaquinhas com numeração', cat: 'activations', sub: 'degustacao', resp: 'Matheus', qt: '58', obs: 'Incluir numeração da receita' },
+            { text: 'Cubas locadas', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', qt: '56', forn: 'Tortelli', obs: '360x250x80' },
+            { text: 'Definição Receitas', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: 'OK' },
+            { text: 'Quantidades Calda', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: 'OK' },
+            { text: 'Envio Caldas', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: '' },
+            { text: 'Picolés - arte embalagem', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: '' },
+            { text: 'Picolés - Produção', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: '' },
+            { text: 'Picolés - Rotulagem', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: '' },
+            { text: 'Picolés - Envio', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: '' },
+            { text: 'Pia (Água/Deságue)', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', hydr: 'Sim', obs: '' },
+            { text: 'Promotoras para degustação - quantidade', cat: 'activations', sub: 'degustacao', resp: 'Larissa', qt: '5', forn: 'Catering', obs: '' },
+            { text: 'Promotoras para degustação - contratação', cat: 'activations', sub: 'degustacao', resp: 'Larissa', forn: 'Catering', obs: 'Tratando' },
+            { text: 'Promotoras para degustação - capacitação e gestão', cat: 'activations', sub: 'degustacao', resp: 'Larissa', obs: '' },
+            { text: 'Amostras', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: 'Alinhado' },
+            { text: 'Potinhos Amostras', cat: 'activations', sub: 'degustacao', resp: 'Claudiano', obs: 'Alinhado' },
+
+            // Ativações & Ações -> Açaí
+            { text: 'Construção Espaço', cat: 'activations', sub: 'acai', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Açaizeiro', cat: 'activations', sub: 'acai', resp: 'Claudiano', forn: 'Montadora', obs: 'OK' },
+            { text: 'Freezer Açaís', cat: 'activations', sub: 'acai', resp: 'Claudiano', qt: '1', forn: 'Fricon', obs: 'Alinhado com MKT' },
+            { text: 'freezer açaís - adesivos', cat: 'activations', sub: 'acai', resp: 'Claudiano', qt: '1', forn: 'LR Marketing', obs: 'Em produção' },
+            { text: 'Açaís - definição dos produtos', cat: 'activations', sub: 'acai', resp: 'Claudiano', forn: 'Frutas Brasileira', obs: '' },
+            { text: 'Açaís - compra dos produtos', cat: 'activations', sub: 'acai', resp: 'Claudiano', forn: 'Frutas Brasileira', obs: '' },
+            { text: 'Boleador Açaí', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '3', forn: 'Mercado livre', obs: 'Temos 2' },
+            { text: 'Copinhos Transparentes', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '5000', forn: 'Mercado livre', obs: '100ml' },
+            { text: 'Copos de Açaí para montagem', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '200', forn: 'Mercado livre', obs: '' },
+            { text: 'Colher', cat: 'activations', sub: 'acai', resp: 'Matheus', qt: '10000', obs: '' },
+            { text: 'Porta-pazinhas', cat: 'activations', sub: 'acai', resp: 'Matheus', obs: 'Temos 4' },
+
+            // Ativações & Ações -> Dorecast
+            { text: 'Parede Comunicação', cat: 'activations', sub: 'dorecast', resp: 'Claudiano', forn: 'Montadora', obs: '' },
+            { text: 'Definição de produtos p/ exposição', cat: 'activations', sub: 'dorecast', resp: 'Claudiano', obs: '4 Lançamentos + Dorella + Speculoos' },
+            { text: 'Definir convidados', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: '11 confirmados' },
+            { text: 'Criar convite Digital', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Feito' },
+            { text: 'Enviar convites', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Enviado' },
+            { text: 'RSVP', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Feito' },
+            { text: 'Criar roteiros', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Em andamento' },
+            { text: 'Presente / Troféu', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Chegará na segunda' },
+            { text: 'Suporte de acrílico para celular', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Ok' },
+            { text: 'Criar Thumbs e Títulos', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Em produção' },
+            { text: 'Patrocinar Dorecast no Youtube', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Em produção' },
+            { text: 'Cronograma de publicação', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Em produção' },
+            { text: 'Gravação convite oficial Geral- Reels', cat: 'activations', sub: 'dorecast', resp: 'Suzana', obs: 'Primeiro dia' },
+
+            // Ativações & Ações -> Soft, Milkshake...
+            { text: 'Máquinas de Soft', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '1', forn: 'Adriel', elec: true, kva: '5kva', volt: '220 trifásico', obs: 'Confirmado' },
+            { text: 'Mixers de Milkshake', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '2', forn: 'Doremus', obs: 'Alinhar com Vicente' },
+            { text: 'Sanduicheiras de Sorvete', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '2', forn: 'SuperMix', obs: 'chega dia 08' },
+            { text: 'Sorvete para Gelato Smash', cat: 'activations', sub: 'soft', resp: 'Claudiano', obs: 'Alinhado' },
+            { text: 'Canudos para Milkshake', cat: 'activations', sub: 'soft', resp: 'Matheus', qt: '1000', obs: 'OK' },
+            { text: 'Fontes (Dorella e Pistache)', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '2', forn: 'Supermix', obs: 'Locado' },
+            { text: 'Pump aquecida para Skimo', cat: 'activations', sub: 'soft', resp: 'Claudiano', qt: '1', forn: 'Supermix', obs: 'Tratando' },
+            { text: 'Furos para fontes e pump', cat: 'activations', sub: 'soft', resp: 'Claudiano', forn: 'Montadora', obs: 'Encaminhado' },
+            { text: 'Promotora Degustação', cat: 'activations', sub: 'soft', resp: 'Larissa', qt: '2', obs: 'Treinamento com equipe' },
+            { text: 'Plaquinhas para expositor Recheios', cat: 'activations', sub: 'soft', resp: 'Matheus', obs: 'Aguardando sabores' },
+
+            // Ativações & Ações -> Totens
+            { text: 'Criar Convite Totens', cat: 'activations', sub: 'totens', resp: 'Larissa', obs: 'Feito' },
+            { text: 'Criar forms', cat: 'activations', sub: 'totens', resp: 'Larissa', obs: 'Feito' },
+            { text: 'Definir participantes', cat: 'activations', sub: 'totens', resp: 'Claudiano', obs: 'Feito' },
+            { text: 'Criar artes com logo e localidade', cat: 'activations', sub: 'totens', resp: 'Larissa', obs: 'Enviado' },
+            { text: 'Enviar para Fispal - Arte', cat: 'activations', sub: 'totens', resp: 'Claudiano', qt: '18', obs: 'Feito' },
+            { text: '1 totem entrada (Bem-vindos, Mapa)', cat: 'activations', sub: 'totens', resp: 'Larissa', forn: 'AGÊNCIA LR', obs: 'Arte com a agência' },
+            { text: 'Acompanhar produção', cat: 'activations', sub: 'totens', resp: 'Larissa', obs: '' },
+            { text: 'Acompanhar instalação', cat: 'activations', sub: 'totens', resp: 'Larissa', obs: '' },
+
+            // Geral & Comunicação -> Comunicação Geral
+            { text: 'Paineis internos - Mapa', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'ok' },
+            { text: 'Painéis internos- Definição do conteúdo', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'ok' },
+            { text: 'Painéis internos - Arte', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'ok' },
+            { text: 'Painel anexo 1, 2 e 3', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Aguardando arte' },
+            { text: 'Flyers Lançamentos', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Em andamento' },
+            { text: 'Flyers - destaques', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Em andamento' },
+            { text: 'Catálogo - refação', cat: 'general', sub: 'com_geral', resp: 'Larissa', forn: 'Agência LR', obs: 'Em andamento' },
+
+            // Geral & Comunicação -> Evento Doremus
+            { text: 'Thiago Pedebis - Confirmar', cat: 'general', sub: 'evento_doremus', resp: 'Suzana', obs: 'Em tratativas' },
+            { text: 'Thiago Pedebis - Passagem e Hospedagem', cat: 'general', sub: 'evento_doremus', resp: 'Suzana', obs: 'Emitido' },
+            { text: 'Nome do evento', cat: 'general', sub: 'evento_doremus', resp: 'Larissa', obs: '#DoremusDay25' },
+            { text: 'KV do evento', cat: 'general', sub: 'evento_doremus', resp: 'Larissa', obs: 'Briefing sendo criado' },
+            { text: 'Transfer', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', forn: 'DAYTONA', obs: 'Reservado ás 07h e ás 12:30' },
+            { text: 'Conteúdo com Thalita', cat: 'general', sub: 'evento_doremus', resp: 'Larissa', obs: '' },
+            { text: 'Organizar com portaria, fábrica e Qualidade', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', obs: 'Definir lista' },
+            { text: 'Responsáveis por visitas', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', obs: '' },
+            { text: 'EPIs - Tamanho no RSVP e Organizar', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', obs: '' },
             { text: 'Organizar almoço com Nutrição', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', obs: '' },
+            { text: 'Briefing para diretores e stakeholders', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', obs: '' },
+            { text: 'Freezer no refeitorio com picoles', cat: 'general', sub: 'evento_doremus', resp: 'Claudiano', obs: 'Alinhado com Vicente' },
+            { text: 'Sacola Grande Doremus', cat: 'general', sub: 'evento_doremus', resp: 'Larissa', qt: '100', obs: 'Ok' },
 
-            // Geral Montagem
-            { text: 'Responsável eletricista e hidráulico', cat: 'general', sub: 'montagem', resp: 'Claudiano', forn: 'Montadora', obs: 'Eletricista de plantão' },
+            // Geral & Comunicação -> Geral / Montagem
+            { text: 'Quantidade e especificação de pontos de elétrica', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Listagem de equipamentos', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Conversão KVAs', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Pontos de água e deságue', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Planta técnica (elétrica, água, deságue)', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Responsável eletricista e hidraulico', cat: 'general', sub: 'montagem', resp: 'Claudiano', forn: 'Montadora', obs: 'Precisamos de plantão' },
             { text: 'Responsável maquinário', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
-            { text: 'Responsável segurança (25 a 30 pessoas)', cat: 'general', sub: 'montagem', resp: 'Claudiano', forn: 'Vanderlei / Sr Carlos', obs: '' }
-        ];
-
-        const AGENDA_COLORS = [
-            { id: 'blue', bg: 'bg-blue-100', text: 'text-blue-700', ring: 'ring-blue-500' },
-            { id: 'green', bg: 'bg-emerald-100', text: 'text-emerald-700', ring: 'ring-emerald-500' },
-            { id: 'red', bg: 'bg-rose-100', text: 'text-rose-700', ring: 'ring-rose-500' },
-            { id: 'orange', bg: 'bg-orange-100', text: 'text-orange-700', ring: 'ring-orange-500' },
-            { id: 'purple', bg: 'bg-purple-100', text: 'text-purple-700', ring: 'ring-purple-500' },
+            { text: 'Responsável limpeza', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Responsável segurança (25 a 30 pessoas)', cat: 'general', sub: 'montagem', resp: 'Claudiano', forn: 'Sr Carlos', obs: '' },
+            { text: 'Responsável catering / garçons / copeiras', cat: 'general', sub: 'montagem', resp: 'Matheus', obs: 'Em negociação' },
+            { text: 'Responsável painel Led', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Responsável Montadora', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' },
+            { text: 'Dimensionamento correto KVAs / Potência', cat: 'general', sub: 'montagem', resp: 'Claudiano', obs: '' }
         ];
 
         const Avatar = ({ member, size = "w-10 h-10", title }) => {
@@ -1117,7 +1243,7 @@
                                                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
                                                     <div><label className="text-[10px] font-bold text-blue-400 uppercase mb-1 block">Nome *</label><input className="w-full p-2 text-sm border border-blue-200 rounded-lg outline-none focus:border-blue-500" placeholder="Ex: João" value={newMemberName} onChange={e=>setNewMemberName(e.target.value)}/></div>
                                                     <div><label className="text-[10px] font-bold text-blue-400 uppercase mb-1 block">E-mail</label><input type="email" className="w-full p-2 text-sm border border-blue-200 rounded-lg outline-none focus:border-blue-500" placeholder="joao@empresa.com" value={newMemberEmail} onChange={e=>setNewMemberEmail(e.target.value)}/></div>
-                                                    <div><label className="text-[10px] font-bold text-blue-400 uppercase mb-1 block">Função</label><input className="w-full p-2 text-sm border border-blue-200 rounded-lg outline-none focus:border-blue-500" placeholder="Ex: Marketing" value={newMemberRole} onChange={e=>setNewMemberRole(e.target.value)}/></div>
+                                                    <div><label className="text-[10px] font-bold text-blue-400 uppercase mb-1 block">Função</label><input className="w-full p-2 text-sm border border-blue-200 rounded-lg outline-none focus:border-blue-500" placeholder="Ex: Marketing" value={newMemberRole} onChange={e=>setNewRole(e.target.value)}/></div>
                                                     <div><label className="text-[10px] font-bold text-blue-400 uppercase mb-1 block">Senha (Opcional)</label><input type="text" className="w-full p-2 text-sm border border-blue-200 rounded-lg outline-none focus:border-blue-500" placeholder="Ex: 1234" value={newMemberPassword} onChange={e=>setNewMemberPassword(e.target.value)}/></div>
                                                 </div>
                                             </div>
@@ -1212,110 +1338,379 @@
             );
         };
 
-        const NewEventModal = ({ isOpen, onClose, onCreate, members }) => {
-            const [title, setTitle] = useState('');
-            const [location, setLocation] = useState('');
-            const [startDate, setStartDate] = useState('');
-            const [endDate, setEndDate] = useState('');
-            const [driveLink, setDriveLink] = useState('');
-            const [isSingleDay, setIsSingleDay] = useState(false);
-            const [responsible, setResponsible] = useState('');
-            const [team, setTeam] = useState([]);
-            const [useTemplate, setUseTemplate] = useState(true);
-            
-            useEffect(() => { if (isSingleDay) setEndDate(startDate); }, [isSingleDay, startDate]);
-            if (!isOpen) return null;
-            
-            const toggleTeamMember = (memberId) => { if (team.includes(memberId)) setTeam(prev => prev.filter(id => id !== memberId)); else setTeam(prev => [...prev, memberId]); };
-            
-            const handleSubmit = () => {
-                if (!title || !startDate || !responsible) { alert("Preencha Nome, Data e Responsável."); return; }
-                const newEventId = Date.now().toString();
+        const TaskDetailModal = ({ isOpen, onClose, task, members, categories, dbOperations, deleteTask, currentUser, createNotification }) => {
+            const [messageText, setMessageText] = useState("");
+            const [chatAttachment, setChatAttachment] = useState(null);
+            const [newSubtask, setNewSubtask] = useState("");
+            const [showEmojis, setShowEmojis] = useState(false);
+            const [editingMessageId, setEditingMessageId] = useState(null);
+            const [editingText, setEditingText] = useState("");
+
+            const [isTransferring, setIsTransferring] = useState(false);
+            const [transferTargetId, setTransferTargetId] = useState('');
+            const [transferReason, setTransferReason] = useState('');
+
+            const chatEndRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            const currentTask = task; 
+
+            if (!isOpen || !currentTask) return null;
+
+            useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [currentTask.messages]);
+
+            const handleSendMessage = () => {
+                if (!messageText.trim() && !chatAttachment) return;
                 
-                const tasksToCreate = [];
+                const sender = currentUser || members[0]; 
                 
-                if (useTemplate) {
-                    FISPAL_TEMPLATE_TASKS.forEach((t, i) => {
-                        const respMember = members.find(m => m.name.toLowerCase().includes(t.resp.toLowerCase()));
-                        tasksToCreate.push({
-                            id: (Date.now() + i).toString(),
-                            eventId: newEventId,
-                            text: t.text,
-                            category: t.cat,
-                            subcategoryId: t.sub || null,
-                            phase: 'pre',
-                            priority: 'medium',
-                            status: 'planning',
-                            cost: 0,
-                            responsible: respMember || null,
-                            messages: [], support: [], subtasks: [], transferHistory: [], order: Date.now() + i,
-                            quantity: t.qt || '',
-                            supplier: t.forn || '',
-                            nimbiId: '',
-                            deliveryDate: '',
-                            electrical: t.elec || false,
-                            kva: t.kva || '',
-                            voltage: t.volt || '',
-                            hydraulic: t.hydr || '',
-                            observacao: t.obs || ''
+                const newMessage = {
+                    id: Date.now(),
+                    senderId: sender.id,
+                    senderName: sender.name,
+                    text: messageText,
+                    image: chatAttachment,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const updatedMessages = [...(currentTask.messages || []), newMessage];
+                dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
+                
+                const mentions = members.filter(m => messageText.includes(`@${m.name.split(' ')[0]}`) || messageText.includes(`@${m.name}`));
+                mentions.forEach(m => {
+                    if (m.id !== sender.id) {
+                        createNotification({
+                            userId: m.id, title: "Menção no Chat", 
+                            text: `${sender.name} mencionou você na tarefa "${currentTask.text}".`,
+                            taskId: currentTask.id, read: false, createdAt: new Date().toISOString()
                         });
+                    }
+                });
+
+                if (currentTask.responsible && currentTask.responsible.id !== sender.id && !mentions.some(m => m.id === currentTask.responsible.id)) {
+                    createNotification({
+                        userId: currentTask.responsible.id, title: "Nova Mensagem na Tarefa",
+                        text: `${sender.name} comentou na sua tarefa "${currentTask.text}".`,
+                        taskId: currentTask.id, read: false, createdAt: new Date().toISOString()
                     });
                 }
 
-                const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; }
-                const dateRange = isSingleDay || !endDate ? formatDate(startDate) : `${formatDate(startDate)} - ${formatDate(endDate)}`;
-                
-                onCreate({ 
-                    id: newEventId, title, location: location || 'Local a definir', driveLink, startDate, 
-                    endDate: isSingleDay ? startDate : endDate, dateRange, responsibleId: responsible, 
-                    teamIds: team, categories: DEFAULT_CATEGORIES, agenda: [] 
-                }, tasksToCreate);
-                onClose(); 
+                setMessageText("");
+                setChatAttachment(null);
             };
 
+            const handleStartEditing = (msg) => { setEditingMessageId(msg.id); setEditingText(msg.text); };
+            const handleCancelEditing = () => { setEditingMessageId(null); setEditingText(""); };
+
+            const handleSaveEdit = (msgId) => {
+                if (!editingText.trim()) return; 
+                const updatedMessages = currentTask.messages.map(m => m.id === msgId ? { ...m, text: editingText, editedAt: new Date().toISOString() } : m);
+                dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
+                setEditingMessageId(null); setEditingText("");
+            };
+
+            const formatEditedDate = (isoDate) => {
+                if (!isoDate) return "";
+                const date = new Date(isoDate); const today = new Date();
+                const isToday = date.toDateString() === today.toDateString();
+                const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                return isToday ? `Editado às ${timeStr}` : `Editado em ${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às ${timeStr}`;
+            };
+
+            const handleAddSubtask = () => {
+                if (!newSubtask.trim()) return;
+                const newSub = { id: Date.now(), text: newSubtask, completed: false };
+                dbOperations.updateTask(currentTask.id, { subtasks: [...(currentTask.subtasks || []), newSub] });
+                setNewSubtask("");
+            };
+
+            const toggleSubtask = (subId) => {
+                const updatedSubtasks = currentTask.subtasks.map(s => s.id === subId ? { ...s, completed: !s.completed } : s);
+                dbOperations.updateTask(currentTask.id, { subtasks: updatedSubtasks });
+            };
+
+            const handleFileSelect = async (e) => {
+                const file = e.target.files[0];
+                if (file) { const url = await compressImage(file, 400); setChatAttachment(url); }
+            };
+            const addEmoji = (emoji) => { setMessageText(prev => prev + emoji); setShowEmojis(false); };
+
+            const toggleSupport = (memberId) => {
+                const currentSupport = currentTask.support || [];
+                const newSupport = currentSupport.some(m => m.id === memberId) ? currentSupport.filter(m => m.id !== memberId) : [...currentSupport, members.find(m => m.id === memberId)];
+                dbOperations.updateTask(currentTask.id, { support: newSupport });
+            };
+
+            const handleDeleteTask = () => { if(confirm("Tem a certeza que deseja excluir esta tarefa?")) { deleteTask(currentTask.id); onClose(); } };
+
+            const confirmTransfer = () => {
+                if (!transferTargetId) { alert("Por favor, selecione o novo responsável."); return; }
+                if (!transferReason.trim()) { alert("Por favor, preencha o motivo da transferência."); return; }
+                const newResponsible = members.find(m => m.id === transferTargetId);
+                const sender = currentUser || members[0];
+
+                const historyEntry = {
+                    date: new Date().toISOString(),
+                    from: currentTask.responsible || null,
+                    to: newResponsible || null,
+                    reason: transferReason,
+                    by: sender
+                };
+
+                dbOperations.updateTask(currentTask.id, {
+                    responsible: newResponsible || null,
+                    transferHistory: [...(currentTask.transferHistory || []), historyEntry]
+                });
+
+                if (newResponsible) {
+                    createNotification({
+                        userId: newResponsible.id,
+                        title: "Tarefa Transferida",
+                        text: `${sender.name} transferiu a tarefa "${currentTask.text}" para você. Motivo: ${transferReason}`,
+                        taskId: currentTask.id,
+                        read: false,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+
+                setIsTransferring(false);
+            };
+
+            const activeCategory = categories.find(c => c.id === currentTask.category);
+
             return (
-                <Modal isOpen={isOpen} onClose={onClose} title="Novo Evento" hideHeader={true} maxWidth="max-w-3xl">
-                    <div className="bg-gradient-to-r from-blue-900 via-indigo-800 to-purple-900 p-8 text-white relative overflow-hidden"><div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4"><Rocket size={120} /></div><h2 className="text-3xl font-extrabold mb-2 flex items-center gap-3 relative z-10"><Sparkles className="text-amber-400 animate-pulse" /> Criar Novo Evento</h2><p className="text-blue-100 text-sm max-w-md relative z-10 opacity-90">Prepare o terreno para um evento inesquecível. Comece definindo os detalhes principais abaixo.</p></div>
-                    <div className="p-8 space-y-6">
-                        <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Evento *</label><input className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none focus:border-blue-500" placeholder="Ex: Lançamento 2026" value={title} onChange={e=>setTitle(e.target.value)} autoFocus/></div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Local</label><input className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none" placeholder="Cidade/Estado" value={location} onChange={e=>setLocation(e.target.value)}/></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">Link da Pasta <HardDrive size={12} className="text-gray-400"/></label><input className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm outline-none" placeholder="https://drive.google.com/..." value={driveLink} onChange={e=>setDriveLink(e.target.value)}/></div>
-                        </div>
+                <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa: ${currentTask.text}`} fullScreen={true}>
+                    {isTransferring && (
+                        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-in">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Repeat size={20} className="text-blue-600"/> Transferir Tarefa</h3>
+                                
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Novo Responsável</label>
+                                <select className="w-full p-3 border rounded-xl mb-4 bg-gray-50 outline-none focus:border-blue-500" value={transferTargetId} onChange={e=>setTransferTargetId(e.target.value)}>
+                                    <option value="">Selecione...</option>
+                                    {members.filter(m => m.id !== currentTask.responsible?.id && m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
 
-                        <div className="space-y-3"><div className="flex items-center justify-between"><label className="block text-xs font-bold text-gray-500 uppercase">Período *</label><label className="flex items-center gap-2 text-xs font-bold text-blue-600 cursor-pointer"><input type="checkbox" checked={isSingleDay} onChange={e => setIsSingleDay(e.target.checked)}/> Dia único?</label></div><div className="flex gap-2"><input type="date" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" value={startDate} onChange={e=>setStartDate(e.target.value)}/>{!isSingleDay && <input type="date" className="w-full p-3 border rounded-xl bg-gray-50 text-sm" value={endDate} onChange={e=>setEndDate(e.target.value)}/>}</div></div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-100">
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Responsável *</label><div className="space-y-2 max-h-40 overflow-y-auto">{members.map(m => (<div key={m.id} onClick={() => setResponsible(m.id)} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer border transition-all ${responsible === m.id ? 'bg-blue-50 border-blue-500' : 'bg-white border-gray-100 hover:bg-gray-50'}`}><Avatar member={m} size="w-8 h-8"/><span className="text-xs font-bold flex-1">{m.name}</span>{responsible === m.id && <Check size={14} className="text-blue-600"/>}</div>))}</div></div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Equipe</label><div className="flex flex-wrap gap-2">{members.filter(m => m.id !== responsible).map(m => (<button key={m.id} onClick={() => toggleTeamMember(m.id)} className={`flex items-center gap-2 p-1.5 rounded-lg border text-xs ${team.includes(m.id) ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-gray-200'}`}><Avatar member={m} size="w-5 h-5"/> {m.name}</button>))}</div></div>
-                        </div>
-
-                        <div className="pt-2 border-t border-gray-100">
-                            <label className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl cursor-pointer hover:bg-blue-100 transition-colors">
-                                <input type="checkbox" className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" checked={useTemplate} onChange={e => setUseTemplate(e.target.checked)} />
-                                <div>
-                                    <p className="text-sm font-bold text-blue-900">Preencher automaticamente com as tarefas da Fispal 2025</p>
-                                    <p className="text-[10px] text-blue-700">Irá carregar as +60 tarefas, equipamentos e responsáveis extraídos da planilha de planeamento original.</p>
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Motivo da Transferência</label>
+                                <textarea 
+                                    className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 mb-4 text-sm resize-none bg-gray-50" 
+                                    rows="3" placeholder="Por que está transferindo esta tarefa?"
+                                    value={transferReason} onChange={e=>setTransferReason(e.target.value)} autoFocus
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setIsTransferring(false)} className="px-4 py-2 text-sm text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancelar</button>
+                                    <button onClick={confirmTransfer} className="px-4 py-2 text-sm bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700">Confirmar</button>
                                 </div>
-                            </label>
+                            </div>
                         </div>
+                    )}
 
-                        <button onClick={handleSubmit} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold hover:shadow-lg animate-shine bg-[length:200%_auto]">Criar Evento</button>
+                    <div className="flex flex-col md:flex-row h-full">
+                        <div className="flex-1 p-6 overflow-y-auto border-r border-gray-200">
+                            <div className="flex justify-between items-start mb-6">
+                                <h2 className="text-2xl font-bold text-gray-900">{currentTask.text}</h2>
+                                <button onClick={handleDeleteTask} className="text-red-500 hover:bg-red-50 p-2 rounded"><Trash2 size={20}/></button>
+                            </div>
+                            
+                            <div className="mb-4 bg-white p-3 border border-gray-200 rounded-xl shadow-sm flex flex-col sm:flex-row gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status</label>
+                                    <select 
+                                        className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-bold text-gray-700 outline-none focus:border-blue-400" 
+                                        value={currentTask.status || 'planning'} 
+                                        onChange={(e) => dbOperations.updateTask(currentTask.id, { status: e.target.value })}
+                                    >
+                                        {STATUS_COLUMNS.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Categoria Principal</label>
+                                    <select 
+                                        className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-bold text-gray-700 outline-none focus:border-blue-400" 
+                                        value={currentTask.category || ''} 
+                                        onChange={(e) => {
+                                            const newCatId = e.target.value;
+                                            const newCatObj = categories.find(c => c.id === newCatId);
+                                            // Se mudar de categoria e a nova não tiver a subcategoria atual, limpa a subcategoria
+                                            if(!newCatObj?.subcategories?.some(s => s.id === currentTask.subcategoryId)) {
+                                                dbOperations.updateTask(currentTask.id, { category: newCatId, subcategoryId: null });
+                                            } else {
+                                                dbOperations.updateTask(currentTask.id, { category: newCatId });
+                                            }
+                                        }}
+                                    >
+                                        {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                    </select>
+                                </div>
+                                {activeCategory && activeCategory.subcategories && activeCategory.subcategories.length > 0 && (
+                                    <div className="flex-1">
+                                        <label className="block text-[10px] font-bold text-blue-500 uppercase mb-1 flex items-center gap-1"><Layers size={10}/> Subcategoria</label>
+                                        <select 
+                                            className="w-full p-2.5 border border-blue-200 rounded-lg bg-blue-50 text-sm font-bold text-blue-800 outline-none focus:border-blue-400" 
+                                            value={currentTask.subcategoryId || ''} 
+                                            onChange={(e) => dbOperations.updateTask(currentTask.id, { subcategoryId: e.target.value || null })}
+                                        >
+                                            <option value="">Geral</option>
+                                            {activeCategory.subcategories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                             <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 border-b pb-1">Detalhes Operacionais</h4>
+                                <div className="grid grid-cols-2 gap-4 mb-3">
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Quantidade</label><input type="text" className="w-full p-2 border rounded-lg text-sm" value={currentTask.quantity || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { quantity: e.target.value })}/></div>
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Custo (R$)</label><input type="number" className="w-full p-2 border rounded-lg text-sm" value={currentTask.cost || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { cost: e.target.value })}/></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 mb-3">
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Fornecedor</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.supplier || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { supplier: e.target.value })}/></div>
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">ID Nimbi</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.nimbiId || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { nimbiId: e.target.value })}/></div>
+                                </div>
+                                 <div className="mb-3">
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Entrega / Prazo Limite</label>
+                                    <input type="datetime-local" className="w-full p-2 border rounded-lg text-sm" value={currentTask.deliveryDate || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { deliveryDate: e.target.value })}/>
+                                </div>
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Observações</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.observacao || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { observacao: e.target.value })} placeholder="Detalhes..."/></div>
+                             </div>
+
+                             <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 border-b pb-1">Especificações Técnicas</h4>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <input type="checkbox" id="elec_detail" checked={currentTask.electrical} onChange={e=>dbOperations.updateTask(currentTask.id, { electrical: e.target.checked })} className="rounded text-blue-600"/>
+                                    <label htmlFor="elec_detail" className="text-sm font-bold text-gray-700">Requer Elétrica</label>
+                                </div>
+                                {currentTask.electrical && (
+                                    <div className="grid grid-cols-2 gap-4 mb-3 pl-4 border-l-2 border-blue-200">
+                                        <div><label className="block text-[10px] font-bold text-gray-500">KVA</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.kva || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { kva: e.target.value })}/></div>
+                                        <div><label className="block text-[10px] font-bold text-gray-500">Tensão</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.voltage || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { voltage: e.target.value })}/></div>
+                                    </div>
+                                )}
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Hidráulica</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.hydraulic || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { hydraulic: e.target.value })} placeholder="Detalhes..."/></div>
+                             </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1"><UserCheck size={14}/> Responsável</label>
+                                    {currentTask.responsible ? (
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-xl border border-blue-100 flex-1">
+                                                <Avatar member={currentTask.responsible} size="w-6 h-6"/>
+                                                <span className="text-sm font-bold text-blue-900 truncate">{currentTask.responsible.name}</span>
+                                            </div>
+                                            <button onClick={() => { setIsTransferring(true); setTransferTargetId(''); setTransferReason(''); }} className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-blue-600 transition-colors text-sm font-bold flex items-center gap-2 shadow-sm" title="Transferir Tarefa">
+                                                <Repeat size={16}/> Transferir
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            className="w-full p-3 border border-blue-200 rounded-xl bg-blue-50/30 text-sm font-bold text-blue-900 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
+                                            value="" 
+                                            onChange={(e) => {
+                                                const member = members.find(m => m.id === e.target.value);
+                                                dbOperations.updateTask(currentTask.id, { responsible: member || null });
+                                            }}
+                                        >
+                                            <option value="">Atribuir a alguém...</option>
+                                            {members.filter(m => m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    )}
+                                </div>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Apoio</label><div className="flex flex-wrap gap-2">{members.map(m => (<button key={m.id} onClick={() => toggleSupport(m.id)} className={`p-1.5 rounded-full border-2 transition-all ${currentTask.support?.some(s => s.id === m.id) ? 'border-blue-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}><Avatar member={m} size="w-8 h-8"/></button>))}</div></div>
+                            </div>
+
+                            {(currentTask.transferHistory || []).length > 0 && (
+                                <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2"><History size={14}/> Histórico de Transferências</h4>
+                                    <div className="space-y-3">
+                                        {currentTask.transferHistory.map((h, i) => (
+                                            <div key={i} className="text-xs bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative pl-8">
+                                                <div className="absolute left-3 top-4 w-2 h-2 rounded-full bg-blue-500"></div>
+                                                {i < currentTask.transferHistory.length - 1 && <div className="absolute left-[15px] top-6 w-px h-[120%] bg-slate-200"></div>}
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <p className="font-medium text-slate-700">De <strong className="text-slate-900">{h.from?.name || 'Ninguém'}</strong> para <strong className="text-blue-700">{h.to?.name || 'Ninguém'}</strong></p>
+                                                    <span className="text-[9px] text-slate-400">{new Date(h.date).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</span>
+                                                </div>
+                                                <p className="text-slate-600 mb-1"><strong>Motivo:</strong> {h.reason}</p>
+                                                <p className="text-[9px] text-slate-400 font-medium">Registrado por: {h.by?.name || 'Sistema'}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mb-8"><h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><CheckSquare size={18}/> Tarefas Complementares</h3><div className="space-y-2 mb-3">{currentTask.subtasks?.map(sub => (<div key={sub.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group"><input type="checkbox" checked={sub.completed} onChange={() => toggleSubtask(sub.id)} className="w-4 h-4 text-blue-600 rounded cursor-pointer"/><span className={`text-sm flex-1 ${sub.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{sub.text}</span><button onClick={() => { const newSubs = currentTask.subtasks.filter(s => s.id !== sub.id); dbOperations.updateTask(currentTask.id, { subtasks: newSubs }); }} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button></div>))}</div><div className="flex gap-2"><input className="flex-1 p-2 border rounded-lg text-sm" placeholder="Adicionar item..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddSubtask()}/><button onClick={handleAddSubtask} className="bg-blue-100 text-blue-700 p-2 rounded-lg"><Plus size={18}/></button></div></div>
+                        </div>
+                        
+                        <div className="w-full md:w-[400px] bg-gray-50 flex flex-col border-l border-gray-200">
+                            <div className="p-4 border-b bg-white font-bold text-gray-700 flex items-center gap-2"><MessageSquare size={18}/> Chat da Tarefa</div>
+                            <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                                {(currentTask.messages || []).length === 0 && <p className="text-center text-gray-400 text-xs mt-10">Inicie a conversa sobre esta tarefa.<br/>Dica: Digite @nome para notificar alguém!</p>}
+                                {(currentTask.messages || []).map(msg => (
+                                    <div key={msg.id} className={`flex gap-2 group/msg ${msg.senderId === currentUser?.id ? 'flex-row-reverse' : ''}`}>
+                                        <div className="flex-shrink-0 mt-1"><Avatar member={members.find(m => m.id === msg.senderId)} size="w-8 h-8"/></div>
+                                        <div className={`p-3 rounded-xl text-sm max-w-[80%] relative shadow-sm ${msg.senderId === currentUser?.id ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 rounded-tl-none'}`}>
+                                            <p className="text-[10px] font-bold opacity-70 mb-1">{msg.senderName}</p>
+                                            
+                                            {editingMessageId === msg.id ? (
+                                                <div className="flex flex-col gap-2 min-w-[200px]">
+                                                    <textarea 
+                                                        className="w-full p-2 text-gray-800 rounded bg-white/90 border-none outline-none text-sm resize-none" 
+                                                        rows={2} value={editingText} onChange={e => setEditingText(e.target.value)} autoFocus
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={handleCancelEditing} className="text-xs opacity-80 hover:opacity-100 font-bold">Cancelar</button>
+                                                        <button onClick={() => handleSaveEdit(msg.id)} className="bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-xs font-bold">Salvar</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {msg.image && <img src={msg.image} className="w-full rounded-lg mb-2"/>}
+                                                    <p style={{whiteSpace: 'pre-wrap'}}>
+                                                        {msg.text.split(/(@\w+)/g).map((part, index) => 
+                                                            part.startsWith('@') ? <strong key={index} className={msg.senderId === currentUser?.id ? "text-amber-200" : "text-blue-600"}>{part}</strong> : part
+                                                        )}
+                                                    </p>
+                                                    {msg.editedAt && (
+                                                        <div className={`text-[9px] mt-1 flex items-center gap-1 ${msg.senderId === currentUser?.id ? 'text-blue-100 justify-end' : 'text-gray-400 justify-end'}`}>
+                                                            <Edit2 size={8} /> {formatEditedDate(msg.editedAt)}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {msg.senderId === currentUser?.id && !editingMessageId && (
+                                                <button 
+                                                    onClick={() => handleStartEditing(msg)} 
+                                                    className="absolute -top-2 -right-2 bg-gray-200 text-gray-600 hover:bg-blue-500 hover:text-white rounded-full p-1 opacity-0 group-hover/msg:opacity-100 transition-opacity shadow-sm"
+                                                    title="Editar mensagem"
+                                                >
+                                                    <Edit2 size={10}/>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={chatEndRef}></div>
+                            </div>
+                            <div className="p-3 bg-white border-t">
+                                {chatAttachment && (<div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg mb-2 text-xs text-blue-700"><ImageIcon size={14}/> Imagem selecionada <button onClick={() => setChatAttachment(null)}><X size={14}/></button></div>)}
+                                <div className="flex items-end gap-2">
+                                    <div className="flex-1 bg-gray-100 rounded-xl flex items-center p-1 relative border border-gray-200 focus-within:border-blue-400 transition-colors">
+                                        <button onClick={() => fileInputRef.current.click()} className="p-2 text-gray-400 hover:text-blue-600"><Paperclip size={18}/></button>
+                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
+                                        <button onClick={() => setShowEmojis(!showEmojis)} className="p-2 text-gray-400 hover:text-yellow-500"><Smile size={18}/></button>
+                                        {showEmojis && (<div className="absolute bottom-12 left-0 bg-white shadow-xl border rounded-xl p-2 grid grid-cols-6 gap-2 z-10 w-64">{['👍','👎','🔥','🎉','✅','❌','📅','😊','🤔','👀','🚀','💡'].map(e => (<button key={e} onClick={() => addEmoji(e)} className="text-xl hover:bg-gray-100 rounded p-1">{e}</button>))}</div>)}
+                                        <textarea className="flex-1 bg-transparent border-none outline-none text-sm p-2 max-h-24 resize-none" rows={1} placeholder="Escreva uma mensagem... Use @nome para notificar." value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}/>
+                                    </div>
+                                    <button onClick={handleSendMessage} className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md"><Send size={18}/></button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </Modal>
             );
         };
-
-        const BottomNav = ({ activeTab, onChangeTab, onAdd }) => (
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 flex justify-between items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <button onClick={() => onChangeTab('dashboard')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'dashboard' ? 'text-blue-900' : 'text-gray-400'}`}><Home size={20} /><span className="text-[10px]">Início</span></button>
-                <button onClick={() => onChangeTab('agenda')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'agenda' ? 'text-blue-900' : 'text-gray-400'}`}><CalendarIcon size={20} /><span className="text-[10px]">Agenda</span></button>
-                <div className="relative -top-6"><button onClick={onAdd} className="w-14 h-14 bg-gradient-to-r from-blue-900 to-blue-800 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 transition-transform"><Plus size={28} /></button></div>
-                <button onClick={() => onChangeTab('team')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'team' ? 'text-blue-900' : 'text-gray-400'}`}><Users size={20} /><span className="text-[10px]">Equipe</span></button>
-                <button onClick={() => onChangeTab('settings')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'settings' ? 'text-blue-900' : 'text-gray-400'}`}><Settings size={20} /><span className="text-[10px]">Ajustes</span></button>
-            </div>
-        );
 
         function App() {
             const [view, setView] = useState('dashboard');
