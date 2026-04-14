@@ -158,7 +158,7 @@
             });
         };
 
-        const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+        const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val) || 0);
         
         const getDaysLeft = (evt) => {
             if (!evt || !evt.startDate) return 0;
@@ -204,7 +204,7 @@
             { id: 'done', title: 'Concluído', color: 'emerald', icon: CheckSquare, bgSoft: 'bg-emerald-50/80', border: 'border-emerald-100' }
         ];
 
-        const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift, coffee: Coffee, music: Music, layout: Layout, search: Search, smile: Smile, star: Star, cloud: Cloud, key: Key, lock: Archive, map: MapPin, camera: Camera, folder: Folder };
+        const ICON_MAP = { box: Box, truck: Truck, users: Users, trending: TrendingUp, check: CheckSquare, layers: Layers, zap: Zap, megaphone: Megaphone, palette: Palette, gift: Gift, coffee: Coffee, music: Music, layout: Layout, search: Search, smile: Smile, star: Star, cloud: Cloud, key: Key, lock: Archive, map: MapPin, camera: Camera, folder: Folder, clipboard: ClipboardList };
         const ICON_KEYS = Object.keys(ICON_MAP);
 
         const DEFAULT_CATEGORIES = [
@@ -277,7 +277,7 @@
             );
         };
 
-        // --- TELA DE SELEÇÃO DE PERFIL COM SENHA ---
+        // --- TELA DE SELEÇÃO DE PERFIL ---
         const ProfileSelectionScreen = ({ members, onSelect }) => {
             const [selectedProfile, setSelectedProfile] = useState(null);
             const [passwordInput, setPasswordInput] = useState('');
@@ -450,6 +450,194 @@
 
         const BellOff = ({size, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M13.73 21a2 2 0 0 1-3.46 0"></path><path d="M18.63 13A17.89 17.89 0 0 1 18 8"></path><path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14"></path><path d="M18 8a6 6 0 0 0-9.33-5"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>;
 
+        // --- IMPORTAÇÃO EM MASSA (MODAL DE COLAR DO EXCEL) ---
+        const BulkImportModal = ({ isOpen, onClose, eventCategories, onImport, members }) => {
+            const [pasteData, setPasteData] = useState('');
+            const [category, setCategory] = useState(eventCategories[0]?.id || '');
+            const [phase, setPhase] = useState('pre');
+
+            if (!isOpen) return null;
+
+            const handleParseAndImport = () => {
+                if (!pasteData.trim()) return;
+                const rows = pasteData.split('\n').filter(r => r.trim());
+                let newTasks = [];
+                
+                // Ignora cabeçalhos se as primeiras palavras combinarem
+                let startIndex = 0;
+                if (rows[0].toLowerCase().includes('laboratório') || rows[0].toLowerCase().includes('qtde') || rows[0].toLowerCase().includes('status')) {
+                    startIndex = 1;
+                }
+
+                for (let i = startIndex; i < rows.length; i++) {
+                    const cols = rows[i].split('\t');
+                    if(cols.length < 1) continue;
+
+                    const text = cols[0]?.trim();
+                    if(!text) continue;
+
+                    const quantity = cols[1]?.trim() || '';
+                    const respName = cols[2]?.trim();
+                    const supportNames = cols[3]?.trim();
+                    const supplier = cols[4]?.trim() || '';
+                    const deliveryDateStr = cols[5]?.trim() || '';
+                    const transport = cols[6]?.trim() || '';
+                    const statusStr = cols[7]?.trim() || '';
+                    const flagStr = cols[8]?.trim()?.toLowerCase() || '';
+                    const nimbiId = cols[9]?.trim() || '';
+                    const eletricaStr = cols[10]?.trim()?.toLowerCase() || '';
+                    const kva = cols[11]?.trim() || '';
+                    const tensao = cols[12]?.trim() || '';
+                    const hidraulica = cols[13]?.trim() || '';
+                    const obs = cols[14]?.trim() || '';
+
+                    // Match Responsável (Pesquisa parcial ou exata ignorando case)
+                    let responsible = null;
+                    if (respName) {
+                        responsible = members.find(m => m.name.toLowerCase().includes(respName.toLowerCase()) || m.name.toLowerCase() === respName.toLowerCase());
+                    }
+
+                    // Match Apoio (Pode haver vários divididos por vírgula ou barra)
+                    let support = [];
+                    if (supportNames) {
+                        const sNames = supportNames.split(/[\/,;]/);
+                        sNames.forEach(sn => {
+                            const found = members.find(m => m.name.toLowerCase().includes(sn.trim().toLowerCase()));
+                            if (found && !support.some(existing => existing.id === found.id)) support.push(found);
+                        });
+                    }
+
+                    // Match Bandeira/Priority (VERDE, AMARELO, VERMELHO)
+                    let priority = 'medium';
+                    if (flagStr.includes('verde')) priority = 'low';
+                    if (flagStr.includes('vermelho')) priority = 'high';
+
+                    // Formatar data para input datetime-local (YYYY-MM-DDThh:mm) caso seja DD/MM/YYYY
+                    let parsedDate = '';
+                    if(deliveryDateStr) {
+                        const parts = deliveryDateStr.split(/[\/\-.]/);
+                        if(parts.length >= 3) {
+                            let d = parts[0], m = parts[1], y = parts[2].substring(0,4);
+                            if(Number(d) > 12) { // Provavelmente MM/DD/YYYY
+                                let temp = d; d = m; m = temp;
+                            }
+                            parsedDate = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T12:00`;
+                        } else {
+                            // Se não for possível parsear bem, guarda a string crua que será inserida nas observações.
+                        }
+                    }
+
+                    // Preparar texto e observações
+                    let fullText = text;
+                    if (transport) fullText += ` (Transp: ${transport})`;
+
+                    let initialMessages = [];
+                    if (obs || (deliveryDateStr && !parsedDate)) {
+                        let msgText = obs ? `Observação importada: ${obs}` : '';
+                        if(deliveryDateStr && !parsedDate) msgText += `\nData indicada na planilha: ${deliveryDateStr}`;
+                        
+                        initialMessages.push({
+                            id: Date.now() + Math.random(),
+                            senderId: 'system',
+                            senderName: 'Importação do Sistema',
+                            text: msgText.trim(),
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+                    if (statusStr && statusStr.toLowerCase() !== 'ok') {
+                        initialMessages.push({
+                            id: Date.now() + Math.random(),
+                            senderId: 'system',
+                            senderName: 'Status Anterior',
+                            text: `Status original da planilha: ${statusStr}`,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+
+                    newTasks.push({
+                        id: Date.now() + i + Math.floor(Math.random() * 1000),
+                        text: fullText,
+                        category: category,
+                        subcategoryId: null,
+                        phase: phase,
+                        responsible: responsible || null,
+                        support: support,
+                        status: 'planning', // Status padrão para todas as recém-importadas
+                        priority: priority,
+                        cost: 0,
+                        quantity: quantity,
+                        supplier: supplier,
+                        nimbiId: nimbiId,
+                        electrical: (eletricaStr === 'sim' || eletricaStr === 's' || eletricaStr === 'ok'),
+                        kva: kva,
+                        voltage: tensao,
+                        hydraulic: hidraulica,
+                        deliveryDate: parsedDate,
+                        subtasks: [],
+                        messages: initialMessages,
+                        transferHistory: [],
+                        order: Date.now() + i
+                    });
+                }
+
+                if(newTasks.length > 0) {
+                    onImport(newTasks);
+                }
+                setPasteData('');
+                onClose();
+            };
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Importar Tarefas via Planilha" maxWidth="max-w-4xl">
+                    <div className="p-6 space-y-4">
+                        <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl text-sm mb-4 border border-emerald-200">
+                            <p className="font-bold mb-1 flex items-center gap-2"><ClipboardList size={18}/> Instruções de Importação:</p>
+                            <p className="text-xs">Copie as células do Excel/Google Sheets e cole na caixa de texto abaixo. O sistema lerá as colunas na seguinte ordem:</p>
+                            <div className="mt-3 p-3 bg-white rounded-lg border border-emerald-200 overflow-x-auto">
+                                <p className="text-[10px] font-mono whitespace-nowrap text-gray-600">
+                                    <strong className="text-emerald-700">1. Laboratório/Item</strong> | 2. Qtde | <strong className="text-blue-600">3. Responsável</strong> | 4. Apoio | 5. Fornecedor | 6. Data Entrega | 7. Transporte | 8. Status | <strong className="text-red-500">9. Bandeira (Verde/Amarelo/Vermelho)</strong> | 10. ID Nimbi | 11. Elétrica | 12. KVA | 13. Tensão | 14. Hidráulica | 15. Observação
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Categoria Destino (Padrão)</label>
+                                <select className="w-full p-2.5 border rounded-xl mt-1 bg-gray-50 outline-none focus:border-emerald-500" value={category} onChange={e=>setCategory(e.target.value)}>
+                                    {eventCategories.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Fase Destino (Padrão)</label>
+                                <select className="w-full p-2.5 border rounded-xl mt-1 bg-gray-50 outline-none focus:border-emerald-500" value={phase} onChange={e=>setPhase(e.target.value)}>
+                                    <option value="pre">Pré-Evento</option>
+                                    <option value="during">Durante</option>
+                                    <option value="post">Pós-Evento</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase block mb-2 flex items-center gap-1"><Paperclip size={14}/> Cole os dados aqui:</label>
+                            <textarea 
+                                className="w-full h-48 p-3 border rounded-xl text-xs font-mono whitespace-pre outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all shadow-inner"
+                                placeholder="Clique aqui e pressione Ctrl+V para colar sua tabela..."
+                                value={pasteData}
+                                onChange={(e) => setPasteData(e.target.value)}
+                            />
+                        </div>
+                        
+                        <div className="flex gap-2 pt-2 border-t border-gray-100">
+                            <button onClick={onClose} className="px-6 py-3 text-gray-500 font-bold hover:bg-gray-100 rounded-xl transition-colors">Cancelar</button>
+                            <button onClick={handleParseAndImport} className="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition-colors shadow-md flex justify-center items-center gap-2">
+                                <Zap size={18}/> Processar e Criar Tarefas
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
         const AIAssistant = ({ isOpen, onClose, context, apiKey }) => {
             const [messages, setMessages] = useState([{ sender: 'ai', text: "Olá! Eu sou o assistente de IA do Event Hub. Selecione uma opção abaixo ou digite sua pergunta." }]);
             const [input, setInput] = useState("");
@@ -482,7 +670,7 @@
                 setIsTyping(true);
 
                 const { events, tasks, members } = context;
-                const eventsSummary = events.map(e => `• ID: ${e.id}, Evento: "${e.title}", Custo: R$${tasks.filter(t => t.eventId === e.id).reduce((acc, t) => acc + (t.cost || 0), 0)}, Tarefas Pendentes: ${tasks.filter(t => t.eventId === e.id && t.status !== 'done').length}`).join('\n');
+                const eventsSummary = events.map(e => `• ID: ${e.id}, Evento: "${e.title}", Custo: R$${tasks.filter(t => t.eventId === e.id).reduce((acc, t) => acc + (Number(t.cost) || 0), 0)}, Tarefas Pendentes: ${tasks.filter(t => t.eventId === e.id && t.status !== 'done').length}`).join('\n');
                 const tasksSummary = tasks.map(t => `• Tarefa: "${t.text}", Status: ${t.status}, Prioridade: ${t.priority}, Responsável: ${t.responsible?.name || 'N/A'}, Custo: R$${t.cost || 0}`).join('\n');
                 const membersSummary = members.map(m => `• Nome: ${m.name} (${m.role})`).join('\n');
 
@@ -1238,7 +1426,7 @@
                     id: Date.now(), eventId, text, category, subcategoryId: subcategoryId || null, phase,
                     responsible: responsibleMember || null, support: supportMembers,
                     status: 'planning', priority: 'medium', subtasks: [], messages: [], transferHistory: [],
-                    cost: Number(cost), order: Date.now(),
+                    cost: Number(cost) || 0, order: Date.now(),
                     quantity, supplier, nimbiId, deliveryDate, electrical, kva, voltage, hydraulic
                 });
                 
@@ -1545,7 +1733,7 @@
                                 <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 border-b pb-1">Detalhes Operacionais</h4>
                                 <div className="grid grid-cols-2 gap-4 mb-3">
                                     <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Quantidade</label><input type="number" className="w-full p-2 border rounded-lg text-sm" value={currentTask.quantity || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { quantity: e.target.value })}/></div>
-                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Custo (R$)</label><input type="number" className="w-full p-2 border rounded-lg text-sm" value={currentTask.cost || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { cost: e.target.value })}/></div>
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Custo (R$)</label><input type="number" className="w-full p-2 border rounded-lg text-sm" value={currentTask.cost || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { cost: Number(e.target.value) || 0 })}/></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mb-3">
                                     <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Fornecedor</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.supplier || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { supplier: e.target.value })}/></div>
@@ -1838,6 +2026,7 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [memberFilter, setMemberFilter] = useState('');
             const [expandedCategories, setExpandedCategories] = useState([]);
+            const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
 
             const toggleCategory = (id) => { setExpandedCategories(prev => prev.includes(id) ? [] : [id]); };
 
@@ -1901,7 +2090,7 @@
                 return cats.filter(c => !c.phases || c.phases.length === 0 || c.phases.includes(filterPhase));
             }, [viewGrouping, event.categories, filterPhase]);
 
-            const totalEventCost = filteredTasks.reduce((acc, t) => acc + (t.cost || 0), 0);
+            const totalEventCost = filteredTasks.reduce((acc, t) => acc + (Number(t.cost) || 0), 0);
             const daysLeft = getDaysLeft(event);
             const daysLeftText = daysLeft < 0 ? `Terminou há ${Math.abs(daysLeft)} dias` : daysLeft === 0 ? "É hoje!" : `Faltam ${daysLeft} dias`;
             const formatDate = (d) => { if (!d) return ''; const [y, m, day] = d.split('-'); return `${day}/${m}/${y}`; };
@@ -2005,12 +2194,13 @@
                                 </div>
 
                                 {/* Ações */}
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                                     <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-100 mr-1">
                                         <button onClick={() => setViewGrouping('category')} className={`p-1.5 rounded-lg transition-all ${viewGrouping === 'category' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-gray-200' : 'text-gray-400 hover:bg-gray-100'}`} title="Ver por Categoria"><Grid size={16}/></button>
                                         <button onClick={() => setViewGrouping('status')} className={`p-1.5 rounded-lg transition-all ${viewGrouping === 'status' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-gray-200' : 'text-gray-400 hover:bg-gray-100'}`} title="Ver por Status"><Columns size={16}/></button>
                                     </div>
                                     <button onClick={onOpenCategorySettings} className="p-2 border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-blue-600 transition-colors bg-white shadow-sm" title="Ajustes de Categoria"><Settings size={16}/></button>
+                                    <button onClick={() => setIsBulkImportOpen(true)} className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 hover:shadow-lg transition-all flex items-center gap-2"><ClipboardList size={14}/> Colar Planilha</button>
                                     <button onClick={onAddTask} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-xs font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all flex items-center gap-2"><Plus size={14}/> Nova Tarefa</button>
                                 </div>
                             </div>
@@ -2170,6 +2360,7 @@
                     </div>
                     {selectedTask && <TaskDetailModal isOpen={isTaskModalOpen} onClose={() => { setIsTaskModalOpen(false); setSelectedTaskId(null); }} task={selectedTask} members={members} categories={categories} dbOperations={{ updateTask: (id, updates) => onUpdateTask(id, updates) }} deleteTask={onDeleteTask} currentUser={currentUser} createNotification={createNotification}/>}
                     <EditEventModal isOpen={isEditEventOpen} onClose={() => setIsEditEventOpen(false)} event={event} onUpdate={onUpdateEvent} members={members} onDelete={onDeleteEvent} />
+                    <BulkImportModal isOpen={isBulkImportOpen} onClose={() => setIsBulkImportOpen(false)} eventCategories={categories} members={members} onImport={(newTasksList) => { newTasksList.forEach(t => { t.eventId = event.id; onAddTaskBulk(t); }); }} />
                 </div>
             );
         };
@@ -2376,6 +2567,7 @@
                             onOpenCategorySettings={() => setIsCatSettingsOpen(true)} onAddTask={() => setIsNewTaskOpen(true)}
                             onAddTeamMember={handleAddTeamMember} onRemoveTeamMember={handleRemoveTeamMember}
                             onDeleteEvent={handleDeleteEvent} onCreateMember={handleAddMember} createNotification={handleCreateNotification}
+                            onAddTaskBulk={handleCreateTask}
                         />
                     )}
                     {view === 'agenda' && <GlobalAgendaView events={events} tasks={tasks} onAddAgendaItem={handleGlobalAddAgenda} onDeleteAgendaItem={handleGlobalDeleteAgenda} onUpdateAgendaItem={handleGlobalUpdateAgenda}/>}
@@ -2387,7 +2579,7 @@
                     <button onClick={() => setIsAIOpen(!isAIOpen)} className="fixed bottom-24 right-6 w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full shadow-xl shadow-blue-600/30 flex items-center justify-center text-white z-[150] hover:scale-110 transition-transform duration-300 animate-in">
                         {isAIOpen ? <X size={24}/> : <Sparkles size={24}/>}
                     </button>
-                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: tasks.reduce((a,b)=>a+(b.cost||0),0), tasks, members, events}} apiKey={geminiKey} />
+                    <AIAssistant isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} context={{totalCost: tasks.reduce((a,b)=>a+(Number(b.cost)||0),0), tasks, members, events}} apiKey={geminiKey} />
 
                     <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} onCreate={handleCreateEvent} members={members} />
                     <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} members={members} onUpdateMember={handleUpdateMember} onAddMember={handleAddMember} onDeleteMember={handleDeleteMember} onUpdateLogo={handleUpdateLogo} currentLogo={logo} managerId={managerId} onUpdateManager={handleUpdateManager} onUpdateGeminiKey={handleUpdateGeminiKey} currentAppId={appId} onUpdateAppId={handleUpdateAppId} managerPassword={managerPassword} onUpdatePassword={handleUpdatePassword}/>
