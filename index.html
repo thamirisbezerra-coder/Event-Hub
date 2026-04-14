@@ -1509,6 +1509,378 @@
             </div>
         );
 
+        const TaskDetailModal = ({ isOpen, onClose, task, members, categories, dbOperations, deleteTask, currentUser, createNotification }) => {
+            const [messageText, setMessageText] = useState("");
+            const [chatAttachment, setChatAttachment] = useState(null);
+            const [newSubtask, setNewSubtask] = useState("");
+            const [showEmojis, setShowEmojis] = useState(false);
+            const [editingMessageId, setEditingMessageId] = useState(null);
+            const [editingText, setEditingText] = useState("");
+
+            const [isTransferring, setIsTransferring] = useState(false);
+            const [transferTargetId, setTransferTargetId] = useState('');
+            const [transferReason, setTransferReason] = useState('');
+
+            const chatEndRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            const currentTask = task; 
+
+            if (!isOpen || !currentTask) return null;
+
+            useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [currentTask.messages]);
+
+            const handleSendMessage = () => {
+                if (!messageText.trim() && !chatAttachment) return;
+                
+                const sender = currentUser || members[0]; 
+                
+                const newMessage = {
+                    id: Date.now(),
+                    senderId: sender.id,
+                    senderName: sender.name,
+                    text: messageText,
+                    image: chatAttachment,
+                    timestamp: new Date().toISOString()
+                };
+                
+                const updatedMessages = [...(currentTask.messages || []), newMessage];
+                dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
+                
+                const mentions = members.filter(m => messageText.includes(`@${m.name.split(' ')[0]}`) || messageText.includes(`@${m.name}`));
+                mentions.forEach(m => {
+                    if (m.id !== sender.id) {
+                        createNotification({
+                            userId: m.id, title: "Menção no Chat", 
+                            text: `${sender.name} mencionou você na tarefa "${currentTask.text}".`,
+                            taskId: currentTask.id, read: false, createdAt: new Date().toISOString()
+                        });
+                    }
+                });
+
+                if (currentTask.responsible && currentTask.responsible.id !== sender.id && !mentions.some(m => m.id === currentTask.responsible.id)) {
+                    createNotification({
+                        userId: currentTask.responsible.id, title: "Nova Mensagem na Tarefa",
+                        text: `${sender.name} comentou na sua tarefa "${currentTask.text}".`,
+                        taskId: currentTask.id, read: false, createdAt: new Date().toISOString()
+                    });
+                }
+
+                setMessageText("");
+                setChatAttachment(null);
+            };
+
+            const handleStartEditing = (msg) => { setEditingMessageId(msg.id); setEditingText(msg.text); };
+            const handleCancelEditing = () => { setEditingMessageId(null); setEditingText(""); };
+
+            const handleSaveEdit = (msgId) => {
+                if (!editingText.trim()) return; 
+                const updatedMessages = currentTask.messages.map(m => m.id === msgId ? { ...m, text: editingText, editedAt: new Date().toISOString() } : m);
+                dbOperations.updateTask(currentTask.id, { messages: updatedMessages });
+                setEditingMessageId(null); setEditingText("");
+            };
+
+            const formatEditedDate = (isoDate) => {
+                if (!isoDate) return "";
+                const date = new Date(isoDate); const today = new Date();
+                const isToday = date.toDateString() === today.toDateString();
+                const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                return isToday ? `Editado às ${timeStr}` : `Editado em ${date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })} às ${timeStr}`;
+            };
+
+            const handleAddSubtask = () => {
+                if (!newSubtask.trim()) return;
+                const newSub = { id: Date.now(), text: newSubtask, completed: false };
+                dbOperations.updateTask(currentTask.id, { subtasks: [...(currentTask.subtasks || []), newSub] });
+                setNewSubtask("");
+            };
+
+            const toggleSubtask = (subId) => {
+                const updatedSubtasks = currentTask.subtasks.map(s => s.id === subId ? { ...s, completed: !s.completed } : s);
+                dbOperations.updateTask(currentTask.id, { subtasks: updatedSubtasks });
+            };
+
+            const handleFileSelect = async (e) => {
+                const file = e.target.files[0];
+                if (file) { const url = await compressImage(file, 400); setChatAttachment(url); }
+            };
+            const addEmoji = (emoji) => { setMessageText(prev => prev + emoji); setShowEmojis(false); };
+
+            const toggleSupport = (memberId) => {
+                const currentSupport = currentTask.support || [];
+                const newSupport = currentSupport.some(m => m.id === memberId) ? currentSupport.filter(m => m.id !== memberId) : [...currentSupport, members.find(m => m.id === memberId)];
+                dbOperations.updateTask(currentTask.id, { support: newSupport });
+            };
+
+            const handleDeleteTask = () => { if(confirm("Tem a certeza que deseja excluir esta tarefa?")) { deleteTask(currentTask.id); onClose(); } };
+
+            const confirmTransfer = () => {
+                if (!transferTargetId) { alert("Por favor, selecione o novo responsável."); return; }
+                if (!transferReason.trim()) { alert("Por favor, preencha o motivo da transferência."); return; }
+                const newResponsible = members.find(m => m.id === transferTargetId);
+                const sender = currentUser || members[0];
+
+                const historyEntry = {
+                    date: new Date().toISOString(),
+                    from: currentTask.responsible || null,
+                    to: newResponsible || null,
+                    reason: transferReason,
+                    by: sender
+                };
+
+                dbOperations.updateTask(currentTask.id, {
+                    responsible: newResponsible || null,
+                    transferHistory: [...(currentTask.transferHistory || []), historyEntry]
+                });
+
+                if (newResponsible) {
+                    createNotification({
+                        userId: newResponsible.id,
+                        title: "Tarefa Transferida",
+                        text: `${sender.name} transferiu a tarefa "${currentTask.text}" para você. Motivo: ${transferReason}`,
+                        taskId: currentTask.id,
+                        read: false,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+
+                setIsTransferring(false);
+            };
+
+            const activeCategory = categories.find(c => c.id === currentTask.category);
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title={`Tarefa: ${currentTask.text}`} fullScreen={true}>
+                    {isTransferring && (
+                        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm animate-in">
+                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2"><Repeat size={20} className="text-blue-600"/> Transferir Tarefa</h3>
+                                
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Novo Responsável</label>
+                                <select className="w-full p-3 border rounded-xl mb-4 bg-gray-50 outline-none focus:border-blue-500" value={transferTargetId} onChange={e=>setTransferTargetId(e.target.value)}>
+                                    <option value="">Selecione...</option>
+                                    {members.filter(m => m.id !== currentTask.responsible?.id && m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                </select>
+
+                                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Motivo da Transferência</label>
+                                <textarea 
+                                    className="w-full p-3 border rounded-xl outline-none focus:border-blue-500 mb-4 text-sm resize-none bg-gray-50" 
+                                    rows="3" placeholder="Por que está transferindo esta tarefa?"
+                                    value={transferReason} onChange={e=>setTransferReason(e.target.value)} autoFocus
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setIsTransferring(false)} className="px-4 py-2 text-sm text-gray-500 font-bold hover:bg-gray-100 rounded-lg">Cancelar</button>
+                                    <button onClick={confirmTransfer} className="px-4 py-2 text-sm bg-blue-600 text-white font-bold rounded-lg shadow hover:bg-blue-700">Confirmar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex flex-col md:flex-row h-full">
+                        <div className="flex-1 p-6 overflow-y-auto border-r border-gray-200">
+                            <div className="flex justify-between items-start mb-6">
+                                <h2 className="text-2xl font-bold text-gray-900">{currentTask.text}</h2>
+                                <button onClick={handleDeleteTask} className="text-red-500 hover:bg-red-50 p-2 rounded"><Trash2 size={20}/></button>
+                            </div>
+                            
+                            <div className="mb-4 bg-white p-3 border border-gray-200 rounded-xl shadow-sm flex flex-col sm:flex-row gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Status</label>
+                                    <select 
+                                        className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-bold text-gray-700 outline-none focus:border-blue-400" 
+                                        value={currentTask.status || 'planning'} 
+                                        onChange={(e) => dbOperations.updateTask(currentTask.id, { status: e.target.value })}
+                                    >
+                                        {STATUS_COLUMNS.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Categoria Principal</label>
+                                    <select 
+                                        className="w-full p-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm font-bold text-gray-700 outline-none focus:border-blue-400" 
+                                        value={currentTask.category || ''} 
+                                        onChange={(e) => {
+                                            const newCatId = e.target.value;
+                                            const newCatObj = categories.find(c => c.id === newCatId);
+                                            if(!newCatObj?.subcategories?.some(s => s.id === currentTask.subcategoryId)) {
+                                                dbOperations.updateTask(currentTask.id, { category: newCatId, subcategoryId: null });
+                                            } else {
+                                                dbOperations.updateTask(currentTask.id, { category: newCatId });
+                                            }
+                                        }}
+                                    >
+                                        {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                                    </select>
+                                </div>
+                                {activeCategory && activeCategory.subcategories && activeCategory.subcategories.length > 0 && (
+                                    <div className="flex-1">
+                                        <label className="block text-[10px] font-bold text-blue-500 uppercase mb-1 flex items-center gap-1"><Layers size={10}/> Subcategoria</label>
+                                        <select 
+                                            className="w-full p-2.5 border border-blue-200 rounded-lg bg-blue-50 text-sm font-bold text-blue-800 outline-none focus:border-blue-400" 
+                                            value={currentTask.subcategoryId || ''} 
+                                            onChange={(e) => dbOperations.updateTask(currentTask.id, { subcategoryId: e.target.value || null })}
+                                        >
+                                            <option value="">Geral</option>
+                                            {activeCategory.subcategories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 border-b pb-1">Detalhes Operacionais</h4>
+                                <div className="grid grid-cols-2 gap-4 mb-3">
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Quantidade</label><input type="text" className="w-full p-2 border rounded-lg text-sm" value={currentTask.quantity || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { quantity: e.target.value })}/></div>
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Custo (R$)</label><input type="number" className="w-full p-2 border rounded-lg text-sm" value={currentTask.cost || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { cost: Number(e.target.value) || 0 })}/></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 mb-3">
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Fornecedor</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.supplier || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { supplier: e.target.value })}/></div>
+                                    <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">ID Nimbi</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.nimbiId || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { nimbiId: e.target.value })}/></div>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Entrega / Prazo Limite</label>
+                                    <input type="datetime-local" className="w-full p-2 border rounded-lg text-sm" value={currentTask.deliveryDate || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { deliveryDate: e.target.value })}/>
+                                </div>
+                            </div>
+
+                            <div className="mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <h4 className="text-xs font-bold text-blue-800 uppercase mb-3 border-b pb-1">Especificações Técnicas</h4>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <input type="checkbox" id={`elec_detail_${currentTask.id}`} checked={currentTask.electrical} onChange={e=>dbOperations.updateTask(currentTask.id, { electrical: e.target.checked })} className="rounded text-blue-600"/>
+                                    <label htmlFor={`elec_detail_${currentTask.id}`} className="text-sm font-bold text-gray-700">Requer Elétrica</label>
+                                </div>
+                                {currentTask.electrical && (
+                                    <div className="grid grid-cols-2 gap-4 mb-3 pl-4 border-l-2 border-blue-200">
+                                        <div><label className="block text-[10px] font-bold text-gray-500">KVA</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.kva || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { kva: e.target.value })}/></div>
+                                        <div><label className="block text-[10px] font-bold text-gray-500">Tensão</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.voltage || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { voltage: e.target.value })}/></div>
+                                    </div>
+                                )}
+                                <div><label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Hidráulica</label><input className="w-full p-2 border rounded-lg text-sm" value={currentTask.hydraulic || ''} onChange={e=>dbOperations.updateTask(currentTask.id, { hydraulic: e.target.value })} placeholder="Detalhes..."/></div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1"><UserCheck size={14}/> Responsável</label>
+                                    {currentTask.responsible ? (
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-xl border border-blue-100 flex-1">
+                                                <Avatar member={currentTask.responsible} size="w-6 h-6"/>
+                                                <span className="text-sm font-bold text-blue-900 truncate">{currentTask.responsible.name}</span>
+                                            </div>
+                                            <button onClick={() => { setIsTransferring(true); setTransferTargetId(''); setTransferReason(''); }} className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-blue-600 transition-colors text-sm font-bold flex items-center gap-2 shadow-sm" title="Transferir Tarefa">
+                                                <Repeat size={16}/> Transferir
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <select 
+                                            className="w-full p-3 border border-blue-200 rounded-xl bg-blue-50/30 text-sm font-bold text-blue-900 focus:ring-2 focus:ring-blue-200 outline-none transition-all" 
+                                            value="" 
+                                            onChange={(e) => {
+                                                const member = members.find(m => m.id === e.target.value);
+                                                dbOperations.updateTask(currentTask.id, { responsible: member || null });
+                                            }}
+                                        >
+                                            <option value="">Atribuir a alguém...</option>
+                                            {members.filter(m => m.active !== false).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    )}
+                                </div>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">Apoio</label><div className="flex flex-wrap gap-2">{members.map(m => (<button key={m.id} onClick={() => toggleSupport(m.id)} className={`p-1.5 rounded-full border-2 transition-all ${currentTask.support?.some(s => s.id === m.id) ? 'border-blue-500 scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}><Avatar member={m} size="w-8 h-8"/></button>))}</div></div>
+                            </div>
+
+                            {(currentTask.transferHistory || []).length > 0 && (
+                                <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase mb-3 flex items-center gap-2"><History size={14}/> Histórico de Transferências</h4>
+                                    <div className="space-y-3">
+                                        {currentTask.transferHistory.map((h, i) => (
+                                            <div key={i} className="text-xs bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative pl-8">
+                                                <div className="absolute left-3 top-4 w-2 h-2 rounded-full bg-blue-500"></div>
+                                                {i < currentTask.transferHistory.length - 1 && <div className="absolute left-[15px] top-6 w-px h-[120%] bg-slate-200"></div>}
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <p className="font-medium text-slate-700">De <strong className="text-slate-900">{h.from?.name || 'Ninguém'}</strong> para <strong className="text-blue-700">{h.to?.name || 'Ninguém'}</strong></p>
+                                                    <span className="text-[9px] text-slate-400">{new Date(h.date).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}</span>
+                                                </div>
+                                                <p className="text-slate-600 mb-1"><strong>Motivo:</strong> {h.reason}</p>
+                                                <p className="text-[9px] text-slate-400 font-medium">Registrado por: {h.by?.name || 'Sistema'}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mb-8"><h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2"><CheckSquare size={18}/> Tarefas Complementares</h3><div className="space-y-2 mb-3">{currentTask.subtasks?.map(sub => (<div key={sub.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg group"><input type="checkbox" checked={sub.completed} onChange={() => toggleSubtask(sub.id)} className="w-4 h-4 text-blue-600 rounded cursor-pointer"/><span className={`text-sm flex-1 ${sub.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{sub.text}</span><button onClick={() => { const newSubs = currentTask.subtasks.filter(s => s.id !== sub.id); dbOperations.updateTask(currentTask.id, { subtasks: newSubs }); }} className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button></div>))}</div><div className="flex gap-2"><input className="flex-1 p-2 border rounded-lg text-sm" placeholder="Adicionar item..." value={newSubtask} onChange={e => setNewSubtask(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddSubtask()}/><button onClick={handleAddSubtask} className="bg-blue-100 text-blue-700 p-2 rounded-lg"><Plus size={18}/></button></div></div>
+                        </div>
+                        
+                        <div className="w-full md:w-[400px] bg-gray-50 flex flex-col border-l border-gray-200">
+                            <div className="p-4 border-b bg-white font-bold text-gray-700 flex items-center gap-2"><MessageSquare size={18}/> Chat da Tarefa</div>
+                            <div className="flex-1 p-4 overflow-y-auto space-y-4">
+                                {(currentTask.messages || []).length === 0 && <p className="text-center text-gray-400 text-xs mt-10">Inicie a conversa sobre esta tarefa.<br/>Dica: Digite @nome para notificar alguém!</p>}
+                                {(currentTask.messages || []).map(msg => (
+                                    <div key={msg.id} className={`flex gap-2 group/msg ${msg.senderId === currentUser?.id ? 'flex-row-reverse' : ''}`}>
+                                        <div className="flex-shrink-0 mt-1"><Avatar member={members.find(m => m.id === msg.senderId)} size="w-8 h-8"/></div>
+                                        <div className={`p-3 rounded-xl text-sm max-w-[80%] relative shadow-sm ${msg.senderId === currentUser?.id ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 rounded-tl-none'}`}>
+                                            <p className="text-[10px] font-bold opacity-70 mb-1">{msg.senderName}</p>
+                                            
+                                            {editingMessageId === msg.id ? (
+                                                <div className="flex flex-col gap-2 min-w-[200px]">
+                                                    <textarea 
+                                                        className="w-full p-2 text-gray-800 rounded bg-white/90 border-none outline-none text-sm resize-none" 
+                                                        rows={2} value={editingText} onChange={e => setEditingText(e.target.value)} autoFocus
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={handleCancelEditing} className="text-xs opacity-80 hover:opacity-100 font-bold">Cancelar</button>
+                                                        <button onClick={() => handleSaveEdit(msg.id)} className="bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded text-xs font-bold">Salvar</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {msg.image && <img src={msg.image} className="w-full rounded-lg mb-2"/>}
+                                                    <p style={{whiteSpace: 'pre-wrap'}}>
+                                                        {msg.text.split(/(@\w+)/g).map((part, index) => 
+                                                            part.startsWith('@') ? <strong key={index} className={msg.senderId === currentUser?.id ? "text-amber-200" : "text-blue-600"}>{part}</strong> : part
+                                                        )}
+                                                    </p>
+                                                    {msg.editedAt && (
+                                                        <div className={`text-[9px] mt-1 flex items-center gap-1 ${msg.senderId === currentUser?.id ? 'text-blue-100 justify-end' : 'text-gray-400 justify-end'}`}>
+                                                            <Edit2 size={8} /> {formatEditedDate(msg.editedAt)}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {msg.senderId === currentUser?.id && !editingMessageId && (
+                                                <button 
+                                                    onClick={() => handleStartEditing(msg)} 
+                                                    className="absolute -top-2 -right-2 bg-gray-200 text-gray-600 hover:bg-blue-500 hover:text-white rounded-full p-1 opacity-0 group-hover/msg:opacity-100 transition-opacity shadow-sm"
+                                                    title="Editar mensagem"
+                                                >
+                                                    <Edit2 size={10}/>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={chatEndRef}></div>
+                            </div>
+                            <div className="p-3 bg-white border-t">
+                                {chatAttachment && (<div className="flex items-center gap-2 bg-blue-50 p-2 rounded-lg mb-2 text-xs text-blue-700"><ImageIcon size={14}/> Imagem selecionada <button onClick={() => setChatAttachment(null)}><X size={14}/></button></div>)}
+                                <div className="flex items-end gap-2">
+                                    <div className="flex-1 bg-gray-100 rounded-xl flex items-center p-1 relative border border-gray-200 focus-within:border-blue-400 transition-colors">
+                                        <button onClick={() => fileInputRef.current.click()} className="p-2 text-gray-400 hover:text-blue-600"><Paperclip size={18}/></button>
+                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect}/>
+                                        <button onClick={() => setShowEmojis(!showEmojis)} className="p-2 text-gray-400 hover:text-yellow-500"><Smile size={18}/></button>
+                                        {showEmojis && (<div className="absolute bottom-12 left-0 bg-white shadow-xl border rounded-xl p-2 grid grid-cols-6 gap-2 z-10 w-64">{['👍','👎','🔥','🎉','✅','❌','📅','😊','🤔','👀','🚀','💡'].map(e => (<button key={e} onClick={() => addEmoji(e)} className="text-xl hover:bg-gray-100 rounded p-1">{e}</button>))}</div>)}
+                                        <textarea className="flex-1 bg-transparent border-none outline-none text-sm p-2 max-h-24 resize-none" rows={1} placeholder="Escreva uma mensagem... Use @nome para notificar." value={messageText} onChange={e => setMessageText(e.target.value)} onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}/>
+                                    </div>
+                                    <button onClick={handleSendMessage} className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md"><Send size={18}/></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            );
+        };
+
         const Dashboard = ({ events, tasks, members, currentUser, notifications, onMarkAsReadNotification, onClearAllNotifications, onSelectEvent, onNewEvent, onMemberClick, onAddAgendaItem, onDeleteAgendaItem, onUpdateAgendaItem, globalLogo, managerId, onLogout }) => {
             const [eventViewMode, setEventViewMode] = useState('active');
             
