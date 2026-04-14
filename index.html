@@ -1388,6 +1388,127 @@
             );
         };
 
+        const NewTaskModal = ({ isOpen, onClose, eventCategories, onCreate, members, eventId }) => {
+            const [text, setText] = useState('');
+            const [category, setCategory] = useState(eventCategories[0]?.id || '');
+            const [subcategoryId, setSubcategoryId] = useState('');
+            const [phase, setPhase] = useState('pre');
+            const [responsible, setResponsible] = useState('');
+            const [support, setSupport] = useState([]);
+            const [cost, setCost] = useState(0);
+
+            const [quantity, setQuantity] = useState('');
+            const [supplier, setSupplier] = useState('');
+            const [nimbiId, setNimbiId] = useState('');
+            const [deliveryDate, setDeliveryDate] = useState('');
+            const [electrical, setElectrical] = useState(false); 
+            const [kva, setKva] = useState('');
+            const [voltage, setVoltage] = useState('');
+            const [hydraulic, setHydraulic] = useState('');
+            const [transport, setTransport] = useState('');
+
+            // Pega o objeto da categoria selecionada para ver as subcategorias
+            const selectedCatObj = eventCategories.find(c => c.id === category);
+
+            useEffect(() => {
+                if(isOpen && category) {
+                    if(selectedCatObj && selectedCatObj.responsibleId && !responsible) {
+                        setResponsible(selectedCatObj.responsibleId);
+                    }
+                    // Reset subcategory if category changes and doesn't have it
+                    if(!selectedCatObj?.subcategories?.some(s => s.id === subcategoryId)) {
+                        setSubcategoryId('');
+                    }
+                }
+            }, [category, isOpen]);
+
+            if (!isOpen) return null;
+
+            const handleCreate = () => {
+                if (!text) return;
+                const responsibleMember = members.find(m => m.id === responsible);
+                const supportMembers = support.map(id => members.find(m => m.id === id)).filter(Boolean);
+
+                onCreate({
+                    id: Date.now(), eventId, text, category, subcategoryId: subcategoryId || null, phase,
+                    responsible: responsibleMember || null, support: supportMembers,
+                    status: 'planning', priority: 'medium', subtasks: [], messages: [], transferHistory: [],
+                    cost: Number(cost) || 0, order: Date.now(),
+                    quantity, supplier, transport, nimbiId, deliveryDate, electrical, kva, voltage, hydraulic
+                });
+                
+                setText(''); setResponsible(''); setSupport([]); setCost(0);
+                setQuantity(''); setSupplier(''); setTransport(''); setNimbiId(''); setDeliveryDate('');
+                setElectrical(false); setKva(''); setVoltage(''); setHydraulic(''); setSubcategoryId('');
+                onClose();
+            };
+
+            const toggleSupport = (id) => {
+                if(support.includes(id)) setSupport(prev => prev.filter(s => s !== id));
+                else setSupport(prev => [...prev, id]);
+            };
+
+            return (
+                <Modal isOpen={isOpen} onClose={onClose} title="Nova Tarefa">
+                    <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                        <input className="w-full p-3 border rounded-xl" placeholder="Descrição da Tarefa" value={text} onChange={e=>setText(e.target.value)} autoFocus/>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Categoria Principal</label>
+                                <select className="w-full p-2 border rounded-lg mt-1" value={category} onChange={e=>setCategory(e.target.value)}>{eventCategories.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select>
+                            </div>
+                            <div><label className="text-xs font-bold text-gray-500 uppercase">Fase</label><select className="w-full p-2 border rounded-lg mt-1" value={phase} onChange={e=>setPhase(e.target.value)}><option value="pre">Pré-Evento</option><option value="during">Durante</option><option value="post">Pós-Evento</option></select></div>
+                        </div>
+
+                        {selectedCatObj && selectedCatObj.subcategories && selectedCatObj.subcategories.length > 0 && (
+                            <div className="animate-in bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                                <label className="text-xs font-bold text-blue-800 uppercase flex items-center gap-1"><Layers size={14}/> Subcategoria (Opcional)</label>
+                                <select className="w-full p-2 border border-blue-200 rounded-lg mt-1 bg-white" value={subcategoryId} onChange={e=>setSubcategoryId(e.target.value)}>
+                                    <option value="">Geral (Sem subcategoria)</option>
+                                    {selectedCatObj.subcategories.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        
+                        <div className="pt-2 border-t border-gray-100">
+                             <p className="text-xs font-bold text-blue-600 uppercase mb-2">Detalhes Operacionais (Opcional)</p>
+                             <div className="grid grid-cols-2 gap-3 mb-2">
+                                <div><label className="text-xs font-bold text-gray-500">Qtd.</label><input type="number" className="w-full p-2 border rounded-lg" value={quantity} onChange={e=>setQuantity(e.target.value)}/></div>
+                                <div><label className="text-xs font-bold text-gray-500">Custo (R$)</label><input type="number" className="w-full p-2 border rounded-lg" value={cost} onChange={e=>setCost(e.target.value)}/></div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-3 mb-2">
+                                <div><label className="text-xs font-bold text-gray-500">Fornecedor</label><input className="w-full p-2 border rounded-lg" value={supplier} onChange={e=>setSupplier(e.target.value)}/></div>
+                                <div><label className="text-xs font-bold text-gray-500">ID Nimbi</label><input className="w-full p-2 border rounded-lg" value={nimbiId} onChange={e=>setNimbiId(e.target.value)}/></div>
+                             </div>
+                             <div className="grid grid-cols-2 gap-3 mb-2">
+                                <div><label className="text-xs font-bold text-gray-500">Transporte</label><input className="w-full p-2 border rounded-lg" value={transport} onChange={e=>setTransport(e.target.value)}/></div>
+                                <div><label className="text-xs font-bold text-gray-500">Data/Hora Entrega (Prazo)</label><input type="datetime-local" className="w-full p-2 border rounded-lg" value={deliveryDate} onChange={e=>setDeliveryDate(e.target.value)}/></div>
+                             </div>
+                        </div>
+
+                         <div className="pt-2 border-t border-gray-100">
+                             <p className="text-xs font-bold text-blue-600 uppercase mb-2">Especificações Técnicas (Opcional)</p>
+                             <div className="flex items-center gap-2 mb-2">
+                                <input type="checkbox" id="elec" checked={electrical} onChange={e=>setElectrical(e.target.checked)} className="rounded text-blue-600"/>
+                                <label htmlFor="elec" className="text-sm text-gray-700 font-bold">Necessita Elétrica?</label>
+                             </div>
+                             {electrical && (
+                                <div className="grid grid-cols-2 gap-3 mb-2 animate-in pl-6 border-l-2 border-gray-100">
+                                    <div><label className="text-xs font-bold text-gray-500">KVA</label><input className="w-full p-2 border rounded-lg" value={kva} onChange={e=>setKva(e.target.value)}/></div>
+                                    <div><label className="text-xs font-bold text-gray-500">Tensão</label><input className="w-full p-2 border rounded-lg" value={voltage} onChange={e=>setVoltage(e.target.value)} placeholder="Ex: 220v"/></div>
+                                </div>
+                             )}
+                             <div><label className="text-xs font-bold text-gray-500">Infos Hidráulica</label><input className="w-full p-2 border rounded-lg" placeholder="Ex: Ponto de água/esgoto" value={hydraulic} onChange={e=>setHydraulic(e.target.value)}/></div>
+                        </div>
+
+                        <div><label className="text-xs font-bold text-gray-500 uppercase">Responsável</label><select className="w-full p-2 border rounded-lg mt-1" value={responsible} onChange={e=>setResponsible(e.target.value)}><option value="">Selecione...</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+                        <div><label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Apoio (Opcional)</label><div className="flex flex-wrap gap-2">{members.filter(m=>m.id!==responsible).map(m=><button key={m.id} onClick={()=>toggleSupport(m.id)} className={`p-1.5 rounded-full border-2 ${support.includes(m.id)?'border-blue-500':'border-transparent opacity-50'}`}><Avatar member={m} size="w-8 h-8"/></button>)}</div></div>
+                        <button onClick={handleCreate} className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold">Adicionar Tarefa</button>
+                    </div>
+                </Modal>
+            );
+        };
+
         const BottomNav = ({ activeTab, onChangeTab, onAdd }) => (
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-2 flex justify-between items-center z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <button onClick={() => onChangeTab('dashboard')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'dashboard' ? 'text-blue-900' : 'text-gray-400'}`}><Home size={20} /><span className="text-[10px]">Início</span></button>
